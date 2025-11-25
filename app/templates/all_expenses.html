@@ -1,0 +1,127 @@
+{% extends "base.html" %}
+
+{% block title %}All Transactions - Financial Tracker{% endblock %}
+
+{% block content %}
+<div class="card">
+    <h1>All Transactions</h1>
+
+    <!-- Search and Filters -->
+    <div class="card" style="background-color: #f9fafb; margin-bottom: 2rem;">
+        <h3 style="margin-bottom: 1rem;">🔍 Search & Filter</h3>
+        <form method="GET" action="{{ url_for('main.all_expenses') }}">
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 1rem;">
+                <div class="form-group" style="margin-bottom: 0;">
+                    <label for="search">Search</label>
+                    <input type="text" id="search" name="search" placeholder="Description, notes, tags..." value="{{ filters.search }}">
+                </div>
+                
+                <div class="form-group" style="margin-bottom: 0;">
+                    <label for="category">Category</label>
+                    <select id="category" name="category">
+                        <option value="">All Categories</option>
+                        {% for category in categories %}
+                            <option value="{{ category.id }}" {% if filters.category == category.id|string %}selected{% endif %}>
+                                {{ category.icon }} {{ category.name }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="form-group" style="margin-bottom: 0;">
+                    <label for="wallet">Wallet</label>
+                    <select id="wallet" name="wallet">
+                        <option value="">All Wallets</option>
+                        {% for wallet in wallets %}
+                            <option value="{{ wallet.id }}" {% if filters.wallet == wallet.id|string %}selected{% endif %}>
+                                {{ wallet.icon }} {{ wallet.name }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="form-group" style="margin-bottom: 0;">
+                    <label for="type">Type</label>
+                    <select id="type" name="type">
+                        <option value="">All Types</option>
+                        <option value="expense" {% if filters.type == 'expense' %}selected{% endif %}>Expense</option>
+                        <option value="income" {% if filters.type == 'income' %}selected{% endif %}>Income</option>
+                        <option value="transfer" {% if filters.type == 'transfer' %}selected{% endif %}>Transfer</option>
+                    </select>
+                </div>
+
+                <div class="form-group" style="margin-bottom: 0;">
+                    <label for="from">From Date</label>
+                    <input type="date" id="from" name="from" value="{{ filters.from }}">
+                </div>
+
+                <div class="form-group" style="margin-bottom: 0;">
+                    <label for="to">To Date</label>
+                    <input type="date" id="to" name="to" value="{{ filters.to }}">
+                </div>
+            </div>
+
+            <div style="display: flex; gap: 0.5rem;">
+                <button type="submit">Apply Filters</button>
+                <a href="{{ url_for('main.all_expenses') }}" style="text-decoration: none;">
+                    <button type="button" class="btn-secondary">Clear</button>
+                </a>
+                <a href="{{ url_for('main.export_csv') }}" style="text-decoration: none; margin-left: auto;">
+                    <button type="button" class="btn-secondary">📥 Export CSV</button>
+                </a>
+            </div>
+        </form>
+    </div>
+
+    <p style="color: var(--color-text-muted); margin-bottom: 1rem;">{{ expenses|length }} transaction(s) found</p>
+
+    {% if expenses %}
+        <table>
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Description</th>
+                    <th>Category</th>
+                    <th class="text-right">Amount (GHS)</th>
+                    <th style="width: 120px;">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for expense in expenses %}
+                <tr>
+                    <td>{{ expense.date.strftime('%d %b %Y') }}</td>
+                    <td>
+                        <div>{{ expense.description }}</div>
+                        {% if expense.tags %}
+                            <div style="margin-top: 0.25rem;">
+                                {% for tag in expense.tags.split(',') %}
+                                    <span class="tag-badge">{{ tag.strip() }}</span>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <span style="font-size: 1.25rem; margin-right: 0.5rem;">{{ expense.category.icon }}</span>
+                        {{ expense.category.name }}
+                    </td>
+                    <td class="currency">
+                        {% if expense.receipt_path %}
+                            <span class="receipt-indicator" title="Has receipt">📎</span>
+                        {% endif %}
+                        {{ "%.2f"|format(expense.amount) }}
+                    </td>
+                    <td>
+                        <a href="{{ url_for('main.edit_expense', id=expense.id) }}" class="btn-sm btn-secondary" style="text-decoration: none; display: inline-block;">Edit</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <p>No transactions found matching your filters.</p>
+        <a href="{{ url_for('main.add_expense') }}" style="display: inline-block; margin-top: 1rem;">
+            <button>Add your first transaction</button>
+        </a>
+    {% endif %}
+</div>
+{% endblock %}

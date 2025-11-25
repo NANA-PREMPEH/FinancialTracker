@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Financial Tracker{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <a href="#main-content" class="skip-link">Skip to main content</a>
+    
+    <header>
+        <div class="container">
+            <a href="{{ url_for('main.dashboard') }}" class="logo">Financial Tracker</a>
+            <nav>
+                <ul>
+                    <li><a href="{{ url_for('main.dashboard') }}">Dashboard</a></li>
+                    <li><a href="{{ url_for('main.add_expense') }}">Add Transaction</a></li>
+                    <li><a href="{{ url_for('main.all_expenses') }}">All Transactions</a></li>
+                    <li><a href="{{ url_for('main.wallets') }}">Wallets</a></li>
+                    <li><a href="{{ url_for('main.budgets') }}">Budgets</a></li>
+                    <li><a href="{{ url_for('main.recurring_transactions') }}">Recurring</a></li>
+                    <li><a href="{{ url_for('main.analytics') }}">Analytics</a></li>
+                    <li><a href="{{ url_for('main.categories') }}">Categories</a></li>
+                    <li><a href="{{ url_for('main.reports') }}">Reports</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <main id="main-content">
+        <div class="container">
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="alert alert-{{ category }}">{{ message }}</div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+            
+            {% block content %}{% endblock %}
+        </div>
+    </main>
+
+    <footer>
+        <div class="container">
+            <p>&copy; 2025 Financial Tracker. Built with accessibility in mind.</p>
+        </div>
+    </footer>
+</body>
+</html>

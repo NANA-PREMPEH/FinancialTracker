@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+
+{% block title %}Add Wallet - Financial Tracker{% endblock %}
+
+{% block content %}
+<div class="card">
+    <h1>Add New Wallet</h1>
+
+    <form method="POST" style="max-width: 30rem;">
+        <div class="form-group">
+            <label for="name">Wallet Name</label>
+            <input type="text" id="name" name="name" placeholder="e.g., Cash, Bank Account" required>
+        </div>
+
+        <div class="form-group">
+            <label for="balance">Initial Balance</label>
+            <input type="number" id="balance" name="balance" step="0.01" value="0" required>
+        </div>
+
+        <div class="form-group">
+            <label for="currency">Currency</label>
+            <select id="currency" name="currency">
+                <option value="GHS">GHS - Ghana Cedi</option>
+                <option value="USD">USD - US Dollar</option>
+                <option value="EUR">EUR - Euro</option>
+                <option value="GBP">GBP - British Pound</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label for="wallet_type">Wallet Type</label>
+            <select id="wallet_type" name="wallet_type">
+                <option value="cash">💵 Cash</option>
+                <option value="bank">🏦 Bank Account</option>
+                <option value="crypto">₿ Crypto Wallet</option>
+                <option value="ewallet">📱 E-Wallet</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label for="icon">Icon</label>
+            <input type="text" id="icon" name="icon" value="💰" maxlength="2">
+        </div>
+
+        <div class="form-group">
+            <label>
+                <input type="checkbox" name="is_shared">
+                Shared Wallet (for families/couples)
+            </label>
+        </div>
+
+        <button type="submit">Create Wallet</button>
+    </form>
+</div>
+{% endblock %}

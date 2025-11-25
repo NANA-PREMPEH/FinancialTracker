@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+
+{% block title %}Categories - Financial Tracker{% endblock %}
+
+{% block content %}
+<div class="card">
+    <h1>Manage Categories</h1>
+
+    <!-- Add Category Form -->
+    <div class="card" style="background-color: #f9fafb; margin-bottom: 2rem;">
+        <h3 style="margin-bottom: 1rem;">Add New Category</h3>
+        <form method="POST" action="{{ url_for('main.add_category') }}" style="display: flex; gap: 1rem; align-items: end;">
+            <div class="form-group" style="flex: 1; margin-bottom: 0;">
+                <label for="name">Category Name</label>
+                <input type="text" id="name" name="name" placeholder="e.g., Groceries" required>
+            </div>
+            <div class="form-group" style="width: 100px; margin-bottom: 0;">
+                <label for="icon">Icon</label>
+                <input type="text" id="icon" name="icon" value="📝" maxlength="2">
+            </div>
+            <button type="submit">Add Category</button>
+        </form>
+    </div>
+
+    <!-- Categories List -->
+    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 1rem;">
+        {% for category in categories %}
+        <div class="card" style="display: flex; justify-content: space-between; align-items: center; padding: 1rem;">
+            <div>
+                <span style="font-size: 2rem; margin-right: 0.5rem;">{{ category.icon }}</span>
+                <strong>{{ category.name }}</strong>
+                {% if category.is_custom %}
+                    <span style="font-size: 0.75rem; color: var(--color-primary);">Custom</span>
+                {% endif %}
+            </div>
+            {% if category.is_custom %}
+            <form method="POST" action="{{ url_for('main.delete_category', id=category.id) }}" style="margin: 0;">
+                <button type="submit" style="background: none; border: none; color: var(--color-danger); cursor: pointer; font-size: 1.25rem;" onclick="return confirm('Delete this category?')">🗑️</button>
+            </form>
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

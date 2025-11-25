@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - Financial Tracker{% endblock %}
+
+{% block content %}
+<h1>Dashboard</h1>
+
+<div class="summary-box" style="background: #f3f2f1; padding: 1.5rem; margin-bottom: 2rem; border-left: 10px solid var(--color-primary);">
+    <h2>Total Expenses</h2>
+    <p style="font-size: 3rem; font-weight: bold; margin: 0;">GHS {{ "%.2f"|format(total_expenses) }}</p>
+</div>
+
+<h2>Recent Expenses</h2>
+{% if recent_expenses %}
+    <table>
+        <thead>
+            <tr>
+                <th>Date</th>
+                <th>Description</th>
+                <th>Category</th>
+                <th class="text-right">Amount (GHS)</th>
+                <th style="width: 120px;">Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for expense in recent_expenses %}
+            <tr>
+                <td>{{ expense.date.strftime('%d %b %Y') }}</td>
+                <td>
+                    <div>{{ expense.description }}</div>
+                    {% if expense.tags %}
+                        <div style="margin-top: 0.25rem;">
+                            {% for tag in expense.tags.split(',') %}
+                                <span class="tag-badge">{{ tag.strip() }}</span>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </td>
+                <td>
+                    <span style="font-size: 1.25rem; margin-right: 0.5rem;">{{ expense.category.icon }}</span>
+                    {{ expense.category.name }}
+                </td>
+                <td class="currency">
+                    {% if expense.receipt_path %}
+                        <span class="receipt-indicator" title="Has receipt">📎</span>
+                    {% endif %}
+                    {{ "%.2f"|format(expense.amount) }}
+                </td>
+                <td>
+                    <a href="{{ url_for('main.edit_expense', id=expense.id) }}" class="btn-sm btn-secondary" style="text-decoration: none; display: inline-block;">Edit</a>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    <div style="margin-top: 1rem;">
+        <a href="{{ url_for('main.all_expenses') }}" style="font-weight: bold;">View all expenses &rarr;</a>
+    </div>
+{% else %}
+    <p>No expenses recorded yet.</p>
+    <a href="{{ url_for('main.add_expense') }}" class="button">Add your first expense</a>
+{% endif %}
+
+{% endblock %}

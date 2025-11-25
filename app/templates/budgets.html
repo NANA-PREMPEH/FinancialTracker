@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+
+{% block title %}Budgets - Financial Tracker{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+        <h1>Budgets</h1>
+        <a href="{{ url_for('main.add_budget') }}">
+            <button>+ Add Budget</button>
+        </a>
+    </div>
+
+    {% for item in budgets %}
+    <div class="card" style="margin-bottom: 1.5rem;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+            <div>
+                <h3 style="margin-bottom: 0.25rem;">
+                    <span style="font-size: 1.5rem; margin-right: 0.5rem;">{{ item.budget.category.icon }}</span>
+                    {{ item.budget.category.name }}
+                </h3>
+                <p style="color: var(--color-text-muted); font-size: 0.9rem;">{{ item.budget.period|title }} Budget</p>
+            </div>
+            <div style="text-align: right;">
+                <div style="font-size: 1.5rem; font-weight: 700; color: {% if item.percentage >= 100 %}var(--color-danger){% elif item.percentage >= 75 %}#f59e0b{% else %}var(--color-success){% endif %};">
+                    GHS {{ "%.2f"|format(item.spent) }}
+                </div>
+                <p style="color: var(--color-text-muted); font-size: 0.9rem;">of GHS {{ "%.2f"|format(item.budget.amount) }}</p>
+            </div>
+        </div>
+
+        <!-- Progress Bar -->
+        <div style="background-color: #e5e7eb; border-radius: 999px; height: 12px; overflow: hidden;">
+            <div style="background-color: {% if item.percentage >= 100 %}var(--color-danger){% elif item.percentage >= 75 %}#f59e0b{% else %}var(--color-success){% endif %}; height: 100%; width: {{ item.percentage if item.percentage <= 100 else 100 }}%; transition: width 0.3s;"></div>
+        </div>
+
+        <div style="display: flex; justify-content: space-between; margin-top: 0.5rem; font-size: 0.85rem; color: var(--color-text-muted);">
+            <span>{{ "%.1f"|format(item.percentage) }}% used</span>
+            <span>GHS {{ "%.2f"|format(item.remaining) }} remaining</span>
+        </div>
+    </div>
+    {% endfor %}
+
+    {% if not budgets %}
+        <p>No budgets set yet. Create your first budget to track spending limits!</p>
+    {% endif %}
+</div>
+{% endblock %}

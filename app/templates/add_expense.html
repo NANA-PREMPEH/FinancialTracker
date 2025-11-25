@@ -1,0 +1,118 @@
+{% extends "base.html" %}
+
+{% block title %}Add Expense - Financial Tracker{% endblock %}
+
+{% block content %}
+<div class="card">
+    <h1>Add Transaction</h1>
+
+    <form method="POST" action="{{ url_for('main.add_expense') }}" enctype="multipart/form-data" style="max-width: 35rem;">
+        
+        <!-- Transaction Type Toggle -->
+        <div class="form-group">
+            <label>Transaction Type</label>
+            <div class="transaction-type-toggle">
+                <input type="radio" id="type_expense" name="transaction_type" value="expense" checked>
+                <label for="type_expense" class="toggle-btn">Expenses</label>
+                
+                <input type="radio" id="type_income" name="transaction_type" value="income">
+                <label for="type_income" class="toggle-btn">Income</label>
+                
+                <input type="radio" id="type_transfer" name="transaction_type" value="transfer">
+                <label for="type_transfer" class="toggle-btn">Transfer</label>
+            </div>
+        </div>
+
+        <!-- Amount -->
+        <div class="form-group">
+            <label for="amount">Amount (GHS)</label>
+            <input type="number" id="amount" name="amount" step="0.01" required autofocus>
+        </div>
+
+        <!-- Description -->
+        <div class="form-group">
+            <label for="description">Description</label>
+            <input type="text" id="description" name="description" placeholder="e.g., Lunch at restaurant" required>
+        </div>
+
+        <!-- Category with Icons -->
+        <div class="form-group">
+            <label>Category</label>
+            <div class="category-grid">
+                {% for category in categories %}
+                <div class="category-option">
+                    <input type="radio" id="cat_{{ category.id }}" name="category" value="{{ category.id }}" {% if loop.first %}checked{% endif %}>
+                    <label for="cat_{{ category.id }}" class="category-card">
+                        <span class="category-icon">{{ category.icon }}</span>
+                        <span class="category-name">{{ category.name }}</span>
+                    </label>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Wallet Selection -->
+        <div class="form-group">
+            <label for="wallet">Wallet</label>
+            <select id="wallet" name="wallet" required>
+                {% for wallet in wallets %}
+                    <option value="{{ wallet.id }}" {% if loop.first %}selected{% endif %}>
+                        {{ wallet.icon }} {{ wallet.name }} ({{ wallet.currency }} {{ "%.2f"|format(wallet.balance) }})
+                    </option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <!-- Date with Quick Selection -->
+        <div class="form-group">
+            <label for="date">Date</label>
+            <div class="date-quick-select">
+                <button type="button" class="btn-sm btn-secondary" onclick="setToday()">Today</button>
+                <button type="button" class="btn-sm btn-secondary" onclick="setYesterday()">Yesterday</button>
+            </div>
+            <input type="date" id="date" name="date" value="{{ now_date }}">
+        </div>
+
+        <!-- Notes -->
+        <div class="form-group">
+            <label for="notes">Notes (Optional)</label>
+            <textarea id="notes" name="notes" rows="3" placeholder="Add additional details..."></textarea>
+        </div>
+
+        <!-- Tags/Labels -->
+        <div class="form-group">
+            <label for="tags">Labels (Optional)</label>
+            <input type="text" id="tags" name="tags" placeholder="e.g., ProviderFee, ServiceFee, Parking">
+            <small style="color: var(--color-text-muted); font-size: 0.85rem;">Separate multiple labels with commas</small>
+        </div>
+
+        <!-- Receipt Upload -->
+        <div class="form-group">
+            <label for="receipt">Receipt Photo (Optional)</label>
+            <input type="file" id="receipt" name="receipt" accept="image/*" class="file-input">
+        </div>
+
+        <button type="submit">Save Transaction</button>
+    </form>
+</div>
+
+<script>
+function setToday() {
+    const today = new Date().toISOString().split('T')[0];
+    document.getElementById('date').value = today;
+}
+
+function setYesterday() {
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    document.getElementById('date').value = yesterday.toISOString().split('T')[0];
+}
+
+// Set today as default
+window.onload = function() {
+    if (!document.getElementById('date').value) {
+        setToday();
+    }
+};
+</script>
+{% endblock %}

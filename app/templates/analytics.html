@@ -1,0 +1,108 @@
+{% extends "base.html" %}
+
+{% block title %}Analytics - Financial Tracker{% endblock %}
+
+{% block content %}
+<div class="card">
+    <h1>Analytics & Insights</h1>
+    <p style="color: var(--color-text-muted); margin-bottom: 2rem;">Visual breakdown of your spending patterns</p>
+
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 2rem; margin-bottom: 2rem;">
+        <!-- Category Breakdown -->
+        <div class="card">
+            <h2 style="margin-bottom: 1.5rem;">Spending by Category</h2>
+            <canvas id="categoryChart"></canvas>
+        </div>
+
+        <!-- Monthly Trend -->
+        <div class="card">
+            <h2 style="margin-bottom: 1.5rem;">Monthly Trend</h2>
+            <canvas id="trendChart"></canvas>
+        </div>
+    </div>
+
+    <!-- Category Details Table -->
+    <div class="card">
+        <h2 style="margin-bottom: 1rem;">Category Breakdown</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Category</th>
+                    <th class="text-right">Total Spent</th>
+                    <th class="text-right">% of Total</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% set total = category_data|sum(attribute=2) %}
+                {% for cat_name, cat_icon, amount in category_data %}
+                <tr>
+                    <td>
+                        <span style="font-size: 1.25rem; margin-right: 0.5rem;">{{ cat_icon }}</span>
+                        {{ cat_name }}
+                    </td>
+                    <td class="currency">GHS {{ "%.2f"|format(amount) }}</td>
+                    <td class="text-right">{{ "%.1f"|format((amount / total * 100) if total > 0 else 0) }}%</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+// Category Pie Chart
+const categoryCtx = document.getElementById('categoryChart').getContext('2d');
+new Chart(categoryCtx, {
+    type: 'doughnut',
+    data: {
+        labels: [{% for cat_name, cat_icon, amount in category_data %}'{{ cat_icon }} {{ cat_name }}'{% if not loop.last %}, {% endif %}{% endfor %}],
+        datasets: [{
+            data: [{% for cat_name, cat_icon, amount in category_data %}{{ amount }}{% if not loop.last %}, {% endif %}{% endfor %}],
+            backgroundColor: [
+                '#4f46e5', '#06b6d4', '#10b981', '#f59e0b', '#ef4444', 
+                '#8b5cf6', '#ec4899', '#14b8a6', '#f97316', '#6366f1'
+            ]
+        }]
+    },
+    options: {
+        responsive: true,
+        plugins: {
+            legend: {
+                position: 'bottom'
+            }
+        }
+    }
+});
+
+// Monthly Trend Line Chart
+const trendCtx = document.getElementById('trendChart').getContext('2d');
+new Chart(trendCtx, {
+    type: 'line',
+    data: {
+        labels: [{% for item in monthly_data %}'{{ item.month }}'{% if not loop.last %}, {% endif %}{% endfor %}],
+        datasets: [{
+            label: 'Expenses',
+            data: [{% for item in monthly_data %}{{ item.amount }}{% if not loop.last %}, {% endif %}{% endfor %}],
+            borderColor: '#4f46e5',
+            backgroundColor: 'rgba(79, 70, 229, 0.1)',
+            tension: 0.4,
+            fill: true
+        }]
+    },
+    options: {
+        responsive: true,
+        plugins: {
+            legend: {
+                display: false
+            }
+        },
+        scales: {
+            y: {
+                beginAtZero: true
+            }
+        }
+    }
+});
+</script>
+{% endblock %}

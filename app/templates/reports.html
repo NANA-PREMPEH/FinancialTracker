@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+
+{% block title %}Reports - Financial Tracker{% endblock %}
+
+{% block content %}
+<h1>Reports</h1>
+
+<div class="reports-container">
+    <section>
+        <h2>Weekly Report (Last 7 Days)</h2>
+        {% if weekly %}
+            <table>
+                <thead><tr><th>Category</th><th class="text-right">Total (GHS)</th></tr></thead>
+                <tbody>
+                    {% for category, amount in weekly %}
+                    <tr><td>{{ category }}</td><td class="currency">{{ "%.2f"|format(amount) }}</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% else %}<p>No data for this week.</p>{% endif %}
+    </section>
+
+    <section>
+        <h2>Monthly Report (This Month)</h2>
+        {% if monthly %}
+            <table>
+                <thead><tr><th>Category</th><th class="text-right">Total (GHS)</th></tr></thead>
+                <tbody>
+                    {% for category, amount in monthly %}
+                    <tr><td>{{ category }}</td><td class="currency">{{ "%.2f"|format(amount) }}</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% else %}<p>No data for this month.</p>{% endif %}
+    </section>
+
+    <section>
+        <h2>Quarterly Report (Last 90 Days)</h2>
+        {% if quarterly %}
+            <table>
+                <thead><tr><th>Category</th><th class="text-right">Total (GHS)</th></tr></thead>
+                <tbody>
+                    {% for category, amount in quarterly %}
+                    <tr><td>{{ category }}</td><td class="currency">{{ "%.2f"|format(amount) }}</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% else %}<p>No data for this quarter.</p>{% endif %}
+    </section>
+
+    <section>
+        <h2>Yearly Report (This Year)</h2>
+        {% if yearly %}
+            <table>
+                <thead><tr><th>Category</th><th class="text-right">Total (GHS)</th></tr></thead>
+                <tbody>
+                    {% for category, amount in yearly %}
+                    <tr><td>{{ category }}</td><td class="currency">{{ "%.2f"|format(amount) }}</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% else %}<p>No data for this year.</p>{% endif %}
+    </section>
+</div>
+
+{% endblock %}

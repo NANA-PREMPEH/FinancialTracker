@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+
+{% block title %}Recurring Transactions - Financial Tracker{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+        <h1>Recurring Transactions</h1>
+        <a href="{{ url_for('main.add_recurring') }}">
+            <button>+ Add Recurring</button>
+        </a>
+    </div>
+
+    {% for trans in recurring %}
+    <div class="card" style="margin-bottom: 1rem; display: flex; justify-content: space-between; align-items: center;">
+        <div>
+            <h3 style="margin-bottom: 0.25rem;">
+                <span style="font-size: 1.25rem; margin-right: 0.5rem;">{{ trans.category.icon }}</span>
+                {{ trans.description }}
+            </h3>
+            <p style="color: var(--color-text-muted); font-size: 0.9rem;">
+                {{ trans.frequency|title }} • {{ trans.category.name }} • {{ trans.wallet.icon }} {{ trans.wallet.name }}
+            </p>
+        </div>
+        <div style="text-align: right;">
+            <div style="font-size: 1.25rem; font-weight: 700;">GHS {{ "%.2f"|format(trans.amount) }}</div>
+            <p style="color: var(--color-text-muted); font-size: 0.85rem;">Next: {{ trans.next_due.strftime('%d %b %Y') if trans.next_due else 'N/A' }}</p>
+        </div>
+    </div>
+    {% endfor %}
+
+    {% if not recurring %}
+        <p>No recurring transactions yet. Set up automatic bills and subscriptions!</p>
+    {% endif %}
+</div>
+{% endblock %}

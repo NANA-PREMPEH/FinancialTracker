@@ -1,0 +1,107 @@
+{% extends "base.html" %}
+
+{% block title %}Edit Expense - Financial Tracker{% endblock %}
+
+{% block content %}
+<div class="card">
+    <h1>Edit Transaction</h1>
+
+    <form method="POST" action="{{ url_for('main.edit_expense', id=expense.id) }}" enctype="multipart/form-data" style="max-width: 35rem;">
+        
+        <!-- Transaction Type Toggle -->
+        <div class="form-group">
+            <label>Transaction Type</label>
+            <div class="transaction-type-toggle">
+                <input type="radio" id="type_expense" name="transaction_type" value="expense" {% if expense.transaction_type == 'expense' %}checked{% endif %}>
+                <label for="type_expense" class="toggle-btn">Expenses</label>
+                
+                <input type="radio" id="type_income" name="transaction_type" value="income" {% if expense.transaction_type == 'income' %}checked{% endif %}>
+                <label for="type_income" class="toggle-btn">Income</label>
+                
+                <input type="radio" id="type_transfer" name="transaction_type" value="transfer" {% if expense.transaction_type == 'transfer' %}checked{% endif %}>
+                <label for="type_transfer" class="toggle-btn">Transfer</label>
+            </div>
+        </div>
+
+        <!-- Amount -->
+        <div class="form-group">
+            <label for="amount">Amount (GHS)</label>
+            <input type="number" id="amount" name="amount" step="0.01" value="{{ expense.amount }}" required>
+        </div>
+
+        <!-- Description -->
+        <div class="form-group">
+            <label for="description">Description</label>
+            <input type="text" id="description" name="description" value="{{ expense.description }}" required>
+        </div>
+
+        <!-- Category with Icons -->
+        <div class="form-group">
+            <label>Category</label>
+            <div class="category-grid">
+                {% for category in categories %}
+                <div class="category-option">
+                    <input type="radio" id="cat_{{ category.id }}" name="category" value="{{ category.id }}" {% if category.id == expense.category_id %}checked{% endif %}>
+                    <label for="cat_{{ category.id }}" class="category-card">
+                        <span class="category-icon">{{ category.icon }}</span>
+                        <span class="category-name">{{ category.name }}</span>
+                    </label>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Wallet Selection -->
+        <div class="form-group">
+            <label for="wallet">Wallet</label>
+            <select id="wallet" name="wallet" required>
+                {% for wallet in wallets %}
+                    <option value="{{ wallet.id }}" {% if wallet.id == expense.wallet_id %}selected{% endif %}>
+                        {{ wallet.icon }} {{ wallet.name }} ({{ wallet.currency }} {{ "%.2f"|format(wallet.balance) }})
+                    </option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <!-- Date -->
+        <div class="form-group">
+            <label for="date">Date</label>
+            <input type="date" id="date" name="date" value="{{ expense.date.strftime('%Y-%m-%d') }}" required>
+        </div>
+
+        <!-- Notes -->
+        <div class="form-group">
+            <label for="notes">Notes (Optional)</label>
+            <textarea id="notes" name="notes" rows="3" placeholder="Add additional details...">{{ expense.notes or '' }}</textarea>
+        </div>
+
+        <!-- Tags/Labels -->
+        <div class="form-group">
+            <label for="tags">Labels (Optional)</label>
+            <input type="text" id="tags" name="tags" value="{{ expense.tags or '' }}" placeholder="e.g., ProviderFee, ServiceFee, Parking">
+            <small style="color: var(--color-text-muted); font-size: 0.85rem;">Separate multiple labels with commas</small>
+        </div>
+
+        <!-- Receipt Upload -->
+        <div class="form-group">
+            <label for="receipt">Receipt Photo (Optional)</label>
+            {% if expense.receipt_path %}
+                <div style="margin-bottom: 0.5rem;">
+                    <img src="{{ url_for('static', filename=expense.receipt_path) }}" alt="Receipt" style="max-width: 200px; border-radius: var(--radius-md); border: 1px solid var(--color-border);">
+                    <p style="font-size: 0.85rem; color: var(--color-text-muted);">Current receipt (upload new to replace)</p>
+                </div>
+            {% endif %}
+            <input type="file" id="receipt" name="receipt" accept="image/*" class="file-input">
+        </div>
+
+        <div style="display: flex; gap: 1rem;">
+            <button type="submit">Update Transaction</button>
+            <a href="{{ url_for('main.dashboard') }}" class="btn-secondary" style="display: inline-block; padding: 0.75rem 1.5rem; text-decoration: none; border-radius: var(--radius-md);">Cancel</a>
+        </div>
+    </form>
+
+    <form method="POST" action="{{ url_for('main.delete_expense', id=expense.id) }}" style="margin-top: 2rem;" onsubmit="return confirm('Are you sure you want to delete this transaction?');">
+        <button type="submit" style="background-color: var(--color-danger);">Delete Transaction</button>
+    </form>
+</div>
+{% endblock %}
