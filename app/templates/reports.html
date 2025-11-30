@@ -16,6 +16,12 @@
                     <tr><td>{{ category }}</td><td class="currency">{{ "%.2f"|format(amount) }}</td></tr>
                     {% endfor %}
                 </tbody>
+                <tfoot>
+                    <tr style="font-weight: bold; background-color: #f8f9fa;">
+                        <td>Total</td>
+                        <td class="currency">{{ "%.2f"|format(weekly_total) }}</td>
+                    </tr>
+                </tfoot>
             </table>
         {% else %}<p>No data for this week.</p>{% endif %}
     </section>
@@ -30,6 +36,12 @@
                     <tr><td>{{ category }}</td><td class="currency">{{ "%.2f"|format(amount) }}</td></tr>
                     {% endfor %}
                 </tbody>
+                <tfoot>
+                    <tr style="font-weight: bold; background-color: #f8f9fa;">
+                        <td>Total</td>
+                        <td class="currency">{{ "%.2f"|format(monthly_total) }}</td>
+                    </tr>
+                </tfoot>
             </table>
         {% else %}<p>No data for this month.</p>{% endif %}
     </section>
@@ -44,6 +56,12 @@
                     <tr><td>{{ category }}</td><td class="currency">{{ "%.2f"|format(amount) }}</td></tr>
                     {% endfor %}
                 </tbody>
+                <tfoot>
+                    <tr style="font-weight: bold; background-color: #f8f9fa;">
+                        <td>Total</td>
+                        <td class="currency">{{ "%.2f"|format(quarterly_total) }}</td>
+                    </tr>
+                </tfoot>
             </table>
         {% else %}<p>No data for this quarter.</p>{% endif %}
     </section>
@@ -58,6 +76,12 @@
                     <tr><td>{{ category }}</td><td class="currency">{{ "%.2f"|format(amount) }}</td></tr>
                     {% endfor %}
                 </tbody>
+                <tfoot>
+                    <tr style="font-weight: bold; background-color: #f8f9fa;">
+                        <td>Total</td>
+                        <td class="currency">{{ "%.2f"|format(yearly_total) }}</td>
+                    </tr>
+                </tfoot>
             </table>
         {% else %}<p>No data for this year.</p>{% endif %}
     </section>

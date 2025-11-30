@@ -517,8 +517,18 @@ def reports():
         Category.name, func.sum(Expense.amount)
     ).join(Category).filter(Expense.date >= year_start, Expense.transaction_type == 'expense').group_by(Category.name).all()
 
+    # Calculate totals
+    weekly_total = sum(amount for _, amount in weekly_expenses)
+    monthly_total = sum(amount for _, amount in monthly_expenses)
+    quarterly_total = sum(amount for _, amount in quarterly_expenses)
+    yearly_total = sum(amount for _, amount in yearly_expenses)
+
     return render_template('reports.html', 
                            weekly=weekly_expenses, 
                            monthly=monthly_expenses, 
                            quarterly=quarterly_expenses, 
-                           yearly=yearly_expenses)
+                           yearly=yearly_expenses,
+                           weekly_total=weekly_total,
+                           monthly_total=monthly_total,
+                           quarterly_total=quarterly_total,
+                           yearly_total=yearly_total)
