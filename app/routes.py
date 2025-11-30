@@ -222,7 +222,36 @@ def all_expenses():
     if date_to:
         query = query.filter(Expense.date <= datetime.strptime(date_to, '%Y-%m-%d'))
     
-    expenses = query.order_by(Expense.date.desc()).all()
+    # Sorting
+    sort_by = request.args.get('sort', 'date')
+    sort_order = request.args.get('order', 'desc')
+    
+    if sort_by == 'date':
+        if sort_order == 'asc':
+            query = query.order_by(Expense.date.asc())
+        else:
+            query = query.order_by(Expense.date.desc())
+    elif sort_by == 'description':
+        if sort_order == 'asc':
+            query = query.order_by(Expense.description.asc())
+        else:
+            query = query.order_by(Expense.description.desc())
+    elif sort_by == 'category':
+        query = query.join(Category)
+        if sort_order == 'asc':
+            query = query.order_by(Category.name.asc())
+        else:
+            query = query.order_by(Category.name.desc())
+    elif sort_by == 'amount':
+        if sort_order == 'asc':
+            query = query.order_by(Expense.amount.asc())
+        else:
+            query = query.order_by(Expense.amount.desc())
+    else:
+        # Default fallback
+        query = query.order_by(Expense.date.desc())
+    
+    expenses = query.all()
     categories = Category.query.all()
     wallets = Wallet.query.all()
     
@@ -236,7 +265,9 @@ def all_expenses():
                              'wallet': wallet_filter,
                              'type': type_filter,
                              'from': date_from,
-                             'to': date_to
+                             'to': date_to,
+                             'sort': sort_by,
+                             'order': sort_order
                          })
 
 # ===== WALLETS =====
