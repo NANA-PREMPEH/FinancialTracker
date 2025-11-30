@@ -69,6 +69,10 @@ class RecurringTransaction(db.Model):
     next_due = db.Column(db.DateTime, nullable=True)
     is_active = db.Column(db.Boolean, default=True)
     notes = db.Column(db.Text, nullable=True)
+    
+    # Relationships
+    category = db.relationship('Category', backref='recurring_transactions', lazy=True)
+    wallet = db.relationship('Wallet', backref='recurring_transactions', lazy=True)
 
     def __repr__(self):
         return f'<RecurringTransaction {self.description} - {self.frequency}>'

@@ -475,6 +475,49 @@ def add_recurring():
     
     return render_template('add_recurring.html', categories=categories, wallets=wallets)
 
+@main.route('/recurring/edit/<int:id>', methods=['GET', 'POST'])
+def edit_recurring(id):
+    recurring = RecurringTransaction.query.get_or_404(id)
+    categories = Category.query.all()
+    wallets = Wallet.query.all()
+    
+    if request.method == 'POST':
+        recurring.amount = float(request.form.get('amount'))
+        recurring.description = request.form.get('description')
+        recurring.category_id = int(request.form.get('category'))
+        recurring.wallet_id = int(request.form.get('wallet'))
+        recurring.transaction_type = request.form.get('transaction_type', 'expense')
+        recurring.frequency = request.form.get('frequency')
+        recurring.notes = request.form.get('notes', '')
+        start_date_str = request.form.get('start_date')
+        
+        if start_date_str:
+            recurring.start_date = datetime.strptime(start_date_str, '%Y-%m-%d')
+        
+        # Recalculate next due date based on frequency
+        if recurring.frequency == 'daily':
+            recurring.next_due = recurring.start_date + timedelta(days=1)
+        elif recurring.frequency == 'weekly':
+            recurring.next_due = recurring.start_date + timedelta(days=7)
+        elif recurring.frequency == 'monthly':
+            recurring.next_due = recurring.start_date + timedelta(days=30)
+        elif recurring.frequency == 'yearly':
+            recurring.next_due = recurring.start_date + timedelta(days=365)
+        
+        db.session.commit()
+        flash('Recurring transaction updated successfully!', 'success')
+        return redirect(url_for('main.recurring_transactions'))
+    
+    return render_template('edit_recurring.html', recurring=recurring, categories=categories, wallets=wallets)
+
+@main.route('/recurring/delete/<int:id>', methods=['POST'])
+def delete_recurring(id):
+    recurring = RecurringTransaction.query.get_or_404(id)
+    db.session.delete(recurring)
+    db.session.commit()
+    flash('Recurring transaction deleted successfully!', 'success')
+    return redirect(url_for('main.recurring_transactions'))
+
 # ===== ANALYTICS =====
 @main.route('/analytics')
 def analytics():

@@ -22,9 +22,21 @@
                 {{ trans.frequency|title }} • {{ trans.category.name }} • {{ trans.wallet.icon }} {{ trans.wallet.name }}
             </p>
         </div>
-        <div style="text-align: right;">
-            <div style="font-size: 1.25rem; font-weight: 700;">GHS {{ "%.2f"|format(trans.amount) }}</div>
-            <p style="color: var(--color-text-muted); font-size: 0.85rem;">Next: {{ trans.next_due.strftime('%d %b %Y') if trans.next_due else 'N/A' }}</p>
+        <div style="display: flex; align-items: center; gap: 1rem;">
+            <div style="text-align: right;">
+                <div style="font-size: 1.25rem; font-weight: 700;">GHS {{ "%.2f"|format(trans.amount) }}</div>
+                <p style="color: var(--color-text-muted); font-size: 0.85rem;">Next: {{ trans.next_due.strftime('%d %b %Y') if trans.next_due else 'N/A' }}</p>
+            </div>
+            <div style="display: flex; gap: 0.5rem;">
+                <a href="{{ url_for('main.edit_recurring', id=trans.id) }}" style="text-decoration: none;">
+                    <button style="background-color: var(--color-primary); color: white; padding: 0.5rem 1rem; border: none; border-radius: 6px; cursor: pointer; font-size: 0.85rem;">
+                        ✏️ Edit
+                    </button>
+                </a>
+                <button onclick="showDeleteRecurringDialog({{ trans.id }}, {{ trans.description|tojson }})" style="background-color: var(--color-danger); color: white; padding: 0.5rem 1rem; border: none; border-radius: 6px; cursor: pointer; font-size: 0.85rem;">
+                    🗑️ Delete
+                </button>
+            </div>
         </div>
     </div>
     {% endfor %}
@@ -33,4 +45,53 @@
         <p>No recurring transactions yet. Set up automatic bills and subscriptions!</p>
     {% endif %}
 </div>
+
+<!-- Delete Confirmation Modal -->
+<div id="deleteRecurringModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.5); z-index: 1000; align-items: center; justify-content: center;">
+    <div style="background: white; padding: 2rem; border-radius: 12px; max-width: 400px; width: 90%; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
+        <h3 style="margin-top: 0; margin-bottom: 1rem; color: var(--color-danger);">⚠️ Delete Recurring Transaction</h3>
+        <p id="deleteRecurringMessage" style="margin-bottom: 1.5rem; color: var(--color-text-muted);"></p>
+        <div style="display: flex; gap: 1rem; justify-content: flex-end;">
+            <button onclick="hideDeleteRecurringDialog()" style="background-color: #6b7280; color: white; padding: 0.75rem 1.5rem; border: none; border-radius: 8px; cursor: pointer; font-size: 1rem; font-weight: 500;">
+                Cancel
+            </button>
+            <button onclick="confirmDeleteRecurring()" style="background-color: #dc2626; color: white; padding: 0.75rem 1.5rem; border: none; border-radius: 8px; cursor: pointer; font-size: 1rem; font-weight: 500;">
+                Delete
+            </button>
+        </div>
+    </div>
+</div>
+
+<form id="deleteRecurringForm" method="POST" style="display: none;">
+</form>
+
+<script>
+let recurringToDelete = null;
+
+function showDeleteRecurringDialog(recurringId, description) {
+    recurringToDelete = recurringId;
+    document.getElementById('deleteRecurringMessage').textContent = `Are you sure you want to delete the recurring transaction "${description}"? This action cannot be undone.`;
+    document.getElementById('deleteRecurringModal').style.display = 'flex';
+}
+
+function hideDeleteRecurringDialog() {
+    document.getElementById('deleteRecurringModal').style.display = 'none';
+    recurringToDelete = null;
+}
+
+function confirmDeleteRecurring() {
+    if (recurringToDelete) {
+        const form = document.getElementById('deleteRecurringForm');
+        form.action = `/recurring/delete/${recurringToDelete}`;
+        form.submit();
+    }
+}
+
+// Close modal when clicking outside
+document.getElementById('deleteRecurringModal').addEventListener('click', function(e) {
+    if (e.target === this) {
+        hideDeleteRecurringDialog();
+    }
+});
+</script>
 {% endblock %}

@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+
+{% block title %}Edit Recurring Transaction - Financial Tracker{% endblock %}
+
+{% block content %}
+<div class="card">
+    <h1>Edit Recurring Transaction</h1>
+
+    <form method="POST" style="max-width: 30rem;">
+        <div class="form-group">
+            <label>Transaction Type</label>
+            <div class="transaction-type-toggle">
+                <input type="radio" id="type_expense" name="transaction_type" value="expense" {% if recurring.transaction_type == 'expense' %}checked{% endif %}>
+                <label for="type_expense" class="toggle-btn">Expense</label>
+                
+                <input type="radio" id="type_income" name="transaction_type" value="income" {% if recurring.transaction_type == 'income' %}checked{% endif %}>
+                <label for="type_income" class="toggle-btn">Income</label>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label for="amount">Amount (GHS)</label>
+            <input type="number" id="amount" name="amount" step="0.01" value="{{ recurring.amount }}" required>
+        </div>
+
+        <div class="form-group">
+            <label for="description">Description</label>
+            <input type="text" id="description" name="description" value="{{ recurring.description }}" placeholder="e.g., Netflix Subscription" required>
+        </div>
+
+        <div class="form-group">
+            <label for="category">Category</label>
+            <select id="category" name="category" required>
+                {% for category in categories %}
+                    <option value="{{ category.id }}" {% if category.id == recurring.category_id %}selected{% endif %}>{{ category.icon }} {{ category.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label for="wallet">Wallet</label>
+            <select id="wallet" name="wallet" required>
+                {% for wallet in wallets %}
+                    <option value="{{ wallet.id }}" {% if wallet.id == recurring.wallet_id %}selected{% endif %}>{{ wallet.icon }} {{ wallet.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label for="frequency">Frequency</label>
+            <select id="frequency" name="frequency" required>
+                <option value="daily" {% if recurring.frequency == 'daily' %}selected{% endif %}>Daily</option>
+                <option value="weekly" {% if recurring.frequency == 'weekly' %}selected{% endif %}>Weekly</option>
+                <option value="monthly" {% if recurring.frequency == 'monthly' %}selected{% endif %}>Monthly</option>
+                <option value="yearly" {% if recurring.frequency == 'yearly' %}selected{% endif %}>Yearly</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label for="start_date">Start Date</label>
+            <input type="date" id="start_date" name="start_date" value="{{ recurring.start_date.strftime('%Y-%m-%d') }}" required>
+        </div>
+
+        <div class="form-group">
+            <label for="notes">Notes (Optional)</label>
+            <textarea id="notes" name="notes" rows="2">{{ recurring.notes or '' }}</textarea>
+        </div>
+
+        <button type="submit">Update Recurring Transaction</button>
+    </form>
+</div>
+{% endblock %}
