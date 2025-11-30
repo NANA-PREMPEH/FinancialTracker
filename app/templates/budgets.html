@@ -31,13 +31,17 @@
 
         <!-- Progress Bar -->
         <div style="background-color: #e5e7eb; border-radius: 999px; height: 12px; overflow: hidden;">
-            <div style="background-color: {% if item.percentage >= 100 %}var(--color-danger){% elif item.percentage >= 75 %}#f59e0b{% else %}var(--color-success){% endif %}; height: 100%; width: {{ item.percentage if item.percentage <= 100 else 100 }}%; transition: width 0.3s;"></div>
+            <div style="background-color: {% if item.percentage >= 100 %}var(--color-danger){% elif item.percentage >= 75 %}#f59e0b{% else %}var(--color-success){% endif %}; height: 100%; width: {{ item.width_percentage }}%; transition: width 0.3s;"></div>
         </div>
 
         <div style="display: flex; justify-content: space-between; margin-top: 0.5rem; font-size: 0.85rem; color: var(--color-text-muted);">
             <span>{{ "%.1f"|format(item.percentage) }}% used</span>
             <span>GHS {{ "%.2f"|format(item.remaining) }} remaining</span>
         </div>
+        
+        <button type="button" onclick="showDeleteDialog({{ item.budget.id }}, '{{ item.budget.category.name }}')" style="background-color: var(--color-danger); color: white; padding: 0.5rem 1rem; border: none; border-radius: 8px; cursor: pointer; font-size: 0.9rem; margin-top: 1rem;">
+            Delete Budget
+        </button>
     </div>
     {% endfor %}
 
@@ -45,4 +49,53 @@
         <p>No budgets set yet. Create your first budget to track spending limits!</p>
     {% endif %}
 </div>
+
+<!-- Delete Confirmation Modal -->
+<div id="deleteModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.5); z-index: 1000; align-items: center; justify-content: center;">
+    <div style="background: white; padding: 2rem; border-radius: 12px; max-width: 400px; width: 90%; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
+        <h3 style="margin-top: 0; margin-bottom: 1rem; color: var(--color-danger);">⚠️ Delete Budget</h3>
+        <p id="deleteMessage" style="margin-bottom: 1.5rem; color: var(--color-text-muted);"></p>
+        <div style="display: flex; gap: 1rem; justify-content: flex-end;">
+            <button onclick="hideDeleteDialog()" style="background-color: #dc2626; color: white; padding: 0.75rem 1.5rem; border: none; border-radius: 8px; cursor: pointer; font-size: 1rem; font-weight: 500;">
+                No
+            </button>
+            <button onclick="confirmDelete()" style="background-color: #16a34a; color: white; padding: 0.75rem 1.5rem; border: none; border-radius: 8px; cursor: pointer; font-size: 1rem; font-weight: 500;">
+                Yes
+            </button>
+        </div>
+    </div>
+</div>
+
+<form id="deleteForm" method="POST" style="display: none;">
+</form>
+
+<script>
+let budgetToDelete = null;
+
+function showDeleteDialog(budgetId, categoryName) {
+    budgetToDelete = budgetId;
+    document.getElementById('deleteMessage').textContent = `Are you sure you want to delete the budget for "${categoryName}"? This action cannot be undone.`;
+    document.getElementById('deleteModal').style.display = 'flex';
+}
+
+function hideDeleteDialog() {
+    document.getElementById('deleteModal').style.display = 'none';
+    budgetToDelete = null;
+}
+
+function confirmDelete() {
+    if (budgetToDelete) {
+        const form = document.getElementById('deleteForm');
+        form.action = `/budgets/delete/${budgetToDelete}`;
+        form.submit();
+    }
+}
+
+// Close modal when clicking outside
+document.getElementById('deleteModal').addEventListener('click', function(e) {
+    if (e.target === this) {
+        hideDeleteDialog();
+    }
+});
+</script>
 {% endblock %}

@@ -20,10 +20,24 @@ def dashboard():
     budgets = Budget.query.filter_by(is_active=True).all()
     budget_alerts = []
     for budget in budgets:
+        # Calculate effective start date based on period
+        now = datetime.utcnow()
+        if budget.period == 'weekly':
+            # Start of current week (Monday)
+            effective_start = now - timedelta(days=now.weekday())
+        elif budget.period == 'monthly':
+            # Start of current month
+            effective_start = datetime(now.year, now.month, 1)
+        elif budget.period == 'yearly':
+            # Start of current year
+            effective_start = datetime(now.year, 1, 1)
+        else:
+            effective_start = budget.start_date
+        
         spent = db.session.query(func.sum(Expense.amount)).filter(
             Expense.category_id == budget.category_id,
             Expense.transaction_type == 'expense',
-            Expense.date >= budget.start_date
+            Expense.date >= effective_start
         ).scalar() or 0
         
         percentage = (spent / budget.amount * 100) if budget.amount > 0 else 0
@@ -308,10 +322,24 @@ def budgets():
     budget_data = []
     
     for budget in all_budgets:
+        # Calculate effective start date based on period
+        now = datetime.utcnow()
+        if budget.period == 'weekly':
+            # Start of current week (Monday)
+            effective_start = now - timedelta(days=now.weekday())
+        elif budget.period == 'monthly':
+            # Start of current month
+            effective_start = datetime(now.year, now.month, 1)
+        elif budget.period == 'yearly':
+            # Start of current year
+            effective_start = datetime(now.year, 1, 1)
+        else:
+            effective_start = budget.start_date
+        
         spent = db.session.query(func.sum(Expense.amount)).filter(
             Expense.category_id == budget.category_id,
             Expense.transaction_type == 'expense',
-            Expense.date >= budget.start_date
+            Expense.date >= effective_start
         ).scalar() or 0
         
         percentage = (spent / budget.amount * 100) if budget.amount > 0 else 0
@@ -319,7 +347,8 @@ def budgets():
             'budget': budget,
             'spent': spent,
             'remaining': budget.amount - spent,
-            'percentage': percentage
+            'percentage': percentage,
+            'width_percentage': min(percentage, 100)
         })
     
     return render_template('budgets.html', budgets=budget_data)
@@ -355,6 +384,14 @@ def add_budget():
         return redirect(url_for('main.budgets'))
     
     return render_template('add_budget.html', categories=categories)
+
+@main.route('/budgets/delete/<int:id>', methods=['POST'])
+def delete_budget(id):
+    budget = Budget.query.get_or_404(id)
+    db.session.delete(budget)
+    db.session.commit()
+    flash('Budget deleted successfully!', 'success')
+    return redirect(url_for('main.budgets'))
 
 # ===== RECURRING TRANSACTIONS =====
 @main.route('/recurring')
