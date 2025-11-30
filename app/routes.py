@@ -48,7 +48,6 @@ def add_expense():
     wallets = Wallet.query.all()
     
     if request.method == 'POST':
-        amount = float(request.form.get('amount'))
         description = request.form.get('description')
         category_id = int(request.form.get('category'))
         wallet_id = int(request.form.get('wallet', 1))
@@ -56,6 +55,19 @@ def add_expense():
         notes = request.form.get('notes', '')
         tags = request.form.get('tags', '')
         transaction_type = request.form.get('transaction_type', 'expense')
+        
+        if not description or not description.strip():
+            flash('Description is required!', 'error')
+            return redirect(url_for('main.add_expense'))
+            
+        try:
+            amount = float(request.form.get('amount'))
+            if amount <= 0:
+                 flash('Amount must be greater than 0!', 'error')
+                 return redirect(url_for('main.add_expense'))
+        except (ValueError, TypeError):
+            flash('Invalid amount provided!', 'error')
+            return redirect(url_for('main.add_expense'))
         
         if date_str:
             date_obj = datetime.strptime(date_str, '%Y-%m-%d')
