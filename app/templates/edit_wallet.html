@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+
+{% block title %}Edit Wallet - Financial Tracker{% endblock %}
+
+{% block content %}
+<div class="card">
+    <h1>Edit Wallet</h1>
+
+    <form method="POST" style="max-width: 30rem;">
+        <div class="form-group">
+            <label for="name">Wallet Name</label>
+            <input type="text" id="name" name="name" value="{{ wallet.name }}" placeholder="e.g., Cash, Bank Account" required>
+        </div>
+
+        <div class="form-group">
+            <label for="balance">Current Balance</label>
+            <input type="number" id="balance" name="balance" step="0.01" value="{{ wallet.balance }}" required>
+        </div>
+
+        <div class="form-group">
+            <label for="currency">Currency</label>
+            <select id="currency" name="currency">
+                <option value="GHS" {% if wallet.currency == 'GHS' %}selected{% endif %}>GHS - Ghana Cedi</option>
+                <option value="USD" {% if wallet.currency == 'USD' %}selected{% endif %}>USD - US Dollar</option>
+                <option value="EUR" {% if wallet.currency == 'EUR' %}selected{% endif %}>EUR - Euro</option>
+                <option value="GBP" {% if wallet.currency == 'GBP' %}selected{% endif %}>GBP - British Pound</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label for="wallet_type">Wallet Type</label>
+            <select id="wallet_type" name="wallet_type">
+                <option value="cash" {% if wallet.wallet_type == 'cash' %}selected{% endif %}>💵 Cash</option>
+                <option value="bank" {% if wallet.wallet_type == 'bank' %}selected{% endif %}>🏦 Bank Account</option>
+                <option value="crypto" {% if wallet.wallet_type == 'crypto' %}selected{% endif %}>₿ Crypto Wallet</option>
+                <option value="ewallet" {% if wallet.wallet_type == 'ewallet' %}selected{% endif %}>📱 E-Wallet</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label for="icon">Icon</label>
+            <input type="text" id="icon" name="icon" value="{{ wallet.icon }}" maxlength="2">
+        </div>
+
+        <div class="form-group">
+            <label>
+                <input type="checkbox" name="is_shared" {% if wallet.is_shared %}checked{% endif %}>
+                Shared Wallet (for families/couples)
+            </label>
+        </div>
+
+        <div style="display: flex; gap: 1rem;">
+            <button type="submit" style="flex: 1;">Update Wallet</button>
+            <a href="{{ url_for('main.wallets') }}" style="flex: 1; text-decoration: none;">
+                <button type="button" style="width: 100%; background-color: var(--color-text-muted);">Cancel</button>
+            </a>
+        </div>
+    </form>
+</div>
+{% endblock %}

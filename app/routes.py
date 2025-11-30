@@ -315,6 +315,39 @@ def add_wallet():
     
     return render_template('add_wallet.html')
 
+@main.route('/wallets/edit/<int:id>', methods=['GET', 'POST'])
+def edit_wallet(id):
+    wallet = Wallet.query.get_or_404(id)
+    
+    if request.method == 'POST':
+        wallet.name = request.form.get('name')
+        wallet.balance = float(request.form.get('balance', 0))
+        wallet.currency = request.form.get('currency', 'GHS')
+        wallet.icon = request.form.get('icon', '💰')
+        wallet.wallet_type = request.form.get('wallet_type', 'cash')
+        wallet.is_shared = request.form.get('is_shared') == 'on'
+        
+        db.session.commit()
+        flash('Wallet updated successfully!', 'success')
+        return redirect(url_for('main.wallets'))
+    
+    return render_template('edit_wallet.html', wallet=wallet)
+
+@main.route('/wallets/delete/<int:id>', methods=['POST'])
+def delete_wallet(id):
+    wallet = Wallet.query.get_or_404(id)
+    
+    # Check if wallet has transactions
+    expense_count = Expense.query.filter_by(wallet_id=id).count()
+    if expense_count > 0:
+        flash(f'Cannot delete wallet with {expense_count} transaction(s). Please reassign or delete transactions first.', 'error')
+        return redirect(url_for('main.wallets'))
+    
+    db.session.delete(wallet)
+    db.session.commit()
+    flash('Wallet deleted successfully!', 'success')
+    return redirect(url_for('main.wallets'))
+
 # ===== BUDGETS =====
 @main.route('/budgets')
 def budgets():

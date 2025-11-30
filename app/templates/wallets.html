@@ -19,6 +19,17 @@
             <p style="opacity: 0.9; font-size: 0.85rem; margin-bottom: 1rem;">{{ wallet.wallet_type|title }}{% if wallet.is_shared %} • Shared{% endif %}</p>
             <div style="font-size: 2rem; font-weight: 700; margin-bottom: 0.25rem;">{{ wallet.currency }} {{ "%.2f"|format(wallet.balance) }}</div>
             <p style="opacity: 0.8; font-size: 0.85rem;">Current Balance</p>
+            
+            <div style="display: flex; gap: 0.5rem; margin-top: 1rem;">
+                <a href="{{ url_for('main.edit_wallet', id=wallet.id) }}" style="flex: 1; text-decoration: none;">
+                    <button style="width: 100%; background-color: rgba(255, 255, 255, 0.2); color: white; padding: 0.5rem; border: 1px solid rgba(255, 255, 255, 0.3); border-radius: 6px; cursor: pointer; font-size: 0.85rem;">
+                        ✏️ Edit
+                    </button>
+                </a>
+                <button onclick="showDeleteWalletDialog({{ wallet.id }}, {{ wallet.name|tojson }})" style="flex: 1; background-color: rgba(220, 38, 38, 0.8); color: white; padding: 0.5rem; border: none; border-radius: 6px; cursor: pointer; font-size: 0.85rem;">
+                    🗑️ Delete
+                </button>
+            </div>
         </div>
         {% endfor %}
     </div>
@@ -27,4 +38,53 @@
         <p>No wallets yet. Create your first wallet to start tracking!</p>
     {% endif %}
 </div>
+
+<!-- Delete Confirmation Modal -->
+<div id="deleteWalletModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.5); z-index: 1000; align-items: center; justify-content: center;">
+    <div style="background: white; padding: 2rem; border-radius: 12px; max-width: 400px; width: 90%; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
+        <h3 style="margin-top: 0; margin-bottom: 1rem; color: var(--color-danger);">⚠️ Delete Wallet</h3>
+        <p id="deleteWalletMessage" style="margin-bottom: 1.5rem; color: var(--color-text-muted);"></p>
+        <div style="display: flex; gap: 1rem; justify-content: flex-end;">
+            <button onclick="hideDeleteWalletDialog()" style="background-color: #dc2626; color: white; padding: 0.75rem 1.5rem; border: none; border-radius: 8px; cursor: pointer; font-size: 1rem; font-weight: 500;">
+                No
+            </button>
+            <button onclick="confirmDeleteWallet()" style="background-color: #16a34a; color: white; padding: 0.75rem 1.5rem; border: none; border-radius: 8px; cursor: pointer; font-size: 1rem; font-weight: 500;">
+                Yes
+            </button>
+        </div>
+    </div>
+</div>
+
+<form id="deleteWalletForm" method="POST" style="display: none;">
+</form>
+
+<script>
+let walletToDelete = null;
+
+function showDeleteWalletDialog(walletId, walletName) {
+    walletToDelete = walletId;
+    document.getElementById('deleteWalletMessage').textContent = `Are you sure you want to delete the wallet "${walletName}"? This action cannot be undone.`;
+    document.getElementById('deleteWalletModal').style.display = 'flex';
+}
+
+function hideDeleteWalletDialog() {
+    document.getElementById('deleteWalletModal').style.display = 'none';
+    walletToDelete = null;
+}
+
+function confirmDeleteWallet() {
+    if (walletToDelete) {
+        const form = document.getElementById('deleteWalletForm');
+        form.action = `/wallets/delete/${walletToDelete}`;
+        form.submit();
+    }
+}
+
+// Close modal when clicking outside
+document.getElementById('deleteWalletModal').addEventListener('click', function(e) {
+    if (e.target === this) {
+        hideDeleteWalletDialog();
+    }
+});
+</script>
 {% endblock %}
