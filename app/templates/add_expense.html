@@ -8,10 +8,27 @@
 
     <form method="POST" action="{{ url_for('main.add_expense') }}" enctype="multipart/form-data" style="max-width: 35rem;">
         
+ <!-- Date with Quick Selection -->
+        <div class="form-group">
+            <label for="date">Date</label>
+            <div class="date-quick-select">
+                <button type="button" class="btn-sm btn-secondary" onclick="setToday()">Today</button>
+                <button type="button" class="btn-sm btn-secondary" onclick="setYesterday()">Yesterday</button>
+                
+                <!-- Lock Date Controls -->
+                <button type="button" id="lock-date-btn" class="btn-sm btn-outline-secondary" onclick="lockDate()" title="Lock this date for multiple entries">
+                    🔒 Lock Date
+                </button>
+                <span id="locked-date-container" style="display: none;"></span>
+            </div>
+            <input type="date" id="date" name="date" value="{{ now_date }}">
+        </div>
+
         <!-- Transaction Type Toggle -->
         <div class="form-group">
             <label>Transaction Type</label>
             <div class="transaction-type-toggle">
+
                 <input type="radio" id="type_expense" name="transaction_type" value="expense" checked>
                 <label for="type_expense" class="toggle-btn">Expenses</label>
 
@@ -26,13 +43,13 @@
         <!-- Description -->
         <div class="form-group">
             <label for="description">Description</label>
-            <input type="text" id="description" name="description" placeholder="e.g., Lunch at restaurant" required>
+            <input type="text" id="description" name="description" placeholder="e.g., Lunch at restaurant" required autofocus>
         </div>
 
         <!-- Amount -->
         <div class="form-group">
             <label for="amount">Amount (GHS)</label>
-            <input type="number" id="amount" name="amount" step="0.01" required autofocus>
+            <input type="number" id="amount" name="amount" step="0.01" >
         </div>
 
         <!-- Category with Icons -->
@@ -63,15 +80,7 @@
             </select>
         </div>
 
-        <!-- Date with Quick Selection -->
-        <div class="form-group">
-            <label for="date">Date</label>
-            <div class="date-quick-select">
-                <button type="button" class="btn-sm btn-secondary" onclick="setToday()">Today</button>
-                <button type="button" class="btn-sm btn-secondary" onclick="setYesterday()">Yesterday</button>
-            </div>
-            <input type="date" id="date" name="date" value="{{ now_date }}">
-        </div>
+       
 
         <!-- Notes -->
         <div class="form-group">
@@ -100,18 +109,82 @@
 function setToday() {
     const today = new Date().toISOString().split('T')[0];
     document.getElementById('date').value = today;
+    clearDateLock(); // Clear lock if user explicitly selects Today
 }
 
 function setYesterday() {
     const yesterday = new Date();
     yesterday.setDate(yesterday.getDate() - 1);
     document.getElementById('date').value = yesterday.toISOString().split('T')[0];
+    // Optional: Decide if setting yesterday should also lock it or just set it. 
+    // For now, let's just set it. User can lock it if they want.
 }
 
-// Set today as default
+// --- Date Locking Feature ---
+
+function lockDate() {
+    const dateInput = document.getElementById('date');
+    const dateValue = dateInput.value;
+    if (dateValue) {
+        localStorage.setItem('lockedDate', dateValue);
+        updateLockUI(dateValue);
+    }
+}
+
+function clearDateLock() {
+    localStorage.removeItem('lockedDate');
+    updateLockUI(null);
+}
+
+function updateLockUI(lockedDate) {
+    const lockContainer = document.getElementById('locked-date-container');
+    const lockBtn = document.getElementById('lock-date-btn');
+    const dateInput = document.getElementById('date');
+
+    if (lockedDate) {
+        // Show locked state
+        if (lockContainer) {
+            lockContainer.style.display = 'inline-block';
+            lockContainer.innerHTML = `
+                <span class="badge badge-warning" style="font-size: 0.9rem; padding: 5px 10px; margin-left: 10px;">
+                    🔒 Locked: ${lockedDate} 
+                    <button type="button" class="close" aria-label="Close" onclick="clearDateLock()" style="float: none; font-size: 1.2rem; line-height: 0.8; margin-left: 5px;">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </span>
+            `;
+        }
+        if (lockBtn) lockBtn.style.display = 'none';
+        
+        // Ensure input matches locked date
+        if (dateInput.value !== lockedDate) {
+             dateInput.value = lockedDate;
+        }
+    } else {
+        // Show unlock state
+        if (lockContainer) lockContainer.style.display = 'none';
+        if (lockBtn) lockBtn.style.display = 'inline-block';
+    }
+}
+
+// Initialize on load
 window.onload = function() {
-    if (!document.getElementById('date').value) {
-        setToday();
+    const lockedDate = localStorage.getItem('lockedDate');
+    const dateInput = document.getElementById('date');
+    
+    // Inject Lock UI elements if they don't exist (or we could add them to HTML directly)
+    // Let's assume we added them to HTML or add them dynamically here if simpler for the edit.
+    // But for robustness, let's rely on the HTML being present. 
+    // Wait, I need to add the HTML elements too.
+    
+    if (lockedDate) {
+        dateInput.value = lockedDate;
+        updateLockUI(lockedDate);
+    } else {
+        if (!dateInput.value) {
+            setToday();
+        }
+        updateLockUI(null);
     }
 };
 </script>
