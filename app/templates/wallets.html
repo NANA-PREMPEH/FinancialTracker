@@ -16,7 +16,12 @@
         <div class="card" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 1.5rem;">
             <div style="font-size: 2.5rem; margin-bottom: 0.5rem;">{{ wallet.icon }}</div>
             <h3 style="color: white; margin-bottom: 0.5rem;">{{ wallet.name }}</h3>
-            <p style="opacity: 0.9; font-size: 0.85rem; margin-bottom: 1rem;">{{ wallet.wallet_type|title }}{% if wallet.is_shared %} • Shared{% endif %}</p>
+            <p style="opacity: 0.9; font-size: 0.85rem; margin-bottom: 0.5rem;">{{ wallet.wallet_type|title }}{% if wallet.is_shared %} • Shared{% endif %}</p>
+            {% if wallet.account_number %}
+            <p style="opacity: 0.9; font-size: 0.85rem; margin-bottom: 1rem;">Acct: {{ wallet.account_number }}</p>
+            {% else %}
+            <div style="margin-bottom: 1rem;"></div>
+            {% endif %}
             <div style="font-size: 2rem; font-weight: 700; margin-bottom: 0.25rem;">{{ wallet.currency }} {{ "%.2f"|format(wallet.balance) }}</div>
             <p style="opacity: 0.8; font-size: 0.85rem;">Current Balance</p>
             

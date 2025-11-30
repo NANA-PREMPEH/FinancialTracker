@@ -32,22 +32,32 @@
             <select id="wallet_type" name="wallet_type" onchange="toggleAccountNumber()">
                 <option value="cash" {% if wallet.wallet_type == 'cash' %}selected{% endif %}>💵 Cash</option>
                 <option value="bank" {% if wallet.wallet_type == 'bank' %}selected{% endif %}>🏦 Bank Account</option>
+                <option value="mobile_money" {% if wallet.wallet_type == 'mobile_money' %}selected{% endif %}>📱 Mobile Money</option>
                 <option value="crypto" {% if wallet.wallet_type == 'crypto' %}selected{% endif %}>₿ Crypto Wallet</option>
-                <option value="ewallet" {% if wallet.wallet_type == 'ewallet' %}selected{% endif %}>📱 E-Wallet</option>
+                <option value="ewallet" {% if wallet.wallet_type == 'ewallet' %}selected{% endif %}>� E-Wallet</option>
             </select>
         </div>
 
         <div class="form-group" id="account_number_group" style="display: none;">
-            <label for="account_number">Account Number</label>
-            <input type="text" id="account_number" name="account_number" value="{{ wallet.account_number or '' }}" placeholder="Enter bank account number">
+            <label for="account_number" id="account_number_label">Account Number</label>
+            <input type="text" id="account_number" name="account_number" value="{{ wallet.account_number or '' }}" placeholder="Enter account number">
         </div>
 
         <script>
             function toggleAccountNumber() {
                 const walletType = document.getElementById('wallet_type').value;
                 const accountGroup = document.getElementById('account_number_group');
+                const accountLabel = document.getElementById('account_number_label');
+                const accountInput = document.getElementById('account_number');
+
                 if (walletType === 'bank') {
                     accountGroup.style.display = 'block';
+                    accountLabel.textContent = 'Bank Account Number';
+                    accountInput.placeholder = 'Enter bank account number';
+                } else if (walletType === 'mobile_money') {
+                    accountGroup.style.display = 'block';
+                    accountLabel.textContent = 'Mobile Money Number';
+                    accountInput.placeholder = 'Enter mobile money number';
                 } else {
                     accountGroup.style.display = 'none';
                 }

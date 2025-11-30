@@ -16,9 +16,10 @@ A comprehensive personal finance management application inspired by Spendee, bui
 - 📅 **Quick Date Selection**: "Today" and "Yesterday" buttons for fast entry
 
 ### Advanced Spendee Features
-- 💼 **Multi-Wallet Management**: Cash, Bank, Crypto, E-Wallet accounts
+- 💼 **Multi-Wallet Management**: Cash, Bank, Mobile Money, Crypto, E-Wallet accounts
+- 🔢 **Account Number Tracking**: Capture account numbers for Bank and Mobile Money wallets
 - 🎯 **Budget Tracking**: Set spending limits per category with visual progress bars
-- 🔄 **Recurring Transactions**: Automate bills and subscriptions
+- 🔄 **Recurring Transactions**: Automate bills with full Edit/Delete capabilities
 - 📊 **Analytics & Charts**: Interactive pie and line charts with Chart.js
 - ✏️ **Custom Categories**: Create personalized expense categories
 - 🔍 **Advanced Search & Filters**: Filter by category, wallet, type, date range

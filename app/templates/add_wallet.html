@@ -32,22 +32,32 @@
             <select id="wallet_type" name="wallet_type" onchange="toggleAccountNumber()">
                 <option value="cash">💵 Cash</option>
                 <option value="bank">🏦 Bank Account</option>
+                <option value="mobile_money">📱 Mobile Money</option>
                 <option value="crypto">₿ Crypto Wallet</option>
-                <option value="ewallet">📱 E-Wallet</option>
+                <option value="ewallet">💳 E-Wallet</option>
             </select>
         </div>
 
         <div class="form-group" id="account_number_group" style="display: none;">
-            <label for="account_number">Account Number</label>
-            <input type="text" id="account_number" name="account_number" placeholder="Enter bank account number">
+            <label for="account_number" id="account_number_label">Account Number</label>
+            <input type="text" id="account_number" name="account_number" placeholder="Enter account number">
         </div>
 
         <script>
             function toggleAccountNumber() {
                 const walletType = document.getElementById('wallet_type').value;
                 const accountGroup = document.getElementById('account_number_group');
+                const accountLabel = document.getElementById('account_number_label');
+                const accountInput = document.getElementById('account_number');
+
                 if (walletType === 'bank') {
                     accountGroup.style.display = 'block';
+                    accountLabel.textContent = 'Bank Account Number';
+                    accountInput.placeholder = 'Enter bank account number';
+                } else if (walletType === 'mobile_money') {
+                    accountGroup.style.display = 'block';
+                    accountLabel.textContent = 'Mobile Money Number';
+                    accountInput.placeholder = 'Enter mobile money number';
                 } else {
                     accountGroup.style.display = 'none';
                 }
