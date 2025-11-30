@@ -659,6 +659,7 @@ def projects():
 def add_project():
     if request.method == 'POST':
         name = request.form.get('name')
+        description = request.form.get('description')
         funding_source = request.form.get('funding_source')
         custom_funding_source = request.form.get('custom_funding_source')
         wallet_id = request.form.get('wallet_id')
@@ -679,6 +680,7 @@ def add_project():
         
         project = Project(
             name=name,
+            description=description,
             funding_source=final_funding_source,
             wallet_id=final_wallet_id,
             custom_funding_source=final_custom_source
@@ -702,6 +704,7 @@ def edit_project(id):
     
     if request.method == 'POST':
         project.name = request.form.get('name')
+        project.description = request.form.get('description')
         funding_source = request.form.get('funding_source')
         custom_funding_source = request.form.get('custom_funding_source')
         wallet_id = request.form.get('wallet_id')

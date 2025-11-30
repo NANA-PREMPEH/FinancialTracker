@@ -7,6 +7,11 @@
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
         <div>
             <h1>{{ project.name }}</h1>
+            {% if project.description %}
+            <p style="color: var(--color-text); margin-top: 0.5rem; margin-bottom: 0.75rem;">
+                {{ project.description }}
+            </p>
+            {% endif %}
             <p style="color: var(--color-text-muted); margin-top: 0.5rem;">
                 💰 Funding: 
                 {% if project.funding_source == 'wallet' and project.wallet %}

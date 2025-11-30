@@ -91,6 +91,7 @@ class ExchangeRate(db.Model):
 class Project(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(200), nullable=False)
+    description = db.Column(db.Text, nullable=True)  # Optional description
     funding_source = db.Column(db.String(100), nullable=False)  # Predefined or custom
     wallet_id = db.Column(db.Integer, db.ForeignKey('wallet.id'), nullable=True)  # If funded from wallet
     custom_funding_source = db.Column(db.String(200), nullable=True)  # Custom funding source
