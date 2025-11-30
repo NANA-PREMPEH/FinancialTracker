@@ -33,7 +33,7 @@
                         ✏️ Edit
                     </button>
                 </a>
-                <button onclick="showDeleteRecurringDialog({{ trans.id }}, {{ trans.description|tojson }})" style="background-color: var(--color-danger); color: white; padding: 0.5rem 1rem; border: none; border-radius: 6px; cursor: pointer; font-size: 0.85rem;">
+                <button class="delete-recurring-btn" data-id="{{ trans.id }}" data-description="{{ trans.description }}" style="background-color: var(--color-danger); color: white; padding: 0.5rem 1rem; border: none; border-radius: 6px; cursor: pointer; font-size: 0.85rem;">
                     🗑️ Delete
                 </button>
             </div>
@@ -47,8 +47,8 @@
 </div>
 
 <!-- Delete Confirmation Modal -->
-<div id="deleteRecurringModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.5); z-index: 1000; align-items: center; justify-content: center;">
-    <div style="background: white; padding: 2rem; border-radius: 12px; max-width: 400px; width: 90%; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
+<div id="deleteRecurringModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.5); z-index: 1000;">
+    <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 2rem; border-radius: 12px; max-width: 400px; width: 90%; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
         <h3 style="margin-top: 0; margin-bottom: 1rem; color: var(--color-danger);">⚠️ Delete Recurring Transaction</h3>
         <p id="deleteRecurringMessage" style="margin-bottom: 1.5rem; color: var(--color-text-muted);"></p>
         <div style="display: flex; gap: 1rem; justify-content: flex-end;">
@@ -66,32 +66,43 @@
 </form>
 
 <script>
-let recurringToDelete = null;
-
-function showDeleteRecurringDialog(recurringId, description) {
-    recurringToDelete = recurringId;
-    document.getElementById('deleteRecurringMessage').textContent = `Are you sure you want to delete the recurring transaction "${description}"? This action cannot be undone.`;
-    document.getElementById('deleteRecurringModal').style.display = 'flex';
-}
-
-function hideDeleteRecurringDialog() {
-    document.getElementById('deleteRecurringModal').style.display = 'none';
-    recurringToDelete = null;
-}
-
-function confirmDeleteRecurring() {
-    if (recurringToDelete) {
-        const form = document.getElementById('deleteRecurringForm');
-        form.action = `/recurring/delete/${recurringToDelete}`;
-        form.submit();
-    }
-}
-
-// Close modal when clicking outside
-document.getElementById('deleteRecurringModal').addEventListener('click', function(e) {
-    if (e.target === this) {
-        hideDeleteRecurringDialog();
-    }
+document.addEventListener('DOMContentLoaded', function() {
+    let recurringToDelete = null;
+    const deleteModal = document.getElementById('deleteRecurringModal');
+    const deleteMessage = document.getElementById('deleteRecurringMessage');
+    const deleteForm = document.getElementById('deleteRecurringForm');
+    
+    // Attach click handlers to all delete buttons
+    document.querySelectorAll('.delete-recurring-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            const id = this.getAttribute('data-id');
+            const description = this.getAttribute('data-description');
+            recurringToDelete = id;
+            deleteMessage.textContent = `Are you sure you want to delete the recurring transaction "${description}"? This action cannot be undone.`;
+            deleteModal.style.display = 'block';
+        });
+    });
+    
+    // Hide modal function
+    window.hideDeleteRecurringDialog = function() {
+        deleteModal.style.display = 'none';
+        recurringToDelete = null;
+    };
+    
+    // Confirm delete function
+    window.confirmDeleteRecurring = function() {
+        if (recurringToDelete) {
+            deleteForm.action = `/recurring/delete/${recurringToDelete}`;
+            deleteForm.submit();
+        }
+    };
+    
+    // Close modal when clicking outside
+    deleteModal.addEventListener('click', function(e) {
+        if (e.target === this) {
+            hideDeleteRecurringDialog();
+        }
+    });
 });
 </script>
 {% endblock %}
