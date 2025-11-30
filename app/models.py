@@ -8,6 +8,7 @@ class Wallet(db.Model):
     currency = db.Column(db.String(10), default='GHS')
     icon = db.Column(db.String(10), default='💰')
     wallet_type = db.Column(db.String(20), default='cash')  # cash, bank, crypto, ewallet
+    account_number = db.Column(db.String(50), nullable=True)  # For bank accounts
     is_shared = db.Column(db.Boolean, default=False)
     expenses = db.relationship('Expense', backref='wallet', lazy=True)
 

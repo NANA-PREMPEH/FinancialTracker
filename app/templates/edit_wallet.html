@@ -29,13 +29,35 @@
 
         <div class="form-group">
             <label for="wallet_type">Wallet Type</label>
-            <select id="wallet_type" name="wallet_type">
+            <select id="wallet_type" name="wallet_type" onchange="toggleAccountNumber()">
                 <option value="cash" {% if wallet.wallet_type == 'cash' %}selected{% endif %}>💵 Cash</option>
                 <option value="bank" {% if wallet.wallet_type == 'bank' %}selected{% endif %}>🏦 Bank Account</option>
                 <option value="crypto" {% if wallet.wallet_type == 'crypto' %}selected{% endif %}>₿ Crypto Wallet</option>
                 <option value="ewallet" {% if wallet.wallet_type == 'ewallet' %}selected{% endif %}>📱 E-Wallet</option>
             </select>
         </div>
+
+        <div class="form-group" id="account_number_group" style="display: none;">
+            <label for="account_number">Account Number</label>
+            <input type="text" id="account_number" name="account_number" value="{{ wallet.account_number or '' }}" placeholder="Enter bank account number">
+        </div>
+
+        <script>
+            function toggleAccountNumber() {
+                const walletType = document.getElementById('wallet_type').value;
+                const accountGroup = document.getElementById('account_number_group');
+                if (walletType === 'bank') {
+                    accountGroup.style.display = 'block';
+                } else {
+                    accountGroup.style.display = 'none';
+                }
+            }
+            
+            // Initialize on load
+            document.addEventListener('DOMContentLoaded', function() {
+                toggleAccountNumber();
+            });
+        </script>
 
         <div class="form-group">
             <label for="icon">Icon</label>

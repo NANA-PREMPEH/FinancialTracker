@@ -298,6 +298,7 @@ def add_wallet():
         currency = request.form.get('currency', 'GHS')
         icon = request.form.get('icon', '💰')
         wallet_type = request.form.get('wallet_type', 'cash')
+        account_number = request.form.get('account_number')
         is_shared = request.form.get('is_shared') == 'on'
         
         wallet = Wallet(
@@ -306,6 +307,7 @@ def add_wallet():
             currency=currency,
             icon=icon,
             wallet_type=wallet_type,
+            account_number=account_number,
             is_shared=is_shared
         )
         db.session.add(wallet)
@@ -325,6 +327,7 @@ def edit_wallet(id):
         wallet.currency = request.form.get('currency', 'GHS')
         wallet.icon = request.form.get('icon', '💰')
         wallet.wallet_type = request.form.get('wallet_type', 'cash')
+        wallet.account_number = request.form.get('account_number')
         wallet.is_shared = request.form.get('is_shared') == 'on'
         
         db.session.commit()
