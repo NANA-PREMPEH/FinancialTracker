@@ -25,6 +25,8 @@ def init_db():
                 ('Travel', '✈️'),
                 ('Gifts', '🎁'),
                 ('Home', '🏠'),
+                ('Salary', '💵'),
+                ('Allowance', '💰'),
                 ('Other', '📝')
             ]
             for cat_name, icon in categories:
