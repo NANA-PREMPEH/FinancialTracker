@@ -7,6 +7,11 @@
     <h1>Edit Transaction</h1>
 
     <form method="POST" action="{{ url_for('main.edit_expense', id=expense.id) }}" enctype="multipart/form-data" style="max-width: 35rem;">
+        <!-- Date -->
+        <div class="form-group">
+            <label for="date">Date</label>
+            <input type="date" id="date" name="date" value="{{ expense.date.strftime('%Y-%m-%d') }}" required>
+        </div>
         
         <!-- Transaction Type Toggle -->
         <div class="form-group">
@@ -63,11 +68,7 @@
             </select>
         </div>
 
-        <!-- Date -->
-        <div class="form-group">
-            <label for="date">Date</label>
-            <input type="date" id="date" name="date" value="{{ expense.date.strftime('%Y-%m-%d') }}" required>
-        </div>
+        
 
         <!-- Notes -->
         <div class="form-group">
