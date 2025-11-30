@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+
+{% block title %}Projects To-Do - Financial Tracker{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+        <h1>📋 Projects To-Do</h1>
+        <a href="{{ url_for('main.add_project') }}">
+            <button>+ Add Project</button>
+        </a>
+    </div>
+
+    {% if projects %}
+    <div style="display: grid; gap: 1.5rem;">
+        {% for project in projects %}
+        <div class="card" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 1.5rem;">
+            <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 1rem;">
+                <div style="flex: 1;">
+                    <h3 style="color: white; margin-bottom: 0.5rem;">{{ project.name }}</h3>
+                    <p style="opacity: 0.9; font-size: 0.9rem; margin-bottom: 0.5rem;">
+                        💰 Funding: 
+                        {% if project.funding_source == 'wallet' and project.wallet %}
+                            {{ project.wallet.name }}
+                        {% elif project.funding_source == 'other' %}
+                            {{ project.custom_funding_source }}
+                        {% else %}
+                            {{ project.funding_source|replace('_', ' ')|title }}
+                        {% endif %}
+                    </p>
+                    <p style="opacity: 0.9; font-size: 0.9rem;">
+                        📊 {{ project.items|length }} items • Total: GHS {{ "%.2f"|format(project.total_cost) }}
+                    </p>
+                </div>
+                <div style="display: flex; gap: 0.5rem;">
+                    <a href="{{ url_for('main.project_details', id=project.id) }}" style="text-decoration: none;">
+                        <button style="background-color: rgba(255, 255, 255, 0.2); color: white; padding: 0.5rem 1rem; border: 1px solid rgba(255, 255, 255, 0.3); border-radius: 6px; cursor: pointer; font-size: 0.85rem;">
+                            👁️ View
+                        </button>
+                    </a>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <p style="text-align: center; color: var(--color-text-muted); padding: 3rem;">
+        No projects yet. Create your first project to start planning!
+    </p>
+    {% endif %}
+</div>
+{% endblock %}

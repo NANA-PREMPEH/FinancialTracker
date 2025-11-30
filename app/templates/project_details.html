@@ -1,0 +1,119 @@
+{% extends "base.html" %}
+
+{% block title %}{{ project.name }} - Financial Tracker{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+        <div>
+            <h1>{{ project.name }}</h1>
+            <p style="color: var(--color-text-muted); margin-top: 0.5rem;">
+                💰 Funding: 
+                {% if project.funding_source == 'wallet' and project.wallet %}
+                    {{ project.wallet.name }}
+                {% elif project.funding_source == 'other' %}
+                    {{ project.custom_funding_source }}
+                {% else %}
+                    {{ project.funding_source|replace('_', ' ')|title }}
+                {% endif %}
+            </p>
+        </div>
+        <div style="display: flex; gap: 0.5rem;">
+            <a href="{{ url_for('main.edit_project', id=project.id) }}">
+                <button style="background-color: var(--color-primary);">✏️ Edit Project</button>
+            </a>
+            <form method="POST" action="{{ url_for('main.delete_project', id=project.id) }}" style="display: inline;" onsubmit="return confirm('Are you sure you want to delete this project and all its items?');">
+                <button type="submit" style="background-color: var(--color-danger);">🗑️ Delete</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Add Item Form -->
+    <div class="card" style="background-color: #f8f9fa; margin-bottom: 2rem;">
+        <h3 style="margin-top: 0;">Add New Item</h3>
+        <form method="POST" action="{{ url_for('main.add_project_item', project_id=project.id) }}" style="display: flex; gap: 1rem; align-items: end;">
+            <div class="form-group" style="flex: 2; margin-bottom: 0;">
+                <label for="item_name">Item Name</label>
+                <input type="text" id="item_name" name="item_name" placeholder="e.g., Venue Booking, Catering" required>
+            </div>
+            <div class="form-group" style="flex: 1; margin-bottom: 0;">
+                <label for="cost">Cost (GHS)</label>
+                <input type="number" id="cost" name="cost" step="0.01" min="0" value="0.00" required>
+            </div>
+            <button type="submit" style="margin-bottom: 0;">+ Add Item</button>
+        </form>
+    </div>
+
+    <!-- Items List -->
+    <div>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+            <h2>Project Items</h2>
+            <div style="text-align: right;">
+                <p style="font-size: 0.9rem; color: var(--color-text-muted); margin-bottom: 0.25rem;">Total Items: {{ project.items|length }}</p>
+                <p style="font-size: 1.5rem; font-weight: 700; color: var(--color-primary); margin: 0;">GHS {{ "%.2f"|format(project.total_cost) }}</p>
+            </div>
+        </div>
+
+        {% if project.items %}
+        <div style="display: grid; gap: 1rem;">
+            {% for item in project.items %}
+            <div class="card" style="background-color: {% if item.is_completed %}#e8f5e9{% else %}white{% endif %}; border-left: 4px solid {% if item.is_completed %}#4caf50{% else %}var(--color-primary){% endif %};">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <div style="display: flex; align-items: center; gap: 1rem; flex: 1;">
+                        <input type="checkbox" 
+                               {% if item.is_completed %}checked{% endif %} 
+                               onchange="toggleItem({{ project.id }}, {{ item.id }})"
+                               style="width: 20px; height: 20px; cursor: pointer;">
+                        <div style="flex: 1;">
+                            <h4 style="margin: 0; {% if item.is_completed %}text-decoration: line-through; opacity: 0.6;{% endif %}">
+                                {{ item.item_name }}
+                            </h4>
+                            <p style="margin: 0.25rem 0 0 0; font-size: 0.85rem; color: var(--color-text-muted);">
+                                Added {{ item.created_date.strftime('%b %d, %Y') }}
+                            </p>
+                        </div>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 1rem;">
+                        <span style="font-size: 1.25rem; font-weight: 700; color: var(--color-primary);">
+                            GHS {{ "%.2f"|format(item.cost) }}
+                        </span>
+                        <form method="POST" action="{{ url_for('main.delete_project_item', project_id=project.id, item_id=item.id) }}" style="display: inline;" onsubmit="return confirm('Delete this item?');">
+                            <button type="submit" style="background-color: var(--color-danger); padding: 0.5rem 0.75rem; font-size: 0.85rem;">
+                                🗑️
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <p style="text-align: center; color: var(--color-text-muted); padding: 2rem;">
+            No items yet. Add your first item above to get started!
+        </p>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+function toggleItem(projectId, itemId) {
+    fetch(`/projects/${projectId}/items/${itemId}/toggle`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Reload the page to update the UI
+            window.location.reload();
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Failed to update item status');
+    });
+}
+</script>
+{% endblock %}

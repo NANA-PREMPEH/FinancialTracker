@@ -87,3 +87,34 @@ class ExchangeRate(db.Model):
 
     def __repr__(self):
         return f'<ExchangeRate {self.from_currency}/{self.to_currency} = {self.rate}>'
+
+class Project(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(200), nullable=False)
+    funding_source = db.Column(db.String(100), nullable=False)  # Predefined or custom
+    wallet_id = db.Column(db.Integer, db.ForeignKey('wallet.id'), nullable=True)  # If funded from wallet
+    custom_funding_source = db.Column(db.String(200), nullable=True)  # Custom funding source
+    created_date = db.Column(db.DateTime, default=datetime.utcnow)
+    is_completed = db.Column(db.Boolean, default=False)
+    
+    # Relationships
+    items = db.relationship('ProjectItem', backref='project', lazy=True, cascade='all, delete-orphan')
+    wallet = db.relationship('Wallet', backref='projects', lazy=True)
+    
+    def __repr__(self):
+        return f'<Project {self.name}>'
+    
+    @property
+    def total_cost(self):
+        return sum(item.cost for item in self.items)
+
+class ProjectItem(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    project_id = db.Column(db.Integer, db.ForeignKey('project.id'), nullable=False)
+    item_name = db.Column(db.String(200), nullable=False)
+    cost = db.Column(db.Float, nullable=False, default=0.0)
+    is_completed = db.Column(db.Boolean, default=False)
+    created_date = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    def __repr__(self):
+        return f'<ProjectItem {self.item_name} - {self.cost}>'

@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+
+{% block title %}Edit Project - Financial Tracker{% endblock %}
+
+{% block content %}
+<div class="card">
+    <h1>Edit Project</h1>
+
+    <form method="POST" style="max-width: 35rem;">
+        <div class="form-group">
+            <label for="name">Project Name</label>
+            <input type="text" id="name" name="name" value="{{ project.name }}" placeholder="e.g., Wedding Planning, Home Renovation" required autofocus>
+        </div>
+
+        <div class="form-group">
+            <label for="funding_source">Source of Funding</label>
+            <select id="funding_source" name="funding_source" onchange="toggleFundingOptions()" required>
+                <option value="">Select funding source...</option>
+                <option value="ticket_sales" {% if project.funding_source == 'ticket_sales' %}selected{% endif %}>Ticket Sales/Registration Fees</option>
+                <option value="sponsorships" {% if project.funding_source == 'sponsorships' %}selected{% endif %}>Sponsorships/Donations/Grants</option>
+                <option value="merchandise" {% if project.funding_source == 'merchandise' %}selected{% endif %}>Merchandise Sales/Vendor Fees</option>
+                <option value="company_funding" {% if project.funding_source == 'company_funding' %}selected{% endif %}>Company/Institutional Funding</option>
+                <option value="wallet" {% if project.funding_source == 'wallet' %}selected{% endif %}>From Wallet</option>
+                <option value="other" {% if project.funding_source == 'other' %}selected{% endif %}>Other (Custom)</option>
+            </select>
+        </div>
+
+        <!-- Wallet Selection (shown when "From Wallet" is selected) -->
+        <div class="form-group" id="wallet_selection" style="display: none;">
+            <label for="wallet_id">Select Wallet</label>
+            <select id="wallet_id" name="wallet_id">
+                <option value="">Choose a wallet...</option>
+                {% for wallet in wallets %}
+                <option value="{{ wallet.id }}" {% if project.wallet_id == wallet.id %}selected{% endif %}>
+                    {{ wallet.icon }} {{ wallet.name }} ({{ wallet.currency }} {{ "%.2f"|format(wallet.balance) }})
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <!-- Custom Funding Source (shown when "Other" is selected) -->
+        <div class="form-group" id="custom_funding" style="display: none;">
+            <label for="custom_funding_source">Custom Funding Source</label>
+            <input type="text" id="custom_funding_source" name="custom_funding_source" value="{{ project.custom_funding_source or '' }}" placeholder="Enter custom funding source">
+        </div>
+
+        <div style="display: flex; gap: 1rem;">
+            <button type="submit" style="flex: 1;">Update Project</button>
+            <a href="{{ url_for('main.project_details', id=project.id) }}" style="flex: 1; text-decoration: none;">
+                <button type="button" style="width: 100%; background-color: var(--color-text-muted);">Cancel</button>
+            </a>
+        </div>
+    </form>
+</div>
+
+<script>
+function toggleFundingOptions() {
+    const fundingSource = document.getElementById('funding_source').value;
+    const walletSelection = document.getElementById('wallet_selection');
+    const customFunding = document.getElementById('custom_funding');
+    const walletSelect = document.getElementById('wallet_id');
+    const customInput = document.getElementById('custom_funding_source');
+
+    // Hide all conditional fields
+    walletSelection.style.display = 'none';
+    customFunding.style.display = 'none';
+    
+    // Remove required attributes
+    walletSelect.removeAttribute('required');
+    customInput.removeAttribute('required');
+
+    // Show relevant field based on selection
+    if (fundingSource === 'wallet') {
+        walletSelection.style.display = 'block';
+        walletSelect.setAttribute('required', 'required');
+    } else if (fundingSource === 'other') {
+        customFunding.style.display = 'block';
+        customInput.setAttribute('required', 'required');
+    }
+}
+
+// Initialize on load
+document.addEventListener('DOMContentLoaded', function() {
+    toggleFundingOptions();
+});
+</script>
+{% endblock %}

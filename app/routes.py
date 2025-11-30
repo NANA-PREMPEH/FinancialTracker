@@ -1,6 +1,6 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify, send_file, Response
 from . import db
-from .models import Expense, Category, Wallet, Budget, RecurringTransaction, ExchangeRate
+from .models import Expense, Category, Wallet, Budget, RecurringTransaction, ExchangeRate, Project, ProjectItem
 from datetime import datetime, timedelta
 from sqlalchemy import func, or_
 import io
@@ -648,3 +648,120 @@ def reports():
                            monthly_total=monthly_total,
                            quarterly_total=quarterly_total,
                            yearly_total=yearly_total)
+
+# ===== PROJECTS TO-DO =====
+@main.route('/projects')
+def projects():
+    projects = Project.query.order_by(Project.created_date.desc()).all()
+    return render_template('projects.html', projects=projects)
+
+@main.route('/projects/add', methods=['GET', 'POST'])
+def add_project():
+    if request.method == 'POST':
+        name = request.form.get('name')
+        funding_source = request.form.get('funding_source')
+        custom_funding_source = request.form.get('custom_funding_source')
+        wallet_id = request.form.get('wallet_id')
+        
+        # Determine the actual funding source
+        if funding_source == 'wallet' and wallet_id:
+            final_funding_source = 'wallet'
+            final_wallet_id = int(wallet_id)
+            final_custom_source = None
+        elif funding_source == 'other' and custom_funding_source:
+            final_funding_source = 'other'
+            final_wallet_id = None
+            final_custom_source = custom_funding_source
+        else:
+            final_funding_source = funding_source
+            final_wallet_id = None
+            final_custom_source = None
+        
+        project = Project(
+            name=name,
+            funding_source=final_funding_source,
+            wallet_id=final_wallet_id,
+            custom_funding_source=final_custom_source
+        )
+        db.session.add(project)
+        db.session.commit()
+        flash('Project created successfully!', 'success')
+        return redirect(url_for('main.project_details', id=project.id))
+    
+    wallets = Wallet.query.all()
+    return render_template('add_project.html', wallets=wallets)
+
+@main.route('/projects/<int:id>')
+def project_details(id):
+    project = Project.query.get_or_404(id)
+    return render_template('project_details.html', project=project)
+
+@main.route('/projects/edit/<int:id>', methods=['GET', 'POST'])
+def edit_project(id):
+    project = Project.query.get_or_404(id)
+    
+    if request.method == 'POST':
+        project.name = request.form.get('name')
+        funding_source = request.form.get('funding_source')
+        custom_funding_source = request.form.get('custom_funding_source')
+        wallet_id = request.form.get('wallet_id')
+        
+        # Determine the actual funding source
+        if funding_source == 'wallet' and wallet_id:
+            project.funding_source = 'wallet'
+            project.wallet_id = int(wallet_id)
+            project.custom_funding_source = None
+        elif funding_source == 'other' and custom_funding_source:
+            project.funding_source = 'other'
+            project.wallet_id = None
+            project.custom_funding_source = custom_funding_source
+        else:
+            project.funding_source = funding_source
+            project.wallet_id = None
+            project.custom_funding_source = None
+        
+        db.session.commit()
+        flash('Project updated successfully!', 'success')
+        return redirect(url_for('main.project_details', id=project.id))
+    
+    wallets = Wallet.query.all()
+    return render_template('edit_project.html', project=project, wallets=wallets)
+
+@main.route('/projects/delete/<int:id>', methods=['POST'])
+def delete_project(id):
+    project = Project.query.get_or_404(id)
+    db.session.delete(project)
+    db.session.commit()
+    flash('Project deleted successfully!', 'success')
+    return redirect(url_for('main.projects'))
+
+@main.route('/projects/<int:project_id>/items/add', methods=['POST'])
+def add_project_item(project_id):
+    project = Project.query.get_or_404(project_id)
+    item_name = request.form.get('item_name')
+    cost = float(request.form.get('cost', 0))
+    
+    item = ProjectItem(
+        project_id=project_id,
+        item_name=item_name,
+        cost=cost
+    )
+    db.session.add(item)
+    db.session.commit()
+    flash('Item added successfully!', 'success')
+    return redirect(url_for('main.project_details', id=project_id))
+
+@main.route('/projects/<int:project_id>/items/<int:item_id>/delete', methods=['POST'])
+def delete_project_item(project_id, item_id):
+    item = ProjectItem.query.get_or_404(item_id)
+    db.session.delete(item)
+    db.session.commit()
+    flash('Item deleted successfully!', 'success')
+    return redirect(url_for('main.project_details', id=project_id))
+
+@main.route('/projects/<int:project_id>/items/<int:item_id>/toggle', methods=['POST'])
+def toggle_project_item(project_id, item_id):
+    item = ProjectItem.query.get_or_404(item_id)
+    item.is_completed = not item.is_completed
+    db.session.commit()
+    return jsonify({'success': True, 'is_completed': item.is_completed})

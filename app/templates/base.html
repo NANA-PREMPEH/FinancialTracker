@@ -5,6 +5,73 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Financial Tracker{% endblock %}</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <style>
+        /* Dropdown menu styles */
+        nav ul {
+            list-style: none;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        nav li {
+            position: relative;
+        }
+
+        nav li.dropdown {
+            position: relative;
+        }
+
+        nav li.dropdown > a {
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+        }
+
+        nav li.dropdown > a::after {
+            content: '▼';
+            font-size: 0.7rem;
+            margin-left: 0.25rem;
+        }
+
+        .dropdown-menu {
+            display: none;
+            position: absolute;
+            top: 100%;
+            left: 0;
+            background: white;
+            min-width: 200px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            border-radius: 8px;
+            padding: 0.5rem 0;
+            z-index: 1000;
+            margin-top: 0.5rem;
+        }
+
+        .dropdown-menu.show {
+            display: block;
+        }
+
+        .dropdown-menu a {
+            display: block;
+            padding: 0.75rem 1.25rem;
+            color: var(--color-text);
+            text-decoration: none;
+            transition: background-color 0.2s;
+        }
+
+        .dropdown-menu a:hover {
+            background-color: var(--color-primary);
+            color: white;
+        }
+
+        /* Ensure header nav items are properly aligned */
+        header nav ul {
+            align-items: center;
+        }
+    </style>
 </head>
 <body>
     <a href="#main-content" class="skip-link">Skip to main content</a>
@@ -15,8 +82,15 @@
             <nav>
                 <ul>
                     <li><a href="{{ url_for('main.dashboard') }}">Dashboard</a></li>
-                    <li><a href="{{ url_for('main.add_expense') }}">Add Transaction</a></li>
+                    <li class="dropdown">
+                        <a onclick="toggleDropdown(event)">+ ADD</a>
+                        <div class="dropdown-menu" id="addDropdown">
+                            <a href="{{ url_for('main.add_expense') }}">💰 Add Transaction</a>
+                            <a href="{{ url_for('main.add_project') }}">📋 New Project</a>
+                        </div>
+                    </li>
                     <li><a href="{{ url_for('main.all_expenses') }}">All Transactions</a></li>
+                    <li><a href="{{ url_for('main.projects') }}">Projects</a></li>
                     <li><a href="{{ url_for('main.wallets') }}">Wallets</a></li>
                     <li><a href="{{ url_for('main.budgets') }}">Budgets</a></li>
                     <li><a href="{{ url_for('main.recurring_transactions') }}">Recurring</a></li>
@@ -47,5 +121,32 @@
             <p>&copy; 2025 Financial Tracker. Built with accessibility in mind.</p>
         </div>
     </footer>
+
+    <script>
+        function toggleDropdown(event) {
+            event.preventDefault();
+            event.stopPropagation();
+            const dropdown = document.getElementById('addDropdown');
+            dropdown.classList.toggle('show');
+        }
+
+        // Close dropdown when clicking outside
+        document.addEventListener('click', function(event) {
+            const dropdown = document.getElementById('addDropdown');
+            const dropdownParent = event.target.closest('.dropdown');
+            
+            if (!dropdownParent && dropdown.classList.contains('show')) {
+                dropdown.classList.remove('show');
+            }
+        });
+
+        // Close dropdown when pressing Escape key
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'Escape') {
+                const dropdown = document.getElementById('addDropdown');
+                dropdown.classList.remove('show');
+            }
+        });
+    </script>
 </body>
 </html>
