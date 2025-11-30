@@ -123,8 +123,14 @@ def add_expense():
             wallet.balance += amount
         
         db.session.commit()
+        db.session.commit()
         flash('Transaction added successfully!', 'success')
-        return redirect(url_for('main.dashboard'))
+        
+        action = request.form.get('action')
+        if action == 'save_and_continue':
+            return redirect(url_for('main.add_expense'))
+        else:
+            return redirect(url_for('main.dashboard'))
     
     return render_template('add_expense.html', categories=categories, wallets=wallets)
 

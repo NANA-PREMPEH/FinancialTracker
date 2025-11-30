@@ -31,7 +31,7 @@
                         ✏️ Edit
                     </button>
                 </a>
-                <button onclick="showDeleteWalletDialog({{ wallet.id }}, {{ wallet.name|tojson }})" style="flex: 1; background-color: rgba(220, 38, 38, 0.8); color: white; padding: 0.5rem; border: none; border-radius: 6px; cursor: pointer; font-size: 0.85rem;">
+                <button class="delete-wallet-btn" data-id="{{ wallet.id }}" data-name="{{ wallet.name }}" style="flex: 1; background-color: rgba(220, 38, 38, 0.8); color: white; padding: 0.5rem; border: none; border-radius: 6px; cursor: pointer; font-size: 0.85rem;">
                     🗑️ Delete
                 </button>
             </div>
@@ -50,11 +50,11 @@
         <h3 style="margin-top: 0; margin-bottom: 1rem; color: var(--color-danger);">⚠️ Delete Wallet</h3>
         <p id="deleteWalletMessage" style="margin-bottom: 1.5rem; color: var(--color-text-muted);"></p>
         <div style="display: flex; gap: 1rem; justify-content: flex-end;">
-            <button onclick="hideDeleteWalletDialog()" style="background-color: #dc2626; color: white; padding: 0.75rem 1.5rem; border: none; border-radius: 8px; cursor: pointer; font-size: 1rem; font-weight: 500;">
-                No
+            <button onclick="hideDeleteWalletDialog()" style="background-color: #6b7280; color: white; padding: 0.75rem 1.5rem; border: none; border-radius: 8px; cursor: pointer; font-size: 1rem; font-weight: 500;">
+                Cancel
             </button>
-            <button onclick="confirmDeleteWallet()" style="background-color: #16a34a; color: white; padding: 0.75rem 1.5rem; border: none; border-radius: 8px; cursor: pointer; font-size: 1rem; font-weight: 500;">
-                Yes
+            <button onclick="confirmDeleteWallet()" style="background-color: #dc2626; color: white; padding: 0.75rem 1.5rem; border: none; border-radius: 8px; cursor: pointer; font-size: 1rem; font-weight: 500;">
+                Delete
             </button>
         </div>
     </div>
@@ -64,32 +64,41 @@
 </form>
 
 <script>
-let walletToDelete = null;
+document.addEventListener('DOMContentLoaded', function() {
+    let walletToDelete = null;
+    const deleteModal = document.getElementById('deleteWalletModal');
+    const deleteMessage = document.getElementById('deleteWalletMessage');
+    const deleteForm = document.getElementById('deleteWalletForm');
 
-function showDeleteWalletDialog(walletId, walletName) {
-    walletToDelete = walletId;
-    document.getElementById('deleteWalletMessage').textContent = `Are you sure you want to delete the wallet "${walletName}"? This action cannot be undone.`;
-    document.getElementById('deleteWalletModal').style.display = 'flex';
-}
+    // Attach click handlers to all delete buttons
+    document.querySelectorAll('.delete-wallet-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            const id = this.getAttribute('data-id');
+            const name = this.getAttribute('data-name');
+            walletToDelete = id;
+            deleteMessage.textContent = `Are you sure you want to delete the wallet "${name}"? This action cannot be undone.`;
+            deleteModal.style.display = 'flex';
+        });
+    });
 
-function hideDeleteWalletDialog() {
-    document.getElementById('deleteWalletModal').style.display = 'none';
-    walletToDelete = null;
-}
+    window.hideDeleteWalletDialog = function() {
+        deleteModal.style.display = 'none';
+        walletToDelete = null;
+    };
 
-function confirmDeleteWallet() {
-    if (walletToDelete) {
-        const form = document.getElementById('deleteWalletForm');
-        form.action = `/wallets/delete/${walletToDelete}`;
-        form.submit();
-    }
-}
+    window.confirmDeleteWallet = function() {
+        if (walletToDelete) {
+            deleteForm.action = `/wallets/delete/${walletToDelete}`;
+            deleteForm.submit();
+        }
+    };
 
-// Close modal when clicking outside
-document.getElementById('deleteWalletModal').addEventListener('click', function(e) {
-    if (e.target === this) {
-        hideDeleteWalletDialog();
-    }
+    // Close modal when clicking outside
+    deleteModal.addEventListener('click', function(e) {
+        if (e.target === this) {
+            hideDeleteWalletDialog();
+        }
+    });
 });
 </script>
 {% endblock %}

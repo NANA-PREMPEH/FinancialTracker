@@ -27,9 +27,7 @@
             <a href="{{ url_for('main.edit_project', id=project.id) }}">
                 <button style="background-color: var(--color-primary);">✏️ Edit Project</button>
             </a>
-            <form method="POST" action="{{ url_for('main.delete_project', id=project.id) }}" style="display: inline;" onsubmit="return confirm('Are you sure you want to delete this project and all its items?');">
-                <button type="submit" style="background-color: var(--color-danger);">🗑️ Delete</button>
-            </form>
+            <button type="button" onclick="showDeleteProjectDialog()" style="background-color: var(--color-danger);">🗑️ Delete</button>
         </div>
     </div>
 
@@ -100,6 +98,25 @@
     </div>
 </div>
 
+<!-- Delete Confirmation Modal -->
+<div id="deleteProjectModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.5); z-index: 1000;">
+    <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 2rem; border-radius: 12px; max-width: 400px; width: 90%; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
+        <h3 style="margin-top: 0; margin-bottom: 1rem; color: var(--color-danger);">⚠️ Delete Project</h3>
+        <p style="margin-bottom: 1.5rem; color: var(--color-text-muted);">Are you sure you want to delete this project and all its items? This action cannot be undone.</p>
+        <div style="display: flex; gap: 1rem; justify-content: flex-end;">
+            <button onclick="hideDeleteProjectDialog()" style="background-color: #6b7280; color: white; padding: 0.75rem 1.5rem; border: none; border-radius: 8px; cursor: pointer; font-size: 1rem; font-weight: 500;">
+                Cancel
+            </button>
+            <button onclick="confirmDeleteProject()" style="background-color: #dc2626; color: white; padding: 0.75rem 1.5rem; border: none; border-radius: 8px; cursor: pointer; font-size: 1rem; font-weight: 500;">
+                Delete
+            </button>
+        </div>
+    </div>
+</div>
+
+<form id="deleteProjectForm" method="POST" action="{{ url_for('main.delete_project', id=project.id) }}" style="display: none;">
+</form>
+
 <script>
 function toggleItem(projectId, itemId) {
     fetch(`/projects/${projectId}/items/${itemId}/toggle`, {
@@ -120,5 +137,28 @@ function toggleItem(projectId, itemId) {
         alert('Failed to update item status');
     });
 }
+
+// Delete Modal Logic
+const deleteModal = document.getElementById('deleteProjectModal');
+const deleteForm = document.getElementById('deleteProjectForm');
+
+function showDeleteProjectDialog() {
+    deleteModal.style.display = 'block';
+}
+
+function hideDeleteProjectDialog() {
+    deleteModal.style.display = 'none';
+}
+
+function confirmDeleteProject() {
+    deleteForm.submit();
+}
+
+// Close modal when clicking outside
+deleteModal.addEventListener('click', function(e) {
+    if (e.target === this) {
+        hideDeleteProjectDialog();
+    }
+});
 </script>
 {% endblock %}

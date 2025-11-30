@@ -83,14 +83,19 @@
                 <ul>
                     <li><a href="{{ url_for('main.dashboard') }}">Dashboard</a></li>
                     <li class="dropdown">
-                        <a onclick="toggleDropdown(event)">+ ADD</a>
+                        <a onclick="toggleDropdown(event, 'addDropdown')">+ ADD</a>
                         <div class="dropdown-menu" id="addDropdown">
                             <a href="{{ url_for('main.add_expense') }}">💰 Add Transaction</a>
                             <a href="{{ url_for('main.add_project') }}">📋 New Project</a>
                         </div>
                     </li>
-                    <li><a href="{{ url_for('main.all_expenses') }}">All Transactions</a></li>
-                    <li><a href="{{ url_for('main.projects') }}">Projects</a></li>
+                    <li class="dropdown">
+                        <a onclick="toggleDropdown(event, 'viewDropdown')">View</a>
+                        <div class="dropdown-menu" id="viewDropdown">
+                            <a href="{{ url_for('main.all_expenses') }}">📄 All Transactions</a>
+                            <a href="{{ url_for('main.projects') }}">📋 Projects</a>
+                        </div>
+                    </li>
                     <li><a href="{{ url_for('main.wallets') }}">Wallets</a></li>
                     <li><a href="{{ url_for('main.budgets') }}">Budgets</a></li>
                     <li><a href="{{ url_for('main.recurring_transactions') }}">Recurring</a></li>
@@ -123,28 +128,37 @@
     </footer>
 
     <script>
-        function toggleDropdown(event) {
+        function toggleDropdown(event, dropdownId) {
             event.preventDefault();
             event.stopPropagation();
-            const dropdown = document.getElementById('addDropdown');
+            
+            // Close all other dropdowns first
+            const allDropdowns = document.querySelectorAll('.dropdown-menu');
+            allDropdowns.forEach(d => {
+                if (d.id !== dropdownId) {
+                    d.classList.remove('show');
+                }
+            });
+
+            const dropdown = document.getElementById(dropdownId);
             dropdown.classList.toggle('show');
         }
 
         // Close dropdown when clicking outside
         document.addEventListener('click', function(event) {
-            const dropdown = document.getElementById('addDropdown');
+            const dropdowns = document.querySelectorAll('.dropdown-menu');
             const dropdownParent = event.target.closest('.dropdown');
             
-            if (!dropdownParent && dropdown.classList.contains('show')) {
-                dropdown.classList.remove('show');
+            if (!dropdownParent) {
+                dropdowns.forEach(d => d.classList.remove('show'));
             }
         });
 
         // Close dropdown when pressing Escape key
         document.addEventListener('keydown', function(event) {
             if (event.key === 'Escape') {
-                const dropdown = document.getElementById('addDropdown');
-                dropdown.classList.remove('show');
+                const dropdowns = document.querySelectorAll('.dropdown-menu');
+                dropdowns.forEach(d => d.classList.remove('show'));
             }
         });
     </script>

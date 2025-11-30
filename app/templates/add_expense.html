@@ -101,7 +101,11 @@
             <input type="file" id="receipt" name="receipt" accept="image/*" class="file-input">
         </div>
 
-        <button type="submit">Save Transaction</button>
+        <div style="display: flex; gap: 1rem; margin-top: 2rem;">
+            <button type="submit" name="action" value="save" style="flex: 1;">Save Transaction</button>
+            <button type="submit" name="action" value="save_and_continue" style="flex: 1; background-color: var(--color-success);">Save & Continue</button>
+            <a href="{{ url_for('main.dashboard') }}" class="btn-secondary" style="flex: 1; display: flex; align-items: center; justify-content: center; text-decoration: none; border-radius: var(--radius-md); background-color: #6b7280; color: white;">Cancel</a>
+        </div>
     </form>
 </div>
 
