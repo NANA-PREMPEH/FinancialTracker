@@ -749,11 +749,13 @@ def add_project_item(project_id):
     project = Project.query.get_or_404(project_id)
     item_name = request.form.get('item_name')
     cost = float(request.form.get('cost', 0))
+    description = request.form.get('description', '')
     
     item = ProjectItem(
         project_id=project_id,
         item_name=item_name,
-        cost=cost
+        cost=cost,
+        description=description
     )
     db.session.add(item)
     db.session.commit()
@@ -767,6 +769,21 @@ def delete_project_item(project_id, item_id):
     db.session.commit()
     flash('Item deleted successfully!', 'success')
     return redirect(url_for('main.project_details', id=project_id))
+
+@main.route('/projects/<int:project_id>/items/<int:item_id>/edit', methods=['GET', 'POST'])
+def edit_project_item(project_id, item_id):
+    item = ProjectItem.query.get_or_404(item_id)
+    project = Project.query.get_or_404(project_id)
+    
+    if request.method == 'POST':
+        item.item_name = request.form.get('item_name')
+        item.cost = float(request.form.get('cost', 0))
+        item.description = request.form.get('description', '')
+        db.session.commit()
+        flash('Item updated successfully!', 'success')
+        return redirect(url_for('main.project_details', id=project_id))
+    
+    return render_template('edit_project_item.html', item=item, project=project)
 
 @main.route('/projects/<int:project_id>/items/<int:item_id>/toggle', methods=['POST'])
 def toggle_project_item(project_id, item_id):

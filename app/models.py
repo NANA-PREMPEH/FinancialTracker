@@ -113,6 +113,7 @@ class ProjectItem(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     project_id = db.Column(db.Integer, db.ForeignKey('project.id'), nullable=False)
     item_name = db.Column(db.String(200), nullable=False)
+    description = db.Column(db.Text, nullable=True)
     cost = db.Column(db.Float, nullable=False, default=0.0)
     is_completed = db.Column(db.Boolean, default=False)
     created_date = db.Column(db.DateTime, default=datetime.utcnow)

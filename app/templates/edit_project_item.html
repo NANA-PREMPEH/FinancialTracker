@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+
+{% block title %}Edit Item - {{ project.name }} - Financial Tracker{% endblock
+%}
+
+{% block content %}
+<div class="card">
+    <div
+        style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+        <div>
+            <h1>Edit Item</h1>
+            <p style="color: var(--color-text-muted); margin-top: 0.5rem;">
+                Project: {{ project.name }}
+            </p>
+        </div>
+    </div>
+
+    <form method="POST" style="max-width: 40rem;">
+        <!-- Item Name -->
+        <div class="form-group">
+            <label for="item_name">Item Name</label>
+            <input type="text" id="item_name" name="item_name"
+                value="{{ item.item_name }}" required>
+        </div>
+
+        <!-- Cost -->
+        <div class="form-group">
+            <label for="cost">Cost (GHS)</label>
+            <input type="number" id="cost" name="cost" step="0.01" min="0"
+                value="{{ "%.2f"|format(item.cost) }}" required>
+        </div>
+
+        <!-- Description -->
+        <div class="form-group">
+            <label for="description">Description (Optional)</label>
+            <textarea id="description" name="description" rows="4"
+                placeholder="Add details about this item...">{{ item.description or '' }}</textarea>
+        </div>
+
+        <!-- Buttons -->
+        <div style="display: flex; gap: 1rem; margin-top: 2rem;">
+            <button type="submit"
+                style="flex: 1; background-color: #22c55e; color: white;">Save
+                Changes</button>
+            <a href="{{ url_for('main.project_details', id=project.id) }}"
+                class="btn-secondary"
+                style="flex: 1; display: flex; align-items: center; justify-content: center; text-decoration: none; border-radius: var(--radius-md); background-color: #6b7280; color: white;">Cancel</a>
+        </div>
+    </form>
+</div>
+{% endblock %}
