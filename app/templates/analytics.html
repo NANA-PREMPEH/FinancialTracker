@@ -81,26 +81,46 @@ new Chart(trendCtx, {
     type: 'line',
     data: {
         labels: [{% for item in monthly_data %}'{{ item.month }}'{% if not loop.last %}, {% endif %}{% endfor %}],
-        datasets: [{
-            label: 'Expenses',
-            data: [{% for item in monthly_data %}{{ item.amount }}{% if not loop.last %}, {% endif %}{% endfor %}],
-            borderColor: '#4f46e5',
-            backgroundColor: 'rgba(79, 70, 229, 0.1)',
-            tension: 0.4,
-            fill: true
-        }]
+        datasets: [
+            {
+                label: 'Expenses',
+                data: [{% for item in monthly_data %}{{ item.expense }}{% if not loop.last %}, {% endif %}{% endfor %}],
+                borderColor: '#ef4444',
+                backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                tension: 0.4,
+                fill: true
+            },
+            {
+                label: 'Income',
+                data: [{% for item in monthly_data %}{{ item.income }}{% if not loop.last %}, {% endif %}{% endfor %}],
+                borderColor: '#10b981',
+                backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                tension: 0.4,
+                fill: true
+            }
+        ]
     },
     options: {
         responsive: true,
         plugins: {
             legend: {
-                display: false
+                display: true,
+                position: 'top'
+            },
+            tooltip: {
+                mode: 'index',
+                intersect: false,
             }
         },
         scales: {
             y: {
                 beginAtZero: true
             }
+        },
+        interaction: {
+            mode: 'nearest',
+            axis: 'x',
+            intersect: false
         }
     }
 });

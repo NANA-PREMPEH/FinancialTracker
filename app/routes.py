@@ -530,24 +530,45 @@ def delete_recurring(id):
 # ===== ANALYTICS =====
 @main.route('/analytics')
 def analytics():
-    # Category breakdown for pie chart
+    # Category breakdown for pie chart (Expenses only)
     category_data = db.session.query(
         Category.name, Category.icon, func.sum(Expense.amount)
     ).join(Expense).filter(Expense.transaction_type == 'expense').group_by(Category.id).all()
     
     # Monthly trend for line chart (last 6 months)
     monthly_data = []
-    for i in range(6):
-        month_start = datetime.utcnow() - timedelta(days=30 * i)
-        month_end = month_start + timedelta(days=30)
-        total = db.session.query(func.sum(Expense.amount)).filter(
+    today = datetime.utcnow()
+    
+    for i in range(5, -1, -1):
+        # Calculate start of month
+        month_date = today - timedelta(days=30 * i) # Approximate to find the month
+        month_start = datetime(month_date.year, month_date.month, 1)
+        
+        # Calculate end of month
+        if month_start.month == 12:
+            month_end = datetime(month_start.year + 1, 1, 1)
+        else:
+            month_end = datetime(month_start.year, month_start.month + 1, 1)
+            
+        # Get Expenses
+        expense_total = db.session.query(func.sum(Expense.amount)).filter(
             Expense.transaction_type == 'expense',
             Expense.date >= month_start,
             Expense.date < month_end
         ).scalar() or 0
-        monthly_data.append({'month': month_start.strftime('%b'), 'amount': total})
-    
-    monthly_data.reverse()
+        
+        # Get Income
+        income_total = db.session.query(func.sum(Expense.amount)).filter(
+            Expense.transaction_type == 'income',
+            Expense.date >= month_start,
+            Expense.date < month_end
+        ).scalar() or 0
+        
+        monthly_data.append({
+            'month': month_start.strftime('%b'),
+            'expense': expense_total,
+            'income': income_total
+        })
     
     return render_template('analytics.html', 
                          category_data=category_data,
