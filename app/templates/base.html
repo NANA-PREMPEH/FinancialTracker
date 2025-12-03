@@ -67,9 +67,152 @@
             color: white;
         }
 
+        /* Desktop Hover Support */
+        @media (min-width: 769px) {
+            nav li.dropdown:hover .dropdown-menu {
+                display: block;
+                animation: fadeIn 0.2s ease-in-out;
+            }
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
         /* Ensure header nav items are properly aligned */
         header nav ul {
             align-items: center;
+        }
+
+        /* Mobile Navigation Toggle */
+        .mobile-toggle {
+            display: none;
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: #4a90e2;
+            padding: 0.5rem;
+            z-index: 1001;
+        }
+
+        .hamburger {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            width: 25px;
+        }
+
+        .hamburger span {
+            display: block;
+            height: 3px;
+            background: #4a90e2;
+            border-radius: 2px;
+            transition: all 0.3s ease;
+        }
+
+        .mobile-toggle.active .hamburger span:nth-child(1) {
+            transform: rotate(45deg) translate(5px, 5px);
+        }
+
+        .mobile-toggle.active .hamburger span:nth-child(2) {
+            opacity: 0;
+        }
+
+        .mobile-toggle.active .hamburger span:nth-child(3) {
+            transform: rotate(-45deg) translate(7px, -6px);
+        }
+
+        /* Mobile styles */
+        @media (max-width: 768px) {
+            .mobile-toggle {
+                display: block;
+            }
+
+            header nav {
+                position: fixed;
+                top: 60px;
+                left: 0;
+                right: 0;
+                background: white;
+                max-height: 0;
+                overflow-y: auto;
+                overflow-x: hidden;
+                transition: max-height 0.3s ease;
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+                z-index: 999;
+            }
+
+            header nav.active {
+                max-height: 80vh;
+            }
+
+            header nav ul {
+                flex-direction: column;
+                padding: 1rem 0;
+                gap: 0;
+            }
+
+            header nav li {
+                width: 100%;
+                border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+            }
+
+            header nav li a {
+                display: block;
+                padding: 1rem 1.5rem;
+                width: 100%;
+                color: var(--color-text);
+            }
+
+            header nav li a:hover {
+                background: var(--color-primary);
+                color: white;
+            }
+
+            /* Dropdown styles for mobile */
+            nav li.dropdown > a::after {
+                content: '▼';
+                float: right;
+            }
+
+            .dropdown-menu {
+                display: block; /* Override desktop display: none */
+                position: static;
+                box-shadow: none;
+                background: #f5f5f5;
+                margin: 0;
+                border-radius: 0;
+                padding: 0;
+                max-height: 0;
+                opacity: 1;
+                overflow: hidden;
+                transition: max-height 0.3s ease;
+                transform: none;
+            }
+
+            .dropdown-menu.show {
+                max-height: 300px;
+                display: block;
+            }
+
+            .dropdown-menu a {
+                padding: 0.75rem 1.25rem;
+                padding-left: 2.5rem;
+                color: var(--color-text);
+            }
+
+            .dropdown-menu a:hover {
+                background: var(--color-primary);
+                color: white;
+            }
+
+            header .container {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+            }
         }
     </style>
 </head>
@@ -79,18 +222,25 @@
     <header>
         <div class="container">
             <a href="{{ url_for('main.dashboard') }}" class="logo">Financial Tracker</a>
-            <nav>
+            <button class="mobile-toggle" onclick="toggleMobileMenu()" id="mobileToggle">
+                <div class="hamburger">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </div>
+            </button>
+            <nav id="mainNav">
                 <ul>
                     <li><a href="{{ url_for('main.dashboard') }}">Dashboard</a></li>
                     <li class="dropdown">
-                        <a onclick="toggleDropdown(event, 'addDropdown')">+ ADD</a>
+                        <a href="javascript:void(0)" class="dropdown-toggle" onclick="toggleDropdown(event, 'addDropdown')">+ ADD</a>
                         <div class="dropdown-menu" id="addDropdown">
                             <a href="{{ url_for('main.add_expense') }}">💰 Add Transaction</a>
                             <a href="{{ url_for('main.add_project') }}">📋 New Project</a>
                         </div>
                     </li>
                     <li class="dropdown">
-                        <a onclick="toggleDropdown(event, 'viewDropdown')">View</a>
+                        <a href="javascript:void(0)" class="dropdown-toggle" onclick="toggleDropdown(event, 'viewDropdown')">View</a>
                         <div class="dropdown-menu" id="viewDropdown">
                             <a href="{{ url_for('main.all_expenses') }}">📄 All Transactions</a>
                             <a href="{{ url_for('main.projects') }}">📋 Projects</a>
@@ -128,6 +278,13 @@
     </footer>
 
     <script>
+        function toggleMobileMenu() {
+            const nav = document.getElementById('mainNav');
+            const toggle = document.getElementById('mobileToggle');
+            nav.classList.toggle('active');
+            toggle.classList.toggle('active');
+        }
+
         function toggleDropdown(event, dropdownId) {
             event.preventDefault();
             event.stopPropagation();
@@ -159,7 +316,32 @@
             if (event.key === 'Escape') {
                 const dropdowns = document.querySelectorAll('.dropdown-menu');
                 dropdowns.forEach(d => d.classList.remove('show'));
+                
+                // Also close mobile menu
+                const nav = document.getElementById('mainNav');
+                const toggle = document.getElementById('mobileToggle');
+                if (nav.classList.contains('active')) {
+                    nav.classList.remove('active');
+                    toggle.classList.remove('active');
+                }
             }
+        });
+
+        // Close mobile menu when clicking on navigation links
+        document.querySelectorAll('nav a').forEach(link => {
+            link.addEventListener('click', function(e) {
+                // Don't close if it's a dropdown toggle
+                if (this.classList.contains('dropdown-toggle')) {
+                    return;
+                }
+
+                const nav = document.getElementById('mainNav');
+                const toggle = document.getElementById('mobileToggle');
+                if (window.innerWidth <= 768) {
+                    nav.classList.remove('active');
+                    toggle.classList.remove('active');
+                }
+            });
         });
     </script>
 </body>
