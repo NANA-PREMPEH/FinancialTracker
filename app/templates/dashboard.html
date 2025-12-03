@@ -3,24 +3,28 @@
 {% block title %}Dashboard - Financial Tracker{% endblock %}
 
 {% block content %}
-<h1>Dashboard</h1>
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+    <h1 style="margin: 0;">Dashboard</h1>
+    <button onclick="togglePrivacy()" id="privacyToggle" style="background: #666; color: white; padding: 0.75rem 1.5rem; border: none; border-radius: 4px; cursor: pointer; font-weight: bold;">
+        <span id="privacyIcon">👁️</span> <span id="privacyText">Hide Amounts</span>
+</div>
 
 <div class="summary-box" style="background: #f3f2f1; padding: 1.5rem; margin-bottom: 2rem; border-left: 10px solid var(--color-primary);">
     <h2>Total Expenses</h2>
     <p style="font-size: 0.9rem; color: #666; margin: 0.25rem 0 0.5rem 0;">as at {{ current_date.strftime('%d %B %Y') }}</p>
-    <p style="font-size: 3rem; font-weight: bold; margin: 0;">GHS {{ "{:,.2f}".format(total_expenses) }}</p>
+    <p style="font-size: 3rem; font-weight: bold; margin: 0;">GHS <span class="amount-value" data-amount="{{ '{:,.2f}'.format(total_expenses) }}">{{ "{:,.2f}".format(total_expenses) }}</span></p>
 </div>
 
 <div class="summary-box" style="background: #f3e6f7; padding: 1.5rem; margin-bottom: 2rem; border-left: 10px solid #9b59b6;">
     <h2>Current Year Expenses</h2>
     <p style="font-size: 0.9rem; color: #666; margin: 0.25rem 0 0.5rem 0;">Year {{ current_date.strftime('%Y') }}</p>
-    <p style="font-size: 3rem; font-weight: bold; margin: 0;">GHS {{ "{:,.2f}".format(yearly_expenses) }}</p>
+    <p style="font-size: 3rem; font-weight: bold; margin: 0;">GHS <span class="amount-value" data-amount="{{ '{:,.2f}'.format(yearly_expenses) }}">{{ "{:,.2f}".format(yearly_expenses) }}</span></p>
 </div>
 
 <div class="summary-box" style="background: #e6f7f7; padding: 1.5rem; margin-bottom: 2rem; border-left: 10px solid #00a896;">
     <h2>Current Month Expenses</h2>
     <p style="font-size: 0.9rem; color: #666; margin: 0.25rem 0 0.5rem 0;">{{ current_date.strftime('%B %Y') }}</p>
-    <p style="font-size: 3rem; font-weight: bold; margin: 0;">GHS {{ "{:,.2f}".format(monthly_expenses) }}</p>
+    <p style="font-size: 3rem; font-weight: bold; margin: 0;">GHS <span class="amount-value" data-amount="{{ '{:,.2f}'.format(monthly_expenses) }}">{{ "{:,.2f}".format(monthly_expenses) }}</span></p>
 </div>
 
 <!-- Wallet Totals with Currency Converter -->
@@ -29,7 +33,7 @@
         <div>
             <h2>Total Wallet Balance</h2>
             <p style="font-size: 0.9rem; color: #666; margin: 0.25rem 0 0.5rem 0;">All Wallets Combined</p>
-            <p style="font-size: 3rem; font-weight: bold; margin: 0;">GHS {{ "{:,.2f}".format(total_wallet_balance) }}</p>
+            <p style="font-size: 3rem; font-weight: bold; margin: 0;">GHS <span class="amount-value" data-amount="{{ '{:,.2f}'.format(total_wallet_balance) }}">{{ "{:,.2f}".format(total_wallet_balance) }}</span></p>
         </div>
         <div>
             <button onclick="convertCurrency()" class="button" style="background: #ff9800; color: white; padding: 0.75rem 1.5rem; border: none; border-radius: 4px; cursor: pointer; font-weight: bold;">
@@ -104,6 +108,41 @@
 {% endif %}
 
 <script>
+// Privacy Toggle Feature
+let isPrivacyMode = localStorage.getItem('privacyMode') === 'true';
+
+function togglePrivacy() {
+    isPrivacyMode = !isPrivacyMode;
+    localStorage.setItem('privacyMode', isPrivacyMode);
+    
+    const amounts = document.querySelectorAll('.amount-value');
+    const icon = document.getElementById('privacyIcon');
+    const text = document.getElementById('privacyText');
+    
+    amounts.forEach(amount => {
+        if (isPrivacyMode) {
+            amount.textContent = '••••••';
+        } else {
+            amount.textContent = amount.getAttribute('data-amount');
+        }
+    });
+    
+    if (isPrivacyMode) {
+        icon.textContent = '👁️‍🗨️';
+        text.textContent = 'Show Amounts';
+    } else {
+        icon.textContent = '👁️';
+        text.textContent = 'Hide Amounts';
+    }
+}
+
+// Initialize privacy state on page load
+document.addEventListener('DOMContentLoaded', function() {
+    if (isPrivacyMode) {
+        togglePrivacy();
+    }
+});
+
 function convertCurrency() {
     const modal = document.getElementById('conversionModal');
     modal.style.display = 'flex';
