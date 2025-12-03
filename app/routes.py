@@ -70,6 +70,7 @@ def dashboard():
                          total_income=total_income,
                          monthly_expenses=monthly_expenses,
                          yearly_expenses=yearly_expenses,
+                         current_date=now,
                          budget_alerts=budget_alerts)
 
 # ===== TRANSACTIONS =====
