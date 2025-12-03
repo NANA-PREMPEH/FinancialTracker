@@ -10,6 +10,11 @@
     <p style="font-size: 3rem; font-weight: bold; margin: 0;">GHS {{ "%.2f"|format(total_expenses) }}</p>
 </div>
 
+<div class="summary-box" style="background: #e6f7f7; padding: 1.5rem; margin-bottom: 2rem; border-left: 10px solid #00a896;">
+    <h2>Current Month Expenses</h2>
+    <p style="font-size: 3rem; font-weight: bold; margin: 0;">GHS {{ "%.2f"|format(monthly_expenses) }}</p>
+</div>
+
 <h2>Recent Expenses</h2>
 {% if recent_expenses %}
     <table>

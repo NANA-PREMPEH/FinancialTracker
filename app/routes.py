@@ -16,6 +16,14 @@ def dashboard():
     total_expenses = db.session.query(func.sum(Expense.amount)).filter(Expense.transaction_type == 'expense').scalar() or 0
     total_income = db.session.query(func.sum(Expense.amount)).filter(Expense.transaction_type == 'income').scalar() or 0
     
+    # Calculate current month's expenses
+    now = datetime.utcnow()
+    month_start = datetime(now.year, now.month, 1)
+    monthly_expenses = db.session.query(func.sum(Expense.amount)).filter(
+        Expense.transaction_type == 'expense',
+        Expense.date >= month_start
+    ).scalar() or 0
+    
     # Budget alerts
     budgets = Budget.query.filter_by(is_active=True).all()
     budget_alerts = []
@@ -53,6 +61,7 @@ def dashboard():
                          recent_expenses=recent_expenses, 
                          total_expenses=total_expenses,
                          total_income=total_income,
+                         monthly_expenses=monthly_expenses,
                          budget_alerts=budget_alerts)
 
 # ===== TRANSACTIONS =====
