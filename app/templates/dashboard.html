@@ -23,6 +23,35 @@
     <p style="font-size: 3rem; font-weight: bold; margin: 0;">GHS {{ "{:,.2f}".format(monthly_expenses) }}</p>
 </div>
 
+<!-- Wallet Totals with Currency Converter -->
+<div class="summary-box" style="background: #fff3e0; padding: 1.5rem; margin-bottom: 2rem; border-left: 10px solid #ff9800;">
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+        <div>
+            <h2>Total Wallet Balance</h2>
+            <p style="font-size: 0.9rem; color: #666; margin: 0.25rem 0 0.5rem 0;">All Wallets Combined</p>
+            <p style="font-size: 3rem; font-weight: bold; margin: 0;">GHS {{ "{:,.2f}".format(total_wallet_balance) }}</p>
+        </div>
+        <div>
+            <button onclick="convertCurrency()" class="button" style="background: #ff9800; color: white; padding: 0.75rem 1.5rem; border: none; border-radius: 4px; cursor: pointer; font-weight: bold;">
+                💱 Convert to Currencies
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Currency Conversion Modal -->
+<div id="conversionModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center;">
+    <div style="background: white; padding: 2rem; border-radius: 8px; max-width: 600px; width: 90%; max-height: 80vh; overflow-y: auto;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+            <h2 style="margin: 0;">Currency Conversions</h2>
+            <button onclick="closeConversionModal()" style="background: none; border: none; font-size: 1.5rem; cursor: pointer; color: #666;">&times;</button>
+        </div>
+        <div id="conversionResults">
+            <p style="text-align: center; color: #666;">Loading exchange rates...</p>
+        </div>
+    </div>
+</div>
+
 <h2>Recent Expenses</h2>
 {% if recent_expenses %}
     <table>
@@ -73,5 +102,93 @@
     <p>No expenses recorded yet.</p>
     <a href="{{ url_for('main.add_expense') }}" class="button">Add your first expense</a>
 {% endif %}
+
+<script>
+function convertCurrency() {
+    const modal = document.getElementById('conversionModal');
+    modal.style.display = 'flex';
+    
+    const amount = {{ total_wallet_balance }};
+    
+    // Fetch conversion data from API
+    fetch('{{ url_for("main.convert_currency") }}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ amount: amount })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            displayConversions(data.conversions);
+        } else {
+            document.getElementById('conversionResults').innerHTML = 
+                '<p style="color: red;">Error: ' + data.error + '</p>';
+        }
+    })
+    .catch(error => {
+        document.getElementById('conversionResults').innerHTML = 
+            '<p style="color: red;">Error fetching exchange rates. Please try again.</p>';
+        console.error('Error:', error);
+    });
+}
+
+function displayConversions(conversions) {
+    const currencyNames = {
+        'GHS': 'Ghanaian Cedi',
+        'USD': 'US Dollar',
+        'EUR': 'Euro',
+        'GBP': 'British Pound',
+        'JPY': 'Japanese Yen',
+        'CNY': 'Chinese Yuan'
+    };
+    
+    const currencyFlags = {
+        'GHS': '🇬🇭',
+        'USD': '🇺🇸',
+        'EUR': '🇪🇺',
+        'GBP': '🇬🇧',
+        'JPY': '🇯🇵',
+        'CNY': '🇨🇳'
+    };
+    
+    let html = '<table style="width: 100%; border-collapse: collapse;">';
+    html += '<thead><tr style="background: #f5f5f5;">';
+    html += '<th style="padding: 1rem; text-align: left;">Currency</th>';
+    html += '<th style="padding: 1rem; text-align: right;">Amount</th>';
+    html += '</tr></thead><tbody>';
+    
+    for (const [currency, amount] of Object.entries(conversions)) {
+        const flag = currencyFlags[currency] || '';
+        const name = currencyNames[currency] || currency;
+        const formattedAmount = new Intl.NumberFormat('en-US', {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+        }).format(amount);
+        
+        html += '<tr style="border-bottom: 1px solid #eee;">';
+        html += `<td style="padding: 1rem;"><span style="font-size: 1.5rem; margin-right: 0.5rem;">${flag}</span>${name} (${currency})</td>`;
+        html += `<td style="padding: 1rem; text-align: right; font-weight: bold;">${formattedAmount}</td>`;
+        html += '</tr>';
+    }
+    
+    html += '</tbody></table>';
+    html += '<p style="margin-top: 1.5rem; font-size: 0.9rem; color: #666; text-align: center;">Exchange rates provided by ExchangeRate-API</p>';
+    
+    document.getElementById('conversionResults').innerHTML = html;
+}
+
+function closeConversionModal() {
+    document.getElementById('conversionModal').style.display = 'none';
+}
+
+// Close modal when clicking outside
+document.getElementById('conversionModal')?.addEventListener('click', function(e) {
+    if (e.target === this) {
+        closeConversionModal();
+    }
+});
+</script>
 
 {% endblock %}

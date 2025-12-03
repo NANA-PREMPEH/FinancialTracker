@@ -21,6 +21,12 @@
         </div>
     </div>
 
+    <!-- Yearly Trend (12 months) -->
+    <div class="card" style="margin-bottom: 2rem;">
+        <h2 style="margin-bottom: 1.5rem;">Yearly Trend (Last 12 Months)</h2>
+        <canvas id="yearlyTrendChart"></canvas>
+    </div>
+
     <!-- Category Details Table -->
     <div class="card">
         <h2 style="margin-bottom: 1rem;">Category Breakdown</h2>
@@ -93,6 +99,56 @@ new Chart(trendCtx, {
             {
                 label: 'Income',
                 data: [{% for item in monthly_data %}{{ item.income }}{% if not loop.last %}, {% endif %}{% endfor %}],
+                borderColor: '#10b981',
+                backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                tension: 0.4,
+                fill: true
+            }
+        ]
+    },
+    options: {
+        responsive: true,
+        plugins: {
+            legend: {
+                display: true,
+                position: 'top'
+            },
+            tooltip: {
+                mode: 'index',
+                intersect: false,
+            }
+        },
+        scales: {
+            y: {
+                beginAtZero: true
+            }
+        },
+        interaction: {
+            mode: 'nearest',
+            axis: 'x',
+            intersect: false
+        }
+    }
+});
+
+// Yearly Trend Line Chart (12 months)
+const yearlyTrendCtx = document.getElementById('yearlyTrendChart').getContext('2d');
+new Chart(yearlyTrendCtx, {
+    type: 'line',
+    data: {
+        labels: [{% for item in yearly_data %}'{{ item.month }}'{% if not loop.last %}, {% endif %}{% endfor %}],
+        datasets: [
+            {
+                label: 'Expenses',
+                data: [{% for item in yearly_data %}{{ item.expense }}{% if not loop.last %}, {% endif %}{% endfor %}],
+                borderColor: '#ef4444',
+                backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                tension: 0.4,
+                fill: true
+            },
+            {
+                label: 'Income',
+                data: [{% for item in yearly_data %}{{ item.income }}{% if not loop.last %}, {% endif %}{% endfor %}],
                 borderColor: '#10b981',
                 backgroundColor: 'rgba(16, 185, 129, 0.1)',
                 tension: 0.4,

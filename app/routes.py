@@ -16,6 +16,9 @@ def dashboard():
     total_expenses = db.session.query(func.sum(Expense.amount)).filter(Expense.transaction_type == 'expense').scalar() or 0
     total_income = db.session.query(func.sum(Expense.amount)).filter(Expense.transaction_type == 'income').scalar() or 0
     
+    # Calculate total wallet balance
+    total_wallet_balance = sum(wallet.balance for wallet in wallets)
+    
     # Calculate current month's expenses
     now = datetime.utcnow()
     month_start = datetime(now.year, now.month, 1)
@@ -70,6 +73,7 @@ def dashboard():
                          total_income=total_income,
                          monthly_expenses=monthly_expenses,
                          yearly_expenses=yearly_expenses,
+                         total_wallet_balance=total_wallet_balance,
                          current_date=now,
                          budget_alerts=budget_alerts)
 
@@ -588,9 +592,44 @@ def analytics():
             'income': income_total
         })
     
+    # Yearly trend for line chart (last 12 months)
+    yearly_data = []
+    
+    for i in range(11, -1, -1):
+        # Calculate start of month
+        month_date = today - timedelta(days=30 * i) # Approximate to find the month
+        month_start = datetime(month_date.year, month_date.month, 1)
+        
+        # Calculate end of month
+        if month_start.month == 12:
+            month_end = datetime(month_start.year + 1, 1, 1)
+        else:
+            month_end = datetime(month_start.year, month_start.month + 1, 1)
+            
+        # Get Expenses
+        expense_total = db.session.query(func.sum(Expense.amount)).filter(
+            Expense.transaction_type == 'expense',
+            Expense.date >= month_start,
+            Expense.date < month_end
+        ).scalar() or 0
+        
+        # Get Income
+        income_total = db.session.query(func.sum(Expense.amount)).filter(
+            Expense.transaction_type == 'income',
+            Expense.date >= month_start,
+            Expense.date < month_end
+        ).scalar() or 0
+        
+        yearly_data.append({
+            'month': month_start.strftime('%b %Y'),
+            'expense': expense_total,
+            'income': income_total
+        })
+    
     return render_template('analytics.html', 
                          category_data=category_data,
-                         monthly_data=monthly_data)
+                         monthly_data=monthly_data,
+                         yearly_data=yearly_data)
 
 # ===== CATEGORIES =====
 @main.route('/categories')
@@ -648,6 +687,51 @@ def export_csv():
         mimetype='text/csv',
         headers={'Content-Disposition': 'attachment; filename=expenses.csv'}
     )
+
+# ===== CURRENCY CONVERSION =====
+@main.route('/api/convert-currency', methods=['POST'])
+def convert_currency():
+    try:
+        amount = float(request.json.get('amount', 0))
+        
+        # Use a free currency API to get exchange rates
+        import requests
+        
+        # Using exchangerate-api.com (free tier)
+        api_url = 'https://api.exchangerate-api.com/v4/latest/GHS'
+        
+        response = requests.get(api_url, timeout=5)
+        if response.status_code == 200:
+            data = response.json()
+            rates = data.get('rates', {})
+            
+            # Convert to popular currencies
+            conversions = {
+                'GHS': amount,
+                'USD': amount * rates.get('USD', 0),
+                'EUR': amount * rates.get('EUR', 0),
+                'GBP': amount * rates.get('GBP', 0),
+                'JPY': amount * rates.get('JPY', 0),
+                'CNY': amount * rates.get('CNY', 0),
+            }
+            
+            return jsonify({
+                'success': True,
+                'conversions': conversions,
+                'rates': rates
+            })
+        else:
+            return jsonify({
+                'success': False,
+                'error': 'Failed to fetch exchange rates'
+            }), 500
+            
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
 
 # ===== REPORTS =====
 @main.route('/reports')
