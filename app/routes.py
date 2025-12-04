@@ -868,7 +868,10 @@ def project_details(id):
     # Calculate total cost of completed items
     completed_cost = sum(item.cost for item in project.items if item.is_completed)
     
-    return render_template('project_details.html', project=project, completed_cost=completed_cost)
+    # Calculate total cost of not completed items
+    not_completed_cost = sum(item.cost for item in project.items if not item.is_completed)
+    
+    return render_template('project_details.html', project=project, completed_cost=completed_cost, not_completed_cost=not_completed_cost)
 
 @main.route('/projects/edit/<int:id>', methods=['GET', 'POST'])
 def edit_project(id):
