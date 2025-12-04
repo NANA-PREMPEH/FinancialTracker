@@ -864,7 +864,11 @@ def add_project():
 @main.route('/projects/<int:id>')
 def project_details(id):
     project = Project.query.get_or_404(id)
-    return render_template('project_details.html', project=project)
+    
+    # Calculate total cost of completed items
+    completed_cost = sum(item.cost for item in project.items if item.is_completed)
+    
+    return render_template('project_details.html', project=project, completed_cost=completed_cost)
 
 @main.route('/projects/edit/<int:id>', methods=['GET', 'POST'])
 def edit_project(id):

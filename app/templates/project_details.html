@@ -73,9 +73,20 @@
                 <p
                     style="font-size: 0.9rem; color: var(--color-text-muted); margin-bottom: 0.25rem;">Total
                     Items: {{ project.items|length }}</p>
-                <p
-                    style="font-size: 1.5rem; font-weight: 700; color: var(--color-primary); margin: 0;">GHS
-                    {{ "{:,.2f}".format(project.total_cost) }}</p>
+                <div style="display: flex; gap: 2rem; align-items: center;">
+                    <div>
+                        <p style="font-size: 0.85rem; color: var(--color-text-muted); margin-bottom: 0.25rem;">✓ Completed</p>
+                        <p
+                            style="font-size: 1.25rem; font-weight: 700; color: #4caf50; margin: 0;">GHS
+                            {{ "{:,.2f}".format(completed_cost) }}</p>
+                    </div>
+                    <div>
+                        <p style="font-size: 0.85rem; color: var(--color-text-muted); margin-bottom: 0.25rem;">Total Cost</p>
+                        <p
+                            style="font-size: 1.5rem; font-weight: 700; color: var(--color-primary); margin: 0;">GHS
+                            {{ "{:,.2f}".format(project.total_cost) }}</p>
+                    </div>
+                </div>
             </div>
         </div>
 
