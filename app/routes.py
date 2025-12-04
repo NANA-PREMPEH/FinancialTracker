@@ -16,8 +16,47 @@ def dashboard():
     total_expenses = db.session.query(func.sum(Expense.amount)).filter(Expense.transaction_type == 'expense').scalar() or 0
     total_income = db.session.query(func.sum(Expense.amount)).filter(Expense.transaction_type == 'income').scalar() or 0
     
-    # Calculate total wallet balance
-    total_wallet_balance = sum(wallet.balance for wallet in wallets)
+    # Calculate total wallet balance in GHS
+    total_wallet_balance = 0
+    for wallet in wallets:
+        if wallet.currency == 'GHS':
+            total_wallet_balance += wallet.balance
+        else:
+            # Get exchange rate
+            rate = ExchangeRate.query.filter_by(
+                from_currency=wallet.currency, 
+                to_currency='GHS'
+            ).order_by(ExchangeRate.date.desc()).first()
+            
+            # If rate exists and is recent (e.g., within 24 hours), use it
+            # Otherwise fetch new rate
+            current_rate = 0
+            if rate and (datetime.utcnow() - rate.date).days < 1:
+                current_rate = rate.rate
+            else:
+                try:
+                    import requests
+                    api_url = f'https://api.exchangerate-api.com/v4/latest/{wallet.currency}'
+                    response = requests.get(api_url, timeout=5)
+                    if response.status_code == 200:
+                        data = response.json()
+                        current_rate = data.get('rates', {}).get('GHS', 0)
+                        
+                        # Save new rate
+                        new_rate = ExchangeRate(
+                            from_currency=wallet.currency,
+                            to_currency='GHS',
+                            rate=current_rate
+                        )
+                        db.session.add(new_rate)
+                        db.session.commit()
+                except Exception as e:
+                    print(f"Error fetching rate for {wallet.currency}: {e}")
+                    # Fallback to last known rate if available
+                    if rate:
+                        current_rate = rate.rate
+            
+            total_wallet_balance += wallet.balance * current_rate
     
     # Calculate current month's expenses
     now = datetime.utcnow()
