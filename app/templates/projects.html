@@ -28,8 +28,7 @@
                             {{ project.funding_source|replace('_', ' ')|title }}
                         {% endif %}
                     </p>
-                    <p style="opacity: 0.9; font-size: 0.9rem;">
-                        📊 {{ project.items|length }} items • Total: GHS {{ "%.2f"|format(project.total_cost) }}
+                        📊 {{ project.items|length }} items • Total: GHS {{ "{:,.2f}".format(project.total_cost) }}
                     </p>
                 </div>
                 <div style="display: flex; gap: 0.5rem;">

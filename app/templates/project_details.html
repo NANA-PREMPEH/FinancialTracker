@@ -75,7 +75,7 @@
                     Items: {{ project.items|length }}</p>
                 <p
                     style="font-size: 1.5rem; font-weight: 700; color: var(--color-primary); margin: 0;">GHS
-                    {{ "%.2f"|format(project.total_cost) }}</p>
+                    {{ "{:,.2f}".format(project.total_cost) }}</p>
             </div>
         </div>
 
@@ -114,7 +114,7 @@
                         style="display: flex; align-items: center; gap: 0.75rem;">
                         <span
                             style="font-size: 1.25rem; font-weight: 700; color: var(--color-primary);">
-                            GHS {{ "%.2f"|format(item.cost) }}
+                            GHS {{ "{:,.2f}".format(item.cost) }}
                         </span>
                         <a
                             href="{{ url_for('main.edit_project_item', project_id=project.id, item_id=item.id) }}">
