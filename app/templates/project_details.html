@@ -100,35 +100,88 @@
         <div style="display: grid; gap: 1rem;">
             {% for item in project.items %}
             <div class="card"
-                style="background-color: {% if item.is_completed %}#e8f5e9{% else %}white{% endif %}; border-left: 4px solid {% if item.is_completed %}#4caf50{% else %}var(--color-primary){% endif %};">
+                style="background-color: white; border-left: 4px solid var(--color-primary);">
                 <div
                     style="display: flex; justify-content: space-between; align-items: flex-start;">
-                    <div
-                        style="display: flex; align-items: flex-start; gap: 1rem; flex: 1;">
-                        <input type="checkbox"
-                            {% if item.is_completed %}checked{% endif %}
-                            onchange="toggleItem({{ project.id }}, {{ item.id }})"
-                            style="width: 20px; height: 20px; cursor: pointer; margin-top: 0.25rem;">
-                        <div style="flex: 1;">
-                            <h4
-                                style="margin: 0; {% if item.is_completed %}text-decoration: line-through; opacity: 0.6;{% endif %}">
-                                {{ item.item_name }}
-                            </h4>
-                            {% if item.description %}
-                            <p
-                                style="margin: 0.5rem 0 0 0; font-size: 0.9rem; color: var(--color-text); white-space: pre-wrap;">
-                                {{ item.description }}
-                            </p>
-                            {% endif %}
-                            <p
-                                style="margin: 0.25rem 0 0 0; font-size: 0.85rem; color: var(--color-text-muted);">
-                                Added {{ item.created_date.strftime('%b %d, %Y')
-                                }}
-                            </p>
+                    <div style="flex: 1;">
+                        <h4 style="margin: 0;">
+                            {{ item.item_name }}
+                        </h4>
+                        {% if item.description %}
+                        <p
+                            style="margin: 0.5rem 0 0 0; font-size: 0.9rem; color: var(--color-text); white-space: pre-wrap;">
+                            {{ item.description }}
+                        </p>
+                        {% endif %}
+                        <p
+                            style="margin: 0.25rem 0 0 0; font-size: 0.85rem; color: var(--color-text-muted);">
+                            Added {{ item.created_date.strftime('%b %d, %Y') }}
+                        </p>
+                        
+                        <!-- Payment Progress -->
+                        <div style="margin-top: 0.75rem;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.25rem;">
+                                <span style="font-size: 0.85rem; color: var(--color-text-muted);">Payment Progress</span>
+                                <span style="font-size: 0.85rem; font-weight: 600;">GHS {{ "{:,.2f}".format(item.total_paid) }} / {{ "{:,.2f}".format(item.cost) }}</span>
+                            </div>
+                            <div style="background: #e0e0e0; height: 8px; border-radius: 4px; overflow: hidden;">
+                                <div style="background: #4caf50; height: 100%; width: {{ (item.total_paid / item.cost * 100) if item.cost > 0 else 0 }}%;"></div>
+                            </div>
                         </div>
+                        
+                        <!-- Payments List -->
+                        {% if item.payments %}
+                        <div style="margin-top: 0.75rem; padding-left: 0.5rem; border-left: 2px solid #e0e0e0;">
+                            <p style="font-size: 0.85rem; font-weight: 600; margin-bottom: 0.5rem;">Payments:</p>
+                            {% for payment in item.payments %}
+                            <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem; padding: 0.25rem;">
+                                <input type="checkbox"
+                                    {% if payment.is_paid %}checked{% endif %}
+                                    onchange="togglePayment({{ project.id }}, {{ item.id }}, {{ payment.id }})"
+                                    style="width: 16px; height: 16px; cursor: pointer;">
+                                <span style="font-size: 0.85rem; flex: 1; {% if payment.is_paid %}text-decoration: line-through; opacity: 0.7;{% endif %}">
+                                    {{ payment.description or 'Payment' }} - GHS {{ "{:,.2f}".format(payment.amount) }}
+                                </span>
+                                <form method="POST"
+                                    action="{{ url_for('main.delete_project_item_payment', project_id=project.id, item_id=item.id, payment_id=payment.id) }}"
+                                    style="display: inline;"
+                                    onsubmit="return confirm('Delete this payment?');">
+                                    <button type="submit"
+                                        style="background-color: #ef4444; color: white; border: none; padding: 0.25rem 0.5rem; border-radius: 4px; cursor: pointer; font-size: 0.75rem;">
+                                        🗑️
+                                    </button>
+                                </form>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                        
+                        <!-- Add Payment Form -->
+                        <details style="margin-top: 0.75rem;">
+                            <summary style="cursor: pointer; font-size: 0.85rem; color: var(--color-primary); font-weight: 600;">+ Add Payment</summary>
+                            <form method="POST" action="{{ url_for('main.add_project_item_payment', project_id=project.id, item_id=item.id) }}"
+                                style="margin-top: 0.5rem; padding: 0.5rem; background: #f9f9f9; border-radius: 4px;">
+                                <div style="display: grid; gap: 0.5rem;">
+                                    <div>
+                                        <input type="number" name="payment_amount" step="0.01" min="0" required
+                                            placeholder="Amount (GHS)"
+                                            style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px; font-size: 0.85rem;">
+                                    </div>
+                                    <div>
+                                        <input type="text" name="payment_description"
+                                            placeholder="Description (e.g., First payment, Deposit)"
+                                            style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px; font-size: 0.85rem;">
+                                    </div>
+                                    <button type="submit"
+                                        style="background: var(--color-primary); color: white; border: none; padding: 0.5rem; border-radius: 4px; cursor: pointer; font-size: 0.85rem; font-weight: 600;">
+                                        Add Payment
+                                    </button>
+                                </div>
+                            </form>
+                        </details>
                     </div>
                     <div
-                        style="display: flex; align-items: center; gap: 0.75rem;">
+                        style="display: flex; align-items: center; gap: 0.75rem; margin-left: 1rem;">
                         <span
                             style="font-size: 1.25rem; font-weight: 700; color: var(--color-primary);">
                             GHS {{ "{:,.2f}".format(item.cost) }}
@@ -210,6 +263,26 @@ function toggleItem(projectId, itemId) {
     .catch(error => {
         console.error('Error:', error);
         alert('Failed to update item status');
+    });
+}
+
+function togglePayment(projectId, itemId, paymentId) {
+    fetch(`/projects/${projectId}/items/${itemId}/payments/${paymentId}/toggle`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Reload the page to update payment progress
+            window.location.reload();
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Failed to update payment status');
     });
 }
 

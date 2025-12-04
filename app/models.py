@@ -118,5 +118,25 @@ class ProjectItem(db.Model):
     is_completed = db.Column(db.Boolean, default=False)
     created_date = db.Column(db.DateTime, default=datetime.utcnow)
     
+    # Relationship for payments
+    payments = db.relationship('ProjectItemPayment', backref='project_item', lazy=True, cascade='all, delete-orphan')
+    
     def __repr__(self):
         return f'<ProjectItem {self.item_name} - {self.cost}>'
+    
+    @property
+    def total_paid(self):
+        """Calculate total amount paid for this item"""
+        return sum(payment.amount for payment in self.payments if payment.is_paid)
+
+class ProjectItemPayment(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    project_item_id = db.Column(db.Integer, db.ForeignKey('project_item.id'), nullable=False)
+    amount = db.Column(db.Float, nullable=False)
+    description = db.Column(db.String(200), nullable=True)
+    is_paid = db.Column(db.Boolean, default=False)
+    payment_date = db.Column(db.DateTime, nullable=True)
+    created_date = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    def __repr__(self):
+        return f'<ProjectItemPayment {self.amount} - {self.description}>'
