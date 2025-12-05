@@ -10,33 +10,30 @@
     </button>
 </div>
 
-<div class="summary-box summary-box-total">
-    <h2>Total Expenses</h2>
-    <p class="text-muted" style="font-size: 0.9rem; margin: 0.25rem 0 0.5rem 0;">as at {{ current_date.strftime('%d %B %Y') }}</p>
-    <p style="font-size: 3rem; font-weight: bold; margin: 0;">GHS <span class="amount-value" data-amount="{{ '{:,.2f}'.format(total_expenses) }}">{{ "{:,.2f}".format(total_expenses) }}</span></p>
-</div>
-
-<div class="summary-box summary-box-year">
-    <h2>Current Year Expenses</h2>
-    <p class="text-muted" style="font-size: 0.9rem; margin: 0.25rem 0 0.5rem 0;">Year {{ current_date.strftime('%Y') }}</p>
-    <p style="font-size: 3rem; font-weight: bold; margin: 0;">GHS <span class="amount-value" data-amount="{{ '{:,.2f}'.format(yearly_expenses) }}">{{ "{:,.2f}".format(yearly_expenses) }}</span></p>
-</div>
-
-<div class="summary-box summary-box-month">
-    <h2>Current Month Expenses</h2>
-    <p class="text-muted" style="font-size: 0.9rem; margin: 0.25rem 0 0.5rem 0;">{{ current_date.strftime('%B %Y') }}</p>
-    <p style="font-size: 3rem; font-weight: bold; margin: 0;">GHS <span class="amount-value" data-amount="{{ '{:,.2f}'.format(monthly_expenses) }}">{{ "{:,.2f}".format(monthly_expenses) }}</span></p>
-</div>
-
-<!-- Wallet Totals with Currency Converter -->
-<div class="summary-box summary-box-wallet">
-    <div style="display: flex; justify-content: space-between; align-items: center;">
-        <div>
-            <h2>Total Wallet Balance</h2>
-            <p class="text-muted" style="font-size: 0.9rem; margin: 0.25rem 0 0.5rem 0;">All Wallets Combined</p>
-            <p style="font-size: 3rem; font-weight: bold; margin: 0;">GHS <span class="amount-value" data-amount="{{ '{:,.2f}'.format(total_wallet_balance) }}">{{ "{:,.2f}".format(total_wallet_balance) }}</span></p>
+<div class="dashboard-summary-wrapper">
+    <div class="glass-grid">
+        <div class="glass-panel">
+            <h2>Total Expenses</h2>
+            <p class="text-muted">as at {{ current_date.strftime('%d %B %Y') }}</p>
+            <div class="amount-value" data-amount="GHS {{ '{:,.2f}'.format(total_expenses) }}">GHS {{ "{:,.2f}".format(total_expenses) }}</div>
         </div>
-        <div>
+
+        <div class="glass-panel">
+            <h2>Current Year Expenses</h2>
+            <p class="text-muted">Year {{ current_date.strftime('%Y') }}</p>
+            <div class="amount-value" data-amount="GHS {{ '{:,.2f}'.format(yearly_expenses) }}">GHS {{ "{:,.2f}".format(yearly_expenses) }}</div>
+        </div>
+
+        <div class="glass-panel">
+            <h2>Current Month Expenses</h2>
+            <p class="text-muted">{{ current_date.strftime('%B %Y') }}</p>
+            <div class="amount-value" data-amount="GHS {{ '{:,.2f}'.format(monthly_expenses) }}">GHS {{ "{:,.2f}".format(monthly_expenses) }}</div>
+        </div>
+
+        <div class="glass-panel">
+            <h2>Total Wallet Balance</h2>
+            <p class="text-muted">All Wallets Combined</p>
+            <div class="amount-value" data-amount="GHS {{ '{:,.2f}'.format(total_wallet_balance) }}">GHS {{ "{:,.2f}".format(total_wallet_balance) }}</div>
             <button onclick="convertCurrency()" class="btn-convert">
                 💱 Convert to Currencies
             </button>
