@@ -17,80 +17,6 @@
         }
     </script>
     <style>
-        /* Dropdown menu styles */
-        nav ul {
-            list-style: none;
-            margin: 0;
-            padding: 0;
-            display: flex;
-            gap: 0.5rem;
-        }
-
-        nav li {
-            position: relative;
-        }
-
-        nav li.dropdown {
-            position: relative;
-        }
-
-        nav li.dropdown > a {
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            gap: 0.25rem;
-        }
-
-        nav li.dropdown > a::after {
-            content: '▼';
-            font-size: 0.7rem;
-            margin-left: 0.25rem;
-        }
-
-        .dropdown-menu {
-            display: none;
-            position: absolute;
-            top: 100%;
-            left: 0;
-            background: white;
-            min-width: 200px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-            border-radius: 8px;
-            padding: 0.5rem 0;
-            z-index: 1000;
-            margin-top: 0.5rem;
-        }
-
-        .dropdown-menu.show {
-            display: block;
-        }
-
-        .dropdown-menu a {
-            display: block;
-            padding: 0.75rem 1.25rem;
-            color: var(--color-text);
-            text-decoration: none;
-            transition: background-color 0.2s;
-        }
-
-        .dropdown-menu a:hover {
-            background-color: var(--color-primary);
-            color: white;
-        }
-
-        /* Desktop Hover Support */
-        @media (min-width: 769px) {
-            nav li.dropdown:hover .dropdown-menu {
-                display: block;
-                animation: fadeIn 0.2s ease-in-out;
-            }
-        }
-
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
         /* Ensure header nav items are properly aligned */
         header nav ul {
             align-items: center;
@@ -146,7 +72,7 @@
                 top: 60px;
                 left: 0;
                 right: 0;
-                background: white;
+                background: var(--color-surface);
                 max-height: 0;
                 overflow-y: auto;
                 overflow-x: hidden;
@@ -167,7 +93,7 @@
 
             header nav li {
                 width: 100%;
-                border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+                border-bottom: 1px solid var(--color-border);
             }
 
             header nav li a {
@@ -192,7 +118,7 @@
                 display: block; /* Override desktop display: none */
                 position: static;
                 box-shadow: none;
-                background: #f5f5f5;
+                background: var(--color-surface-hover);
                 margin: 0;
                 border-radius: 0;
                 padding: 0;
