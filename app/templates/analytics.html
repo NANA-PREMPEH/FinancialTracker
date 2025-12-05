@@ -7,24 +7,30 @@
     <h1>Analytics & Insights</h1>
     <p style="color: var(--color-text-muted); margin-bottom: 2rem;">Visual breakdown of your spending patterns</p>
 
-    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 2rem; margin-bottom: 2rem;">
+    <div class="grid-analytics">
         <!-- Category Breakdown -->
         <div class="card">
-            <h2 style="margin-bottom: 1.5rem;">Spending by Category</h2>
-            <canvas id="categoryChart"></canvas>
+            <h2 class="mb-4">Spending by Category</h2>
+            <div class="chart-container">
+                <canvas id="categoryChart"></canvas>
+            </div>
         </div>
 
         <!-- Monthly Trend -->
         <div class="card">
-            <h2 style="margin-bottom: 1.5rem;">Monthly Trend</h2>
-            <canvas id="trendChart"></canvas>
+            <h2 class="mb-4">Monthly Trend</h2>
+            <div class="chart-container">
+                <canvas id="trendChart"></canvas>
+            </div>
         </div>
     </div>
 
     <!-- Yearly Trend (12 months) -->
-    <div class="card" style="margin-bottom: 2rem;">
-        <h2 style="margin-bottom: 1.5rem;">Yearly Trend (Last 12 Months)</h2>
-        <canvas id="yearlyTrendChart"></canvas>
+    <div class="card mb-8">
+        <h2 class="mb-4">Yearly Trend (Last 12 Months)</h2>
+        <div class="chart-container">
+            <canvas id="yearlyTrendChart"></canvas>
+        </div>
     </div>
 
     <!-- Category Details Table -->
@@ -41,13 +47,16 @@
             <tbody>
                 {% set total = category_data|sum(attribute=2) %}
                 {% for cat_name, cat_icon, amount in category_data %}
-                <tr>
+                <tr class="analytics-table-row">
                     <td>
                         <span style="font-size: 1.25rem; margin-right: 0.5rem;">{{ cat_icon }}</span>
                         {{ cat_name }}
                     </td>
                     <td class="currency">GHS {{ "%.2f"|format(amount) }}</td>
-                    <td class="text-right">{{ "%.1f"|format((amount / total * 100) if total > 0 else 0) }}%</td>
+                    <td class="text-right">
+                        {{ "%.1f"|format((amount / total * 100) if total > 0 else 0) }}%
+                        <div class="percentage-bar" style="width: {{ (amount / total * 100) if total > 0 else 0 }}%;"></div>
+                    </td>
                 </tr>
                 {% endfor %}
             </tbody>

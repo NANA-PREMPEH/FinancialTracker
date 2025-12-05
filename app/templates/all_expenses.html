@@ -7,16 +7,16 @@
     <h1>All Transactions</h1>
 
     <!-- Search and Filters -->
-    <div class="card" style="background-color: #f9fafb; margin-bottom: 2rem;">
-        <h3 style="margin-bottom: 1rem;">🔍 Search & Filter</h3>
+    <div class="card filter-card">
+        <h3 class="mb-4">🔍 Search & Filter</h3>
         <form method="GET" action="{{ url_for('main.all_expenses') }}">
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 1rem;">
-                <div class="form-group" style="margin-bottom: 0;">
+            <div class="filter-grid">
+                <div class="form-group mb-0">
                     <label for="search">Search</label>
                     <input type="text" id="search" name="search" placeholder="Description, notes, tags..." value="{{ filters.search }}">
                 </div>
                 
-                <div class="form-group" style="margin-bottom: 0;">
+                <div class="form-group mb-0">
                     <label for="category">Category</label>
                     <select id="category" name="category">
                         <option value="">All Categories</option>
@@ -28,7 +28,7 @@
                     </select>
                 </div>
 
-                <div class="form-group" style="margin-bottom: 0;">
+                <div class="form-group mb-0">
                     <label for="wallet">Wallet</label>
                     <select id="wallet" name="wallet">
                         <option value="">All Wallets</option>
@@ -40,7 +40,7 @@
                     </select>
                 </div>
 
-                <div class="form-group" style="margin-bottom: 0;">
+                <div class="form-group mb-0">
                     <label for="type">Type</label>
                     <select id="type" name="type">
                         <option value="">All Types</option>
@@ -50,24 +50,24 @@
                     </select>
                 </div>
 
-                <div class="form-group" style="margin-bottom: 0;">
+                <div class="form-group mb-0">
                     <label for="from">From Date</label>
                     <input type="date" id="from" name="from" value="{{ filters.from }}">
                 </div>
 
-                <div class="form-group" style="margin-bottom: 0;">
+                <div class="form-group mb-0">
                     <label for="to">To Date</label>
                     <input type="date" id="to" name="to" value="{{ filters.to }}">
                 </div>
             </div>
 
-            <div style="display: flex; gap: 0.5rem;">
+            <div class="filter-actions">
                 <button type="submit">Apply Filters</button>
-                <a href="{{ url_for('main.all_expenses') }}" style="text-decoration: none;">
-                    <button type="button" class="btn-secondary">Clear</button>
+                <a href="{{ url_for('main.all_expenses') }}" class="text-decoration-none">
+                    <button type="button" class="btn-clear">Clear</button>
                 </a>
-                <a href="{{ url_for('main.export_csv') }}" style="text-decoration: none; margin-left: auto;">
-                    <button type="button" class="btn-secondary">📥 Export CSV</button>
+                <a href="{{ url_for('main.export_csv') }}" class="text-decoration-none ml-auto">
+                    <button type="button" class="btn-export">📥 Export CSV</button>
                 </a>
             </div>
         </form>
@@ -80,22 +80,22 @@
             <thead>
                 <tr>
                     <th>
-                        <a href="{{ url_for('main.all_expenses', **dict(request.args, sort='date', order='asc' if filters.sort == 'date' and filters.order == 'desc' else 'desc')) }}" style="color: inherit; text-decoration: none;">
+                        <a href="{{ url_for('main.all_expenses', **dict(request.args, sort='date', order='asc' if filters.sort == 'date' and filters.order == 'desc' else 'desc')) }}" class="sort-link">
                             Date {% if filters.sort == 'date' %}{{ '⬆️' if filters.order == 'asc' else '⬇️' }}{% endif %}
                         </a>
                     </th>
                     <th>
-                        <a href="{{ url_for('main.all_expenses', **dict(request.args, sort='description', order='asc' if filters.sort == 'description' and filters.order == 'desc' else 'desc')) }}" style="color: inherit; text-decoration: none;">
+                        <a href="{{ url_for('main.all_expenses', **dict(request.args, sort='description', order='asc' if filters.sort == 'description' and filters.order == 'desc' else 'desc')) }}" class="sort-link">
                             Description {% if filters.sort == 'description' %}{{ '⬆️' if filters.order == 'asc' else '⬇️' }}{% endif %}
                         </a>
                     </th>
                     <th>
-                        <a href="{{ url_for('main.all_expenses', **dict(request.args, sort='category', order='asc' if filters.sort == 'category' and filters.order == 'desc' else 'desc')) }}" style="color: inherit; text-decoration: none;">
+                        <a href="{{ url_for('main.all_expenses', **dict(request.args, sort='category', order='asc' if filters.sort == 'category' and filters.order == 'desc' else 'desc')) }}" class="sort-link">
                             Category {% if filters.sort == 'category' %}{{ '⬆️' if filters.order == 'asc' else '⬇️' }}{% endif %}
                         </a>
                     </th>
                     <th class="text-right">
-                        <a href="{{ url_for('main.all_expenses', **dict(request.args, sort='amount', order='asc' if filters.sort == 'amount' and filters.order == 'desc' else 'desc')) }}" style="color: inherit; text-decoration: none;">
+                        <a href="{{ url_for('main.all_expenses', **dict(request.args, sort='amount', order='asc' if filters.sort == 'amount' and filters.order == 'desc' else 'desc')) }}" class="sort-link justify-end">
                             Amount (GHS) {% if filters.sort == 'amount' %}{{ '⬆️' if filters.order == 'asc' else '⬇️' }}{% endif %}
                         </a>
                     </th>

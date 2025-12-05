@@ -5,6 +5,17 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Financial Tracker{% endblock %}</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <script>
+        // Check for saved theme preference or use system preference
+        const savedTheme = localStorage.getItem('theme');
+        const systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+        
+        if (savedTheme === 'dark' || (!savedTheme && systemTheme === 'dark')) {
+            document.documentElement.setAttribute('data-theme', 'dark');
+        } else {
+            document.documentElement.setAttribute('data-theme', 'light');
+        }
+    </script>
     <style>
         /* Dropdown menu styles */
         nav ul {
@@ -252,6 +263,12 @@
                     <li><a href="{{ url_for('main.recurring_transactions') }}">Recurring</a></li>
                     <li><a href="{{ url_for('main.analytics') }}">Analytics</a></li>
                     <li><a href="{{ url_for('main.categories') }}">Categories</a></li>
+                    <li>
+                        <button id="themeToggle" class="btn-icon" aria-label="Toggle Dark Mode" style="background: none; border: none; cursor: pointer; font-size: 1.2rem; padding: 0.25rem;">
+                            <span class="light-icon">☀️</span>
+                            <span class="dark-icon" style="display: none;">🌙</span>
+                        </button>
+                    </li>
                 </ul>
             </nav>
         </div>
@@ -342,6 +359,33 @@
                     toggle.classList.remove('active');
                 }
             });
+        });
+
+        // Theme Toggle Logic
+        const themeToggle = document.getElementById('themeToggle');
+        const lightIcon = themeToggle.querySelector('.light-icon');
+        const darkIcon = themeToggle.querySelector('.dark-icon');
+        
+        function updateThemeIcon(theme) {
+            if (theme === 'dark') {
+                lightIcon.style.display = 'none';
+                darkIcon.style.display = 'inline';
+            } else {
+                lightIcon.style.display = 'inline';
+                darkIcon.style.display = 'none';
+            }
+        }
+        
+        // Initialize icon based on current theme
+        updateThemeIcon(document.documentElement.getAttribute('data-theme'));
+        
+        themeToggle.addEventListener('click', () => {
+            const currentTheme = document.documentElement.getAttribute('data-theme');
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            
+            document.documentElement.setAttribute('data-theme', newTheme);
+            localStorage.setItem('theme', newTheme);
+            updateThemeIcon(newTheme);
         });
     </script>
 </body>

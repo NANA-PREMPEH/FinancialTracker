@@ -4,34 +4,34 @@
 
 {% block content %}
 <div class="card">
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+    <div class="flex justify-between items-center mb-8">
         <h1>My Wallets</h1>
         <a href="{{ url_for('main.add_wallet') }}">
             <button>+ Add Wallet</button>
         </a>
     </div>
 
-    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1.5rem;">
+    <div class="grid-wallets">
         {% for wallet in wallets %}
-        <div class="card" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 1.5rem;">
-            <div style="font-size: 2.5rem; margin-bottom: 0.5rem;">{{ wallet.icon }}</div>
-            <h3 style="color: white; margin-bottom: 0.5rem;">{{ wallet.name }}</h3>
-            <p style="opacity: 0.9; font-size: 0.85rem; margin-bottom: 0.5rem;">{{ wallet.wallet_type|title }}{% if wallet.is_shared %} • Shared{% endif %}</p>
+        <div class="card wallet-card">
+            <div class="wallet-icon">{{ wallet.icon }}</div>
+            <h3 class="wallet-name">{{ wallet.name }}</h3>
+            <p class="wallet-type">{{ wallet.wallet_type|title }}{% if wallet.is_shared %} • Shared{% endif %}</p>
             {% if wallet.account_number %}
-            <p style="opacity: 0.9; font-size: 0.85rem; margin-bottom: 1rem;">Acct: {{ wallet.account_number }}</p>
+            <p class="wallet-account">Acct: {{ wallet.account_number }}</p>
             {% else %}
-            <div style="margin-bottom: 1rem;"></div>
+            <div class="wallet-spacer"></div>
             {% endif %}
-            <div style="font-size: 2rem; font-weight: 700; margin-bottom: 0.25rem;">{{ wallet.currency }} {{ "%.2f"|format(wallet.balance) }}</div>
-            <p style="opacity: 0.8; font-size: 0.85rem;">Current Balance</p>
+            <div class="wallet-balance">{{ wallet.currency }} {{ "%.2f"|format(wallet.balance) }}</div>
+            <p class="wallet-label">Current Balance</p>
             
-            <div style="display: flex; gap: 0.5rem; margin-top: 1rem;">
-                <a href="{{ url_for('main.edit_wallet', id=wallet.id) }}" style="flex: 1; text-decoration: none;">
-                    <button style="width: 100%; background-color: rgba(255, 255, 255, 0.2); color: white; padding: 0.5rem; border: 1px solid rgba(255, 255, 255, 0.3); border-radius: 6px; cursor: pointer; font-size: 0.85rem;">
+            <div class="wallet-actions">
+                <a href="{{ url_for('main.edit_wallet', id=wallet.id) }}" class="action-link">
+                    <button class="btn-edit">
                         ✏️ Edit
                     </button>
                 </a>
-                <button class="delete-wallet-btn" data-id="{{ wallet.id }}" data-name="{{ wallet.name }}" style="flex: 1; background-color: rgba(220, 38, 38, 0.8); color: white; padding: 0.5rem; border: none; border-radius: 6px; cursor: pointer; font-size: 0.85rem;">
+                <button class="delete-wallet-btn btn-delete" data-id="{{ wallet.id }}" data-name="{{ wallet.name }}">
                     🗑️ Delete
                 </button>
             </div>
@@ -45,15 +45,15 @@
 </div>
 
 <!-- Delete Confirmation Modal -->
-<div id="deleteWalletModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.5); z-index: 1000; align-items: center; justify-content: center;">
-    <div style="background: white; padding: 2rem; border-radius: 12px; max-width: 400px; width: 90%; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
-        <h3 style="margin-top: 0; margin-bottom: 1rem; color: var(--color-danger);">⚠️ Delete Wallet</h3>
-        <p id="deleteWalletMessage" style="margin-bottom: 1.5rem; color: var(--color-text-muted);"></p>
-        <div style="display: flex; gap: 1rem; justify-content: flex-end;">
-            <button onclick="hideDeleteWalletDialog()" style="background-color: #6b7280; color: white; padding: 0.75rem 1.5rem; border: none; border-radius: 8px; cursor: pointer; font-size: 1rem; font-weight: 500;">
+<div id="deleteWalletModal" class="modal-backdrop">
+    <div class="modal-content" style="max-width: 400px;">
+        <h3 class="text-danger" style="margin-top: 0; margin-bottom: 1rem;">⚠️ Delete Wallet</h3>
+        <p id="deleteWalletMessage" class="text-muted" style="margin-bottom: 1.5rem;"></p>
+        <div class="flex gap-4 justify-end">
+            <button onclick="hideDeleteWalletDialog()" class="btn-secondary">
                 Cancel
             </button>
-            <button onclick="confirmDeleteWallet()" style="background-color: #dc2626; color: white; padding: 0.75rem 1.5rem; border: none; border-radius: 8px; cursor: pointer; font-size: 1rem; font-weight: 500;">
+            <button onclick="confirmDeleteWallet()" class="btn-danger">
                 Delete
             </button>
         </div>

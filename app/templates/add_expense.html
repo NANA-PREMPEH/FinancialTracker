@@ -3,25 +3,20 @@
 {% block title %}Add Expense - Financial Tracker{% endblock %}
 
 {% block content %}
-<div class="card">
-    <h1>Add Transaction</h1>
+<div class="card form-card">
+    <h1 class="mb-8 text-center">Add Transaction</h1>
 
-    <form method="POST" action="{{ url_for('main.add_expense') }}"
-        enctype="multipart/form-data" style="max-width: 35rem;">
+    <form method="POST" action="{{ url_for('main.add_expense') }}" enctype="multipart/form-data">
 
         <!-- Date with Quick Selection -->
         <div class="form-group">
             <label for="date">Date</label>
             <div class="date-quick-select">
-                <button type="button" class="btn-sm btn-secondary"
-                    onclick="setToday()">Today</button>
-                <button type="button" class="btn-sm btn-secondary"
-                    onclick="setYesterday()">Yesterday</button>
+                <button type="button" class="btn-sm btn-secondary" onclick="setToday()">Today</button>
+                <button type="button" class="btn-sm btn-secondary" onclick="setYesterday()">Yesterday</button>
 
                 <!-- Lock Date Controls -->
-                <button type="button" id="lock-date-btn"
-                    class="btn-sm btn-outline-secondary" onclick="lockDate()"
-                    title="Lock this date for multiple entries">
+                <button type="button" id="lock-date-btn" class="btn-sm btn-outline-secondary" onclick="lockDate()" title="Lock this date for multiple entries">
                     🔒 Lock Date
                 </button>
                 <span id="locked-date-container" style="display: none;"></span>
@@ -103,11 +98,8 @@
         <!-- Tags/Labels -->
         <div class="form-group">
             <label for="tags">Labels (Optional)</label>
-            <input type="text" id="tags" name="tags"
-                placeholder="e.g., ProviderFee, ServiceFee, Parking">
-            <small
-                style="color: var(--color-text-muted); font-size: 0.85rem;">Separate
-                multiple labels with commas</small>
+            <input type="text" id="tags" name="tags" placeholder="e.g., ProviderFee, ServiceFee, Parking">
+            <small class="text-muted text-sm">Separate multiple labels with commas</small>
         </div>
 
         <!-- Receipt Upload -->
@@ -117,14 +109,10 @@
                 class="file-input">
         </div>
 
-        <div style="display: flex; gap: 1rem; margin-top: 2rem;">
-            <button type="submit" name="action" value="save"
-                style="flex: 1;">Save Transaction</button>
-            <button type="submit" name="action" value="save_and_continue"
-                style="flex: 1; background-color: #22c55e; color: white;">Save &
-                Continue</button>
-            <a href="{{ url_for('main.dashboard') }}" class="btn-secondary"
-                style="flex: 1; display: flex; align-items: center; justify-content: center; text-decoration: none; border-radius: var(--radius-md); background-color: #6b7280; color: white;">Cancel</a>
+        <div class="form-actions">
+            <button type="submit" name="action" value="save" style="flex: 1;">Save Transaction</button>
+            <button type="submit" name="action" value="save_and_continue" class="btn-save-continue">Save & Continue</button>
+            <a href="{{ url_for('main.dashboard') }}" class="btn-cancel">Cancel</a>
         </div>
     </form>
 </div>
@@ -170,9 +158,9 @@ function updateLockUI(lockedDate) {
         if (lockContainer) {
             lockContainer.style.display = 'inline-block';
             lockContainer.innerHTML = `
-                <span class="badge badge-warning" style="font-size: 0.9rem; padding: 5px 10px; margin-left: 10px;">
+                <span class="locked-date-badge">
                     🔒 Locked: ${lockedDate} 
-                    <button type="button" class="close" aria-label="Close" onclick="clearDateLock()" style="float: none; font-size: 1.2rem; line-height: 0.8; margin-left: 5px;">
+                    <button type="button" class="btn-close-badge" aria-label="Close" onclick="clearDateLock()">
                         <span aria-hidden="true">&times;</span>
                     </button>
                 </span>
