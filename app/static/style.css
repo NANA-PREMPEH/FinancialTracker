@@ -928,6 +928,8 @@ textarea:focus {
     display: flex;
     gap: 0.5rem;
     margin-top: 1rem;
+    position: relative;
+    z-index: 2;
 }
 
 .action-link {
@@ -1340,13 +1342,129 @@ textarea:focus {
     transform: translateZ(25px);
 }
 
-.glass-panel h2 {
-    font-size: 1.1rem;
-    font-weight: 500;
-    margin-bottom: 0.5rem;
-    opacity: 0.9;
-    letter-spacing: 0.5px;
-    color: rgba(255, 255, 255, 0.95);
+/* Responsive Design */
+
+/* Tablet (max-width: 768px) */
+@media (max-width: 768px) {
+    /* Global */
+    :root {
+        font-size: 14px; /* Slightly smaller base font */
+    }
+    
+    .container {
+        padding: 0 1rem;
+    }
+
+    h1 {
+        font-size: 1.75rem;
+    }
+
+    /* Dashboard */
+    .glass-grid {
+        grid-template-columns: repeat(2, 1fr); /* 2 columns on tablet */
+    }
+
+    .dashboard-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 1rem;
+    }
+
+    .btn-privacy {
+        width: 100%;
+        justify-content: center;
+    }
+
+    /* Wallets */
+    .grid-wallets {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    /* Analytics */
+    .grid-analytics {
+        grid-template-columns: 1fr; /* Stack charts on tablet */
+    }
+
+    /* Forms */
+    .form-card {
+        padding: 1.5rem;
+    }
+    
+    .filter-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+/* Mobile (max-width: 480px) */
+@media (max-width: 480px) {
+    /* Global */
+    h1 {
+        font-size: 1.5rem;
+        text-align: center;
+    }
+
+    /* Dashboard */
+    .glass-grid {
+        grid-template-columns: 1fr; /* 1 column on mobile */
+    }
+
+    .glass-panel {
+        padding: 1.25rem;
+    }
+
+    .glass-panel .amount-value {
+        font-size: 2rem;
+    }
+
+    /* Wallets */
+    .grid-wallets {
+        grid-template-columns: 1fr;
+    }
+
+    .wallet-actions {
+        flex-direction: column;
+    }
+
+    /* Forms */
+    .form-actions {
+        flex-direction: column;
+    }
+
+    .btn-save-continue, .btn-cancel {
+        width: 100%;
+    }
+
+    .date-quick-select {
+        justify-content: center;
+    }
+    
+    .filter-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .filter-actions {
+        flex-direction: column;
+    }
+    
+    .filter-actions button, 
+    .filter-actions a {
+        width: 100%;
+    }
+    
+    .filter-actions .ml-auto {
+        margin-left: 0 !important;
+    }
+
+    /* Tables */
+    table {
+        display: block;
+        overflow-x: auto;
+        white-space: nowrap;
+    }
+    
+    th, td {
+        padding: 0.75rem 0.5rem;
+    }
 }
 
 .glass-panel .amount-value {

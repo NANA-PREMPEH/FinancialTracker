@@ -26,10 +26,8 @@
             <p class="wallet-label">Current Balance</p>
             
             <div class="wallet-actions">
-                <a href="{{ url_for('main.edit_wallet', id=wallet.id) }}" class="action-link">
-                    <button class="btn-edit">
-                        ✏️ Edit
-                    </button>
+                <a href="{{ url_for('main.edit_wallet', id=wallet.id) }}" class="btn-edit action-link" style="text-decoration: none; display: inline-flex; align-items: center; justify-content: center;">
+                    ✏️ Edit
                 </a>
                 <button class="delete-wallet-btn btn-delete" data-id="{{ wallet.id }}" data-name="{{ wallet.name }}">
                     🗑️ Delete
