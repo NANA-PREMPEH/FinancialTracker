@@ -191,7 +191,7 @@ def add_expense():
         if action == 'save_and_continue':
             return redirect(url_for('main.add_expense'))
         else:
-            return redirect(url_for('main.dashboard'))
+            return redirect(url_for('main.all_expenses'))
     
     return render_template('add_expense.html', categories=categories, wallets=wallets)
 
@@ -249,7 +249,7 @@ def edit_expense(id):
         
         db.session.commit()
         flash('Transaction updated successfully!', 'success')
-        return redirect(url_for('main.dashboard'))
+        return redirect(url_for('main.all_expenses'))
     
     return render_template('edit_expense.html', expense=expense, categories=categories, wallets=wallets)
 
