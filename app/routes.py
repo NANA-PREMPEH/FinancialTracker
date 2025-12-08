@@ -93,6 +93,13 @@ def dashboard():
         Expense.date >= year_start
     ).scalar() or 0
     
+    # Add Historical Data for Current Year
+    hist_yearly_expenses = db.session.query(func.sum(FinancialSummary.total_expense)).filter(
+        FinancialSummary.year == now.year
+    ).scalar() or 0
+    
+    yearly_expenses += hist_yearly_expenses
+    
     # Budget alerts
     budgets = Budget.query.filter_by(is_active=True).all()
     budget_alerts = []
