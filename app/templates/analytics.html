@@ -33,6 +33,40 @@
         </div>
     </div>
 
+    <!-- Annual Overview (All Years) -->
+    <div class="card">
+        <h2 class="mb-4">Annual Overview</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Year</th>
+                    <th class="text-right">Total Income</th>
+                    <th class="text-right">Total Expenses</th>
+                    <th class="text-right">Profit/Loss</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for year_data in annual_data %}
+                <tr class="analytics-table-row">
+                    <td><strong>{{ year_data.year }}</strong></td>
+                    <td class="currency text-right" style="color: #4caf50;">
+                        GHS {{ "{:,.2f}".format(year_data.income) }}
+                    </td>
+                    <td class="currency text-right" style="color: #ef4444;">
+                        GHS {{ "{:,.2f}".format(year_data.expense) }}
+                    </td>
+                    <td class="text-right">
+                        {% set diff = year_data.income - year_data.expense %}
+                        <span style="font-weight: bold; color: {{ '#4caf50' if diff >= 0 else '#f44336' }};">
+                            {{ "{:,.2f}".format(diff) }}
+                        </span>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
     <!-- Category Details Table -->
     <div class="card">
         <h2 style="margin-bottom: 1rem;">Category Breakdown</h2>

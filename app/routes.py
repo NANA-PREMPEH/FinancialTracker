@@ -1,6 +1,6 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify, send_file, Response
 from . import db
-from .models import Expense, Category, Wallet, Budget, RecurringTransaction, ExchangeRate, Project, ProjectItem, ProjectItemPayment
+from .models import Expense, Category, Wallet, Budget, RecurringTransaction, ExchangeRate, Project, ProjectItem, ProjectItemPayment, FinancialSummary
 from datetime import datetime, timedelta
 from sqlalchemy import func, or_
 import io
@@ -267,7 +267,7 @@ def delete_expense(id):
     db.session.delete(expense)
     db.session.commit()
     flash('Transaction deleted successfully!', 'success')
-    return redirect(url_for('main.dashboard'))
+    return redirect(url_for('main.all_expenses'))
 
 @main.route('/expenses')
 def all_expenses():
@@ -602,7 +602,7 @@ def analytics():
     
     for i in range(5, -1, -1):
         # Calculate start of month
-        month_date = today - timedelta(days=30 * i) # Approximate to find the month
+        month_date = today - timedelta(days=30 * i) # Approximate
         month_start = datetime(month_date.year, month_date.month, 1)
         
         # Calculate end of month
@@ -611,19 +611,29 @@ def analytics():
         else:
             month_end = datetime(month_start.year, month_start.month + 1, 1)
             
-        # Get Expenses
+        # Get Expenses (Live)
         expense_total = db.session.query(func.sum(Expense.amount)).filter(
             Expense.transaction_type == 'expense',
             Expense.date >= month_start,
             Expense.date < month_end
         ).scalar() or 0
         
-        # Get Income
+        # Get Income (Live)
         income_total = db.session.query(func.sum(Expense.amount)).filter(
             Expense.transaction_type == 'income',
             Expense.date >= month_start,
             Expense.date < month_end
         ).scalar() or 0
+        
+        # Add Historical Data
+        hist_summary = FinancialSummary.query.filter_by(
+            year=month_start.year, 
+            month=month_start.month
+        ).first()
+        
+        if hist_summary:
+            expense_total += hist_summary.total_expense
+            income_total += hist_summary.total_income
         
         monthly_data.append({
             'month': month_start.strftime('%b'),
@@ -631,44 +641,93 @@ def analytics():
             'income': income_total
         })
     
-    # Yearly trend for line chart (last 12 months)
+    # Yearly trend (Last 12 Months)
     yearly_data = []
     
     for i in range(11, -1, -1):
         # Calculate start of month
-        month_date = today - timedelta(days=30 * i) # Approximate to find the month
+        month_date = today - timedelta(days=30 * i)
         month_start = datetime(month_date.year, month_date.month, 1)
         
-        # Calculate end of month
         if month_start.month == 12:
             month_end = datetime(month_start.year + 1, 1, 1)
         else:
             month_end = datetime(month_start.year, month_start.month + 1, 1)
             
-        # Get Expenses
+        # Live Data
         expense_total = db.session.query(func.sum(Expense.amount)).filter(
             Expense.transaction_type == 'expense',
             Expense.date >= month_start,
             Expense.date < month_end
         ).scalar() or 0
         
-        # Get Income
         income_total = db.session.query(func.sum(Expense.amount)).filter(
             Expense.transaction_type == 'income',
             Expense.date >= month_start,
             Expense.date < month_end
         ).scalar() or 0
         
+        # Historical Data
+        hist_summary = FinancialSummary.query.filter_by(
+            year=month_start.year, 
+            month=month_start.month
+        ).first()
+        
+        if hist_summary:
+            expense_total += hist_summary.total_expense
+            income_total += hist_summary.total_income
+        
         yearly_data.append({
             'month': month_start.strftime('%b %Y'),
             'expense': expense_total,
             'income': income_total
         })
+        
+    # Annual Overview (All Years)
+    # Get all years from Expenses
+    expense_years = db.session.query(func.extract('year', Expense.date)).distinct().all()
+    expense_years = [int(y[0]) for y in expense_years] if expense_years else []
     
+    # Get all years from FinancialSummary
+    hist_years = db.session.query(FinancialSummary.year).distinct().all()
+    hist_years = [int(y[0]) for y in hist_years] if hist_years else []
+    
+    all_years = sorted(list(set(expense_years + hist_years)), reverse=True)
+    
+    annual_data = []
+    for year in all_years:
+        year_start = datetime(year, 1, 1)
+        year_end = datetime(year + 1, 1, 1)
+        
+        # Live Data
+        live_expense = db.session.query(func.sum(Expense.amount)).filter(
+            Expense.transaction_type == 'expense',
+            Expense.date >= year_start,
+            Expense.date < year_end
+        ).scalar() or 0
+        
+        live_income = db.session.query(func.sum(Expense.amount)).filter(
+            Expense.transaction_type == 'income',
+            Expense.date >= year_start,
+            Expense.date < year_end
+        ).scalar() or 0
+        
+        # Historical Data (Sum of all monthly + yearly summaries for this year)
+        hist_records = FinancialSummary.query.filter_by(year=year).all()
+        hist_expense = sum(h.total_expense for h in hist_records)
+        hist_income = sum(h.total_income for h in hist_records)
+        
+        annual_data.append({
+            'year': year,
+            'expense': live_expense + hist_expense,
+            'income': live_income + hist_income
+        })
+
     return render_template('analytics.html', 
                          category_data=category_data,
                          monthly_data=monthly_data,
-                         yearly_data=yearly_data)
+                         yearly_data=yearly_data,
+                         annual_data=annual_data)
 
 # ===== CATEGORIES =====
 @main.route('/categories')
@@ -998,3 +1057,84 @@ def delete_project_item_payment(project_id, item_id, payment_id):
     db.session.commit()
     flash('Payment deleted successfully!', 'success')
     return redirect(url_for('main.project_details', id=project_id))
+# ===== HISTORICAL DATA =====
+@main.route('/historical')
+def historical_data():
+    summaries = FinancialSummary.query.order_by(FinancialSummary.year.desc(), FinancialSummary.month.desc()).all()
+    
+    # Group by year
+    data_by_year = {}
+    for summary in summaries:
+        if summary.year not in data_by_year:
+            data_by_year[summary.year] = {'yearly': None, 'monthly': []}
+        
+        if summary.month:
+            data_by_year[summary.year]['monthly'].append(summary)
+        else:
+            data_by_year[summary.year]['yearly'] = summary
+            
+    return render_template('historical_data.html', data_by_year=data_by_year)
+
+@main.route('/historical/add', methods=['POST'])
+def add_historical_summary():
+    year = int(request.form.get('year'))
+    month = request.form.get('month')
+    month = int(month) if month else None
+    
+    total_income = float(request.form.get('total_income', 0))
+    total_expense = float(request.form.get('total_expense', 0))
+    notes = request.form.get('notes')
+    
+    # Check if exists
+    existing = FinancialSummary.query.filter_by(year=year, month=month).first()
+    if existing:
+        existing.total_income = total_income
+        existing.total_expense = total_expense
+        existing.notes = notes
+        flash('Historical record updated!', 'success')
+    else:
+        summary = FinancialSummary(
+            year=year,
+            month=month,
+            total_income=total_income,
+            total_expense=total_expense,
+            notes=notes
+        )
+        db.session.add(summary)
+        flash('Historical record added!', 'success')
+        
+    db.session.commit()
+    return redirect(url_for('main.historical_data'))
+
+@main.route('/historical/edit/<int:id>', methods=['POST'])
+def edit_historical_summary(id):
+    summary = FinancialSummary.query.get_or_404(id)
+    
+    year = int(request.form.get('year'))
+    month = request.form.get('month')
+    month = int(month) if month else None
+    
+    # Check for duplicates if year/month changed
+    if summary.year != year or summary.month != month:
+        existing = FinancialSummary.query.filter_by(year=year, month=month).first()
+        if existing:
+            flash(f'A record for {year}-{month if month else "Yearly"} already exists!', 'error')
+            return redirect(url_for('main.historical_data'))
+
+    summary.year = year
+    summary.month = month
+    summary.total_income = float(request.form.get('total_income', 0))
+    summary.total_expense = float(request.form.get('total_expense', 0))
+    summary.notes = request.form.get('notes')
+    
+    db.session.commit()
+    flash('Record updated!', 'success')
+    return redirect(url_for('main.historical_data'))
+
+@main.route('/historical/delete/<int:id>', methods=['POST'])
+def delete_historical_summary(id):
+    summary = FinancialSummary.query.get_or_404(id)
+    db.session.delete(summary)
+    db.session.commit()
+    flash('Record deleted!', 'success')
+    return redirect(url_for('main.historical_data'))

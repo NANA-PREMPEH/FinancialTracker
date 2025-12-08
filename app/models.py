@@ -140,3 +140,16 @@ class ProjectItemPayment(db.Model):
     
     def __repr__(self):
         return f'<ProjectItemPayment {self.amount} - {self.description}>'
+
+class FinancialSummary(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    year = db.Column(db.Integer, nullable=False)
+    month = db.Column(db.Integer, nullable=True)  # 1-12, or None for yearly summary
+    total_income = db.Column(db.Float, default=0.0)
+    total_expense = db.Column(db.Float, default=0.0)
+    notes = db.Column(db.Text, nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    def __repr__(self):
+        period = f"{self.year}-{self.month}" if self.month else str(self.year)
+        return f'<FinancialSummary {period}: +{self.total_income} / -{self.total_expense}>'
