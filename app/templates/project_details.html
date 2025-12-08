@@ -68,7 +68,12 @@
     <div>
         <div
             style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-            <h2>Project Items</h2>
+            <div style="display: flex; align-items: center; gap: 1rem;">
+                <h2>Project List</h2>
+                <input type="text" id="searchProjectItems" onkeyup="filterProjectItems()" 
+                    placeholder="Search items..." 
+                    style="padding: 0.5rem; border-radius: 4px; border: 1px solid #ddd; width: 200px;">
+            </div>
             <div style="text-align: right;">
                 <p
                     style="font-size: 0.9rem; color: var(--color-text-muted); margin-bottom: 0.25rem;">Total
@@ -99,7 +104,7 @@
         {% if project.items %}
         <div style="display: grid; gap: 1rem;">
             {% for item in project.items %}
-            <div class="card"
+            <div class="card project-item-card"
                 style="background-color: white; border-left: 4px solid var(--color-primary);">
                 <div
                     style="display: flex; justify-content: space-between; align-items: flex-start;">
@@ -246,6 +251,22 @@
 </form>
 
 <script>
+function filterProjectItems() {
+    const input = document.getElementById('searchProjectItems');
+    const filter = input.value.toLowerCase();
+    const cards = document.getElementsByClassName('project-item-card');
+
+    for (let i = 0; i < cards.length; i++) {
+        const card = cards[i];
+        const text = card.innerText || card.textContent;
+        if (text.toLowerCase().indexOf(filter) > -1) {
+            card.style.display = "";
+        } else {
+            card.style.display = "none";
+        }
+    }
+}
+
 function toggleItem(projectId, itemId) {
     fetch(`/projects/${projectId}/items/${itemId}/toggle`, {
         method: 'POST',
