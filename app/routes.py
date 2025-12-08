@@ -16,6 +16,26 @@ def dashboard():
     total_expenses = db.session.query(func.sum(Expense.amount)).filter(Expense.transaction_type == 'expense').scalar() or 0
     total_income = db.session.query(func.sum(Expense.amount)).filter(Expense.transaction_type == 'income').scalar() or 0
     
+    # Add Historical Data to Totals
+    hist_expenses = db.session.query(func.sum(FinancialSummary.total_expense)).scalar() or 0
+    hist_income = db.session.query(func.sum(FinancialSummary.total_income)).scalar() or 0
+    
+    total_expenses += hist_expenses
+    total_income += hist_income
+    
+    # Get the oldest date for Total Expenses context
+    oldest_expense = db.session.query(func.min(Expense.date)).filter(Expense.transaction_type == 'expense').scalar()
+    oldest_hist = db.session.query(func.min(FinancialSummary.year)).scalar()
+    
+    oldest_date = None
+    if oldest_expense:
+        oldest_date = oldest_expense
+    
+    if oldest_hist:
+        hist_date = datetime(oldest_hist, 1, 1)
+        if not oldest_date or hist_date < oldest_date:
+            oldest_date = hist_date
+            
     # Calculate total wallet balance in GHS
     total_wallet_balance = 0
     for wallet in wallets:
@@ -114,6 +134,7 @@ def dashboard():
                          yearly_expenses=yearly_expenses,
                          total_wallet_balance=total_wallet_balance,
                          current_date=now,
+                         oldest_date=oldest_date,
                          budget_alerts=budget_alerts)
 
 # ===== TRANSACTIONS =====

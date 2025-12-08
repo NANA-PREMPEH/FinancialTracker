@@ -14,7 +14,11 @@
     <div class="glass-grid">
         <div class="glass-panel">
             <h2>Total Expenses</h2>
-            <p class="text-muted">as at {{ current_date.strftime('%d %B %Y') }}</p>
+            {% if oldest_date %}
+                <p class="text-muted">Since {{ oldest_date.strftime('%B %Y') }}</p>
+            {% else %}
+                <p class="text-muted">Since Beginning</p>
+            {% endif %}
             <div class="amount-value" data-amount="GHS {{ '{:,.2f}'.format(total_expenses) }}">GHS {{ "{:,.2f}".format(total_expenses) }}</div>
         </div>
 
