@@ -153,3 +153,18 @@ class FinancialSummary(db.Model):
     def __repr__(self):
         period = f"{self.year}-{self.month}" if self.month else str(self.year)
         return f'<FinancialSummary {period}: +{self.total_income} / -{self.total_expense}>'
+
+class WishlistItem(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=False)
+    amount = db.Column(db.Float, nullable=False)
+    category_id = db.Column(db.Integer, db.ForeignKey('category.id'), nullable=True)
+    priority = db.Column(db.String(20), default='Medium') # Low, Medium, High
+    notes = db.Column(db.Text, nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    # Relationship
+    category = db.relationship('Category', backref='wishlist_items')
+
+    def __repr__(self):
+        return f'<WishlistItem {self.name}: {self.amount}>'

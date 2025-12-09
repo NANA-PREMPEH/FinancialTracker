@@ -1,6 +1,6 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify, send_file, Response
 from . import db
-from .models import Expense, Category, Wallet, Budget, RecurringTransaction, ExchangeRate, Project, ProjectItem, ProjectItemPayment, FinancialSummary
+from .models import Expense, Category, Wallet, Budget, RecurringTransaction, ExchangeRate, Project, ProjectItem, ProjectItemPayment, FinancialSummary, WishlistItem
 from datetime import datetime, timedelta
 from sqlalchemy import func, or_
 import io
@@ -1166,3 +1166,87 @@ def delete_historical_summary(id):
     db.session.commit()
     flash('Record deleted!', 'success')
     return redirect(url_for('main.historical_data'))
+
+# ===== WISHLIST =====
+@main.route('/wishlist')
+def wishlist():
+    items = WishlistItem.query.all()
+    categories = Category.query.all()
+    
+    # Custom sort for priority: High > Medium > Low
+    priority_map = {'High': 3, 'Medium': 2, 'Low': 1}
+    items.sort(key=lambda x: priority_map.get(x.priority, 1), reverse=True)
+    
+    return render_template('wishlist.html', items=items, categories=categories)
+
+@main.route('/wishlist/add', methods=['POST'])
+def add_wishlist_item():
+    name = request.form.get('name')
+    amount = float(request.form.get('amount', 0))
+    category_id = request.form.get('category_id')
+    priority = request.form.get('priority', 'Medium')
+    notes = request.form.get('notes')
+    
+    item = WishlistItem(
+        name=name,
+        amount=amount,
+        category_id=int(category_id) if category_id else None,
+        priority=priority,
+        notes=notes
+    )
+    db.session.add(item)
+    db.session.commit()
+    flash('Item added to wishlist!', 'success')
+    return redirect(url_for('main.wishlist'))
+
+@main.route('/wishlist/edit/<int:id>', methods=['POST'])
+def edit_wishlist_item(id):
+    item = WishlistItem.query.get_or_404(id)
+    item.name = request.form.get('name')
+    item.amount = float(request.form.get('amount', 0))
+    cat_id = request.form.get('category_id')
+    item.category_id = int(cat_id) if cat_id else None
+    item.priority = request.form.get('priority', 'Medium')
+    item.notes = request.form.get('notes')
+    
+    db.session.commit()
+    flash('Wishlist item updated!', 'success')
+    return redirect(url_for('main.wishlist'))
+
+@main.route('/wishlist/delete/<int:id>', methods=['POST'])
+def delete_wishlist_item(id):
+    item = WishlistItem.query.get_or_404(id)
+    db.session.delete(item)
+    db.session.commit()
+    flash('Item removed from wishlist.', 'success')
+    return redirect(url_for('main.wishlist'))
+
+@main.route('/wishlist/execute/<int:id>', methods=['POST'])
+def execute_wishlist_item(id):
+    item = WishlistItem.query.get_or_404(id)
+    
+    # Default to first wallet (Cash/Main) since this is a quick action
+    wallet = Wallet.query.first()
+    if not wallet:
+        flash('No wallet found. Please create a wallet first.', 'error')
+        return redirect(url_for('main.wishlist'))
+        
+    expense = Expense(
+        description=item.name,
+        amount=item.amount,
+        category_id=item.category_id,
+        wallet_id=wallet.id,
+        transaction_type='expense',
+        date=datetime.utcnow(),
+        notes=item.notes or "Executed from Wishlist"
+    )
+    
+    # Deduct from wallet
+    wallet.balance -= item.amount
+
+    db.session.add(expense)
+    db.session.delete(item)
+    db.session.commit()
+    
+    flash(f"Executed '{item.name}'! Transaction added to {wallet.name}.", 'success')
+    return redirect(url_for('main.wishlist'))
