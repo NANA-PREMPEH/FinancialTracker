@@ -13,8 +13,19 @@ main = Blueprint('main', __name__)
 def dashboard():
     wallets = Wallet.query.all()
     recent_expenses = Expense.query.order_by(Expense.date.desc()).limit(5).all()
-    total_expenses = db.session.query(func.sum(Expense.amount)).filter(Expense.transaction_type == 'expense').scalar() or 0
-    total_income = db.session.query(func.sum(Expense.amount)).filter(Expense.transaction_type == 'income').scalar() or 0
+    
+    # Exclude Transfer category from totals
+    transfer_cat = Category.query.filter_by(name='Transfer').first()
+    transfer_id = transfer_cat.id if transfer_cat else -1
+    
+    total_expenses = db.session.query(func.sum(Expense.amount)).filter(
+        Expense.transaction_type == 'expense',
+        Expense.category_id != transfer_id
+    ).scalar() or 0
+    total_income = db.session.query(func.sum(Expense.amount)).filter(
+        Expense.transaction_type == 'income',
+        Expense.category_id != transfer_id
+    ).scalar() or 0
     
     # Add Historical Data to Totals
     hist_expenses = db.session.query(func.sum(FinancialSummary.total_expense)).scalar() or 0
@@ -83,14 +94,16 @@ def dashboard():
     month_start = datetime(now.year, now.month, 1)
     monthly_expenses = db.session.query(func.sum(Expense.amount)).filter(
         Expense.transaction_type == 'expense',
-        Expense.date >= month_start
+        Expense.date >= month_start,
+        Expense.category_id != transfer_id
     ).scalar() or 0
     
     # Calculate current year's expenses
     year_start = datetime(now.year, 1, 1)
     yearly_expenses = db.session.query(func.sum(Expense.amount)).filter(
         Expense.transaction_type == 'expense',
-        Expense.date >= year_start
+        Expense.date >= year_start,
+        Expense.category_id != transfer_id
     ).scalar() or 0
     
     # Add Historical Data for Current Year
@@ -383,7 +396,16 @@ def all_expenses():
 @main.route('/wallets')
 def wallets():
     all_wallets = Wallet.query.all()
-    return render_template('wallets.html', wallets=all_wallets)
+    
+    # Fetch recent transfers
+    transfers = []
+    transfer_category = Category.query.filter_by(name='Transfer').first()
+    if transfer_category:
+        transfers = Expense.query.filter_by(category_id=transfer_category.id)\
+            .order_by(Expense.date.desc())\
+            .limit(10).all()
+            
+    return render_template('wallets.html', wallets=all_wallets, transfers=transfers)
 
 @main.route('/wallets/add', methods=['GET', 'POST'])
 def add_wallet():
@@ -689,9 +711,16 @@ def delete_recurring(id):
 @main.route('/analytics')
 def analytics():
     # Category breakdown for pie chart (Expenses only)
+    # Category breakdown for pie chart (Expenses only) - Exclude Transfers
+    transfer_cat = Category.query.filter_by(name='Transfer').first()
+    transfer_id = transfer_cat.id if transfer_cat else -1
+    
     category_data = db.session.query(
         Category.name, Category.icon, func.sum(Expense.amount)
-    ).join(Expense).filter(Expense.transaction_type == 'expense').group_by(Category.id).all()
+    ).join(Expense).filter(
+        Expense.transaction_type == 'expense',
+        Category.id != transfer_id
+    ).group_by(Category.id).all()
     
     # Monthly trend for line chart (last 6 months)
     monthly_data = []
@@ -712,14 +741,16 @@ def analytics():
         expense_total = db.session.query(func.sum(Expense.amount)).filter(
             Expense.transaction_type == 'expense',
             Expense.date >= month_start,
-            Expense.date < month_end
+            Expense.date < month_end,
+            Expense.category_id != transfer_id
         ).scalar() or 0
         
         # Get Income (Live)
         income_total = db.session.query(func.sum(Expense.amount)).filter(
             Expense.transaction_type == 'income',
             Expense.date >= month_start,
-            Expense.date < month_end
+            Expense.date < month_end,
+            Expense.category_id != transfer_id
         ).scalar() or 0
         
         # Add Historical Data
@@ -755,13 +786,15 @@ def analytics():
         expense_total = db.session.query(func.sum(Expense.amount)).filter(
             Expense.transaction_type == 'expense',
             Expense.date >= month_start,
-            Expense.date < month_end
+            Expense.date < month_end,
+            Expense.category_id != transfer_id
         ).scalar() or 0
         
         income_total = db.session.query(func.sum(Expense.amount)).filter(
             Expense.transaction_type == 'income',
             Expense.date >= month_start,
-            Expense.date < month_end
+            Expense.date < month_end,
+            Expense.category_id != transfer_id
         ).scalar() or 0
         
         # Historical Data
@@ -800,13 +833,15 @@ def analytics():
         live_expense = db.session.query(func.sum(Expense.amount)).filter(
             Expense.transaction_type == 'expense',
             Expense.date >= year_start,
-            Expense.date < year_end
+            Expense.date < year_end,
+            Expense.category_id != transfer_id
         ).scalar() or 0
         
         live_income = db.session.query(func.sum(Expense.amount)).filter(
             Expense.transaction_type == 'income',
             Expense.date >= year_start,
-            Expense.date < year_end
+            Expense.date < year_end,
+            Expense.category_id != transfer_id
         ).scalar() or 0
         
         # Historical Data (Sum of all monthly + yearly summaries for this year)
