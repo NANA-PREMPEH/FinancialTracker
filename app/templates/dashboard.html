@@ -35,12 +35,18 @@
         </div>
 
         <div class="glass-panel">
-            <h2>Total Wallet Balance</h2>
-            <p class="text-muted">All Wallets Combined</p>
-            <div class="amount-value" data-amount="GHS {{ '{:,.2f}'.format(total_wallet_balance) }}">GHS {{ "{:,.2f}".format(total_wallet_balance) }}</div>
+            <h2>Net Available Funds</h2>
+            <p class="text-muted">Wallets - Debt</p>
+            <div class="amount-value" data-amount="GHS {{ '{:,.2f}'.format(net_wallet_balance) }}">GHS {{ "{:,.2f}".format(net_wallet_balance) }}</div>
             <button onclick="convertCurrency()" class="btn-convert">
-                💱 Convert to Currencies
+                💱 Convert
             </button>
+        </div>
+
+        <div class="glass-panel">
+            <h2>Total Debt</h2>
+            <p class="text-muted">{{ creditors|length }} Creditors</p>
+            <div class="amount-value text-danger" data-amount="GHS {{ '{:,.2f}'.format(total_debt) }}">GHS {{ "{:,.2f}".format(total_debt) }}</div>
         </div>
     </div>
 </div>
@@ -149,7 +155,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const modal = document.getElementById('conversionModal');
         modal.style.display = 'flex';
         
-        const amount = {{ total_wallet_balance }};
+        const amount = {{ net_wallet_balance }};
         
         // Fetch conversion data from API
         fetch('{{ url_for("main.convert_currency") }}', {

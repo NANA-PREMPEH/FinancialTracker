@@ -168,3 +168,14 @@ class WishlistItem(db.Model):
 
     def __repr__(self):
         return f'<WishlistItem {self.name}: {self.amount}>'
+
+class Creditor(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=False)
+    amount = db.Column(db.Float, nullable=False, default=0.0)
+    currency = db.Column(db.String(10), default='GHS')
+    description = db.Column(db.String(200), nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    def __repr__(self):
+        return f'<Creditor {self.name}: {self.amount}>'

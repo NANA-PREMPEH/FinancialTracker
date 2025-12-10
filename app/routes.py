@@ -1,6 +1,6 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify, send_file, Response
 from . import db
-from .models import Expense, Category, Wallet, Budget, RecurringTransaction, ExchangeRate, Project, ProjectItem, ProjectItemPayment, FinancialSummary, WishlistItem
+from .models import Expense, Category, Wallet, Budget, RecurringTransaction, ExchangeRate, Project, ProjectItem, ProjectItemPayment, FinancialSummary, WishlistItem, Creditor
 from datetime import datetime, timedelta
 from sqlalchemy import func, or_
 import io
@@ -145,8 +145,16 @@ def dashboard():
         elif percentage >= 75:
             budget_alerts.append({'budget': budget, 'spent': spent, 'percentage': percentage, 'level': '75'})
     
+    # Calculate total debt and net balance
+    creditors = Creditor.query.all()
+    total_debt = sum(c.amount for c in creditors)
+    net_wallet_balance = total_wallet_balance - total_debt
+    
     return render_template('dashboard.html', 
                          wallets=wallets,
+                         creditors=creditors,
+                         total_debt=total_debt,
+                         net_wallet_balance=net_wallet_balance,
                          recent_expenses=recent_expenses, 
                          total_expenses=total_expenses,
                          total_income=total_income,
@@ -889,6 +897,52 @@ def delete_category(id):
     db.session.commit()
     flash('Category deleted successfully!', 'success')
     return redirect(url_for('main.categories'))
+
+    db.session.delete(category)
+    db.session.commit()
+    flash('Category deleted successfully!', 'success')
+    return redirect(url_for('main.categories'))
+
+# ===== CREDITORS =====
+@main.route('/creditors')
+def creditors():
+    all_creditors = Creditor.query.all()
+    total_debt = sum(c.amount for c in all_creditors)
+    return render_template('creditors.html', creditors=all_creditors, total_debt=total_debt)
+
+@main.route('/creditors/add', methods=['GET', 'POST'])
+def add_creditor():
+    if request.method == 'POST':
+        name = request.form.get('name')
+        amount = float(request.form.get('amount'))
+        description = request.form.get('description')
+        
+        creditor = Creditor(name=name, amount=amount, description=description)
+        db.session.add(creditor)
+        db.session.commit()
+        flash('Creditor added successfully!', 'success')
+        return redirect(url_for('main.creditors'))
+        
+    return render_template('add_creditor.html') # Ideally use modal but route exists
+
+@main.route('/creditors/edit/<int:id>', methods=['POST'])
+def edit_creditor(id):
+    creditor = Creditor.query.get_or_404(id)
+    creditor.name = request.form.get('name')
+    creditor.amount = float(request.form.get('amount'))
+    creditor.description = request.form.get('description')
+    
+    db.session.commit()
+    flash('Creditor updated successfully!', 'success')
+    return redirect(url_for('main.creditors'))
+
+@main.route('/creditors/delete/<int:id>', methods=['POST'])
+def delete_creditor(id):
+    creditor = Creditor.query.get_or_404(id)
+    db.session.delete(creditor)
+    db.session.commit()
+    flash('Creditor removed successfully!', 'success')
+    return redirect(url_for('main.creditors'))
 
 # ===== EXPORT =====
 @main.route('/export/csv')
