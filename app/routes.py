@@ -446,6 +446,75 @@ def delete_wallet(id):
     flash('Wallet deleted successfully!', 'success')
     return redirect(url_for('main.wallets'))
 
+@main.route('/wallets/transfer', methods=['POST'])
+def transfer_funds():
+    source_wallet_id = int(request.form.get('source_wallet_id'))
+    dest_wallet_id = int(request.form.get('dest_wallet_id'))
+    amount = float(request.form.get('amount'))
+    date_str = request.form.get('date')
+    
+    if source_wallet_id == dest_wallet_id:
+        flash('Cannot transfer to the same wallet!', 'error')
+        return redirect(url_for('main.wallets'))
+    
+    if amount <= 0:
+        flash('Transfer amount must be greater than 0!', 'error')
+        return redirect(url_for('main.wallets'))
+        
+    source_wallet = Wallet.query.get_or_404(source_wallet_id)
+    dest_wallet = Wallet.query.get_or_404(dest_wallet_id)
+    
+    # Optional: Check for sufficient funds
+    # if source_wallet.balance < amount:
+    #     flash('Insufficient funds in source wallet!', 'error')
+    #     return redirect(url_for('main.wallets'))
+        
+    # Get or create Transfer category
+    transfer_category = Category.query.filter_by(name='Transfer').first()
+    if not transfer_category:
+        transfer_category = Category(name='Transfer', icon='↔️', is_custom=False)
+        db.session.add(transfer_category)
+        db.session.commit()
+    
+    if date_str:
+        date_obj = datetime.strptime(date_str, '%Y-%m-%d')
+    else:
+        date_obj = datetime.utcnow()
+        
+    # Create Expense for Source Wallet
+    expense = Expense(
+        amount=amount,
+        description=f"Transfer to {dest_wallet.name}",
+        category_id=transfer_category.id,
+        wallet_id=source_wallet.id,
+        date=date_obj,
+        transaction_type='expense',
+        tags='transfer'
+    )
+    
+    # Create Income for Destination Wallet
+    income = Expense(
+        amount=amount,
+        description=f"Transfer from {source_wallet.name}",
+        category_id=transfer_category.id,
+        wallet_id=dest_wallet.id,
+        date=date_obj,
+        transaction_type='income',
+        tags='transfer'
+    )
+    
+    db.session.add(expense)
+    db.session.add(income)
+    
+    # Update balances
+    source_wallet.balance -= amount
+    dest_wallet.balance += amount
+    
+    db.session.commit()
+    
+    flash('Funds transferred successfully!', 'success')
+    return redirect(url_for('main.wallets'))
+
 # ===== BUDGETS =====
 @main.route('/budgets')
 def budgets():
