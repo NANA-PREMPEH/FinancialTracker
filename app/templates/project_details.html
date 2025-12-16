@@ -277,6 +277,8 @@ function toggleItem(projectId, itemId) {
     .then(response => response.json())
     .then(data => {
         if (data.success) {
+            // Update URL hash to preserve scroll position
+            window.location.hash = 'item-' + itemId;
             // Reload the page to update the UI
             window.location.reload();
         }
@@ -297,6 +299,8 @@ function togglePayment(projectId, itemId, paymentId) {
     .then(response => response.json())
     .then(data => {
         if (data.success) {
+            // Update URL hash to preserve scroll position
+            window.location.hash = 'item-' + itemId;
             // Reload the page to update payment progress
             window.location.reload();
         }

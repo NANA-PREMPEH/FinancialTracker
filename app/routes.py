@@ -1200,8 +1200,9 @@ def add_project_item(project_id):
     )
     db.session.add(item)
     db.session.commit()
+    db.session.refresh(item)
     flash('Item added successfully!', 'success')
-    return redirect(url_for('main.project_details', id=project_id))
+    return redirect(url_for('main.project_details', id=project_id, _anchor=f'item-{item.id}'))
 
 @main.route('/projects/<int:project_id>/items/<int:item_id>/delete', methods=['POST'])
 def delete_project_item(project_id, item_id):
@@ -1250,7 +1251,7 @@ def add_project_item_payment(project_id, item_id):
     db.session.add(payment)
     db.session.commit()
     flash('Payment added successfully!', 'success')
-    return redirect(url_for('main.project_details', id=project_id))
+    return redirect(url_for('main.project_details', id=project_id) + f'#item-{item_id}')
 
 @main.route('/projects/<int:project_id>/items/<int:item_id>/payments/<int:payment_id>/toggle', methods=['POST'])
 def toggle_project_item_payment(project_id, item_id, payment_id):
@@ -1269,7 +1270,7 @@ def delete_project_item_payment(project_id, item_id, payment_id):
     db.session.delete(payment)
     db.session.commit()
     flash('Payment deleted successfully!', 'success')
-    return redirect(url_for('main.project_details', id=project_id))
+    return redirect(url_for('main.project_details', id=project_id) + f'#item-{item_id}')
 # ===== HISTORICAL DATA =====
 @main.route('/historical')
 def historical_data():
