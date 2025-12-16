@@ -104,7 +104,7 @@
         {% if project.items %}
         <div style="display: grid; gap: 1rem;">
             {% for item in project.items %}
-            <div class="card project-item-card"
+            <div class="card project-item-card" id="item-{{ item.id }}"
                 style="background-color: white; border-left: 4px solid var(--color-primary);">
                 <div
                     style="display: flex; justify-content: space-between; align-items: flex-start;">

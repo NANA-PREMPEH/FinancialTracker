@@ -1195,7 +1195,7 @@ def edit_project_item(project_id, item_id):
         item.description = request.form.get('description', '')
         db.session.commit()
         flash('Item updated successfully!', 'success')
-        return redirect(url_for('main.project_details', id=project_id))
+        return redirect(url_for('main.project_details', id=project_id) + f'#item-{item_id}')
     
     return render_template('edit_project_item.html', item=item, project=project)
 
