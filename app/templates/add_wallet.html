@@ -18,14 +18,51 @@
         </div>
 
         <div class="form-group">
-            <label for="currency">Currency</label>
-            <select id="currency" name="currency">
-                <option value="GHS">GHS - Ghana Cedi</option>
-                <option value="USD">USD - US Dollar</option>
-                <option value="EUR">EUR - Euro</option>
-                <option value="GBP">GBP - British Pound</option>
-            </select>
+            <label>Currency Type</label>
+            <div style="display: flex; gap: 1rem; margin-bottom: 0.5rem;">
+                <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                    <input type="radio" name="currency_type" value="local" checked onclick="toggleCurrencySelect()">
+                    Local Currency (GHS)
+                </label>
+                <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                    <input type="radio" name="currency_type" value="foreign" onclick="toggleCurrencySelect()">
+                    Foreign Currency
+                </label>
+            </div>
+            
+            <div id="currency_select_group" style="display: none;">
+                <label for="currency">Select Currency</label>
+                <select id="currency" name="currency" style="width: 100%;">
+                    {% for code, name in currencies.items() %}
+                    <option value="{{ code }}" {% if code == 'GHS' %}selected{% endif %}>{{ code }} - {{ name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <!-- Hidden input to submit GHS when local is selected, effectively -->
+            <!-- Actually, if local is selected, we should ensure 'currency' input submits GHS. 
+                 The easiest way is to have the select always present but modify its value or disable/hide it.
+                 If I hide it, I still need to submit 'currency'.
+                 Better: If Local, set select value to GHS and hide parent div. If Foreign, show div. 
+            -->
         </div>
+
+        <script>
+            function toggleCurrencySelect() {
+                const isLocal = document.querySelector('input[name="currency_type"][value="local"]').checked;
+                const currencyGroup = document.getElementById('currency_select_group');
+                const currencySelect = document.getElementById('currency');
+                
+                if (isLocal) {
+                    currencyGroup.style.display = 'none';
+                    currencySelect.value = 'GHS';
+                } else {
+                    currencyGroup.style.display = 'block';
+                }
+            }
+            
+            // Run on load
+            document.addEventListener('DOMContentLoaded', toggleCurrencySelect);
+        </script>
 
         <div class="form-group">
             <label for="wallet_type">Wallet Type</label>

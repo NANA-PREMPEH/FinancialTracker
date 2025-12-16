@@ -417,6 +417,7 @@ def wallets():
 
 @main.route('/wallets/add', methods=['GET', 'POST'])
 def add_wallet():
+    from .currencies import CURRENCIES
     if request.method == 'POST':
         name = request.form.get('name')
         balance = float(request.form.get('balance', 0))
@@ -440,10 +441,11 @@ def add_wallet():
         flash('Wallet created successfully!', 'success')
         return redirect(url_for('main.wallets'))
     
-    return render_template('add_wallet.html')
+    return render_template('add_wallet.html', currencies=CURRENCIES)
 
 @main.route('/wallets/edit/<int:id>', methods=['GET', 'POST'])
 def edit_wallet(id):
+    from .currencies import CURRENCIES
     wallet = Wallet.query.get_or_404(id)
     
     if request.method == 'POST':
@@ -459,7 +461,7 @@ def edit_wallet(id):
         flash('Wallet updated successfully!', 'success')
         return redirect(url_for('main.wallets') + f'#wallet-{id}')
     
-    return render_template('edit_wallet.html', wallet=wallet)
+    return render_template('edit_wallet.html', wallet=wallet, currencies=CURRENCIES)
 
 @main.route('/wallets/delete/<int:id>', methods=['POST'])
 def delete_wallet(id):

@@ -18,14 +18,45 @@
         </div>
 
         <div class="form-group">
-            <label for="currency">Currency</label>
-            <select id="currency" name="currency">
-                <option value="GHS" {% if wallet.currency == 'GHS' %}selected{% endif %}>GHS - Ghana Cedi</option>
-                <option value="USD" {% if wallet.currency == 'USD' %}selected{% endif %}>USD - US Dollar</option>
-                <option value="EUR" {% if wallet.currency == 'EUR' %}selected{% endif %}>EUR - Euro</option>
-                <option value="GBP" {% if wallet.currency == 'GBP' %}selected{% endif %}>GBP - British Pound</option>
-            </select>
+            <label>Currency Type</label>
+            <div style="display: flex; gap: 1rem; margin-bottom: 0.5rem;">
+                <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                    <input type="radio" name="currency_type" value="local" {% if wallet.currency == 'GHS' %}checked{% endif %} onclick="toggleCurrencySelect()">
+                    Local Currency (GHS)
+                </label>
+                <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                    <input type="radio" name="currency_type" value="foreign" {% if wallet.currency != 'GHS' %}checked{% endif %} onclick="toggleCurrencySelect()">
+                    Foreign Currency
+                </label>
+            </div>
+            
+            <div id="currency_select_group" style="display: none;">
+                <label for="currency">Select Currency</label>
+                <select id="currency" name="currency" style="width: 100%;">
+                    {% for code, name in currencies.items() %}
+                    <option value="{{ code }}" {% if wallet.currency == code %}selected{% endif %}>{{ code }} - {{ name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
         </div>
+
+        <script>
+            function toggleCurrencySelect() {
+                const isLocal = document.querySelector('input[name="currency_type"][value="local"]').checked;
+                const currencyGroup = document.getElementById('currency_select_group');
+                const currencySelect = document.getElementById('currency');
+                
+                if (isLocal) {
+                    currencyGroup.style.display = 'none';
+                    currencySelect.value = 'GHS';
+                } else {
+                    currencyGroup.style.display = 'block';
+                }
+            }
+            
+            // Run on load
+            document.addEventListener('DOMContentLoaded', toggleCurrencySelect);
+        </script>
 
         <div class="form-group">
             <label for="wallet_type">Wallet Type</label>
