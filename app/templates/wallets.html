@@ -17,7 +17,7 @@
 
     <div class="grid-wallets">
         {% for wallet in wallets %}
-        <div class="card wallet-card">
+        <div class="card wallet-card" id="wallet-{{ wallet.id }}">
             <div class="wallet-icon">{{ wallet.icon }}</div>
             <h3 class="wallet-name">{{ wallet.name }}</h3>
             <p class="wallet-type">{{ wallet.wallet_type|title }}{% if wallet.is_shared %} • Shared{% endif %}</p>

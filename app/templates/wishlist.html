@@ -67,7 +67,7 @@
     {% if items %}
         <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1.5rem;">
             {% for item in items %}
-            <div class="card" style="margin-bottom: 0; border-left: 5px solid {{ 'var(--color-expense)' if item.priority == 'High' else ('#ffc107' if item.priority == 'Medium' else '#4caf50') }};">
+            <div class="card" id="wishlist-{{ item.id }}" style="margin-bottom: 0; border-left: 5px solid {{ 'var(--color-expense)' if item.priority == 'High' else ('#ffc107' if item.priority == 'Medium' else '#4caf50') }};">
                 <div style="display: flex; justify-content: space-between; align-items: flex-start;">
                     <div>
                         <h3 style="margin: 0 0 0.5rem 0;">{{ item.name }}</h3>

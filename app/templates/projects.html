@@ -14,7 +14,7 @@
     {% if projects %}
     <div style="display: grid; gap: 1.5rem;">
         {% for project in projects %}
-        <div class="card" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 1.5rem;">
+        <div class="card" id="project-{{ project.id }}" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 1.5rem;">
             <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 1rem;">
                 <div style="flex: 1;">
                     <h3 style="color: white; margin-bottom: 0.5rem;">{{ project.name }}</h3>

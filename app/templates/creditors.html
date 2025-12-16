@@ -34,7 +34,7 @@
             </thead>
             <tbody>
                 {% for creditor in creditors %}
-                <tr>
+                <tr id="creditor-{{ creditor.id }}">
                     <td>{{ creditor.name }}</td>
                     <td>{{ creditor.description or '-' }}</td>
                     <td class="text-danger">{{ creditor.currency }} {{ "%.2f"|format(creditor.amount) }}</td>

@@ -78,7 +78,7 @@
 
     {% if data_by_year %}
         {% for year in data_by_year|sort(reverse=True) %}
-            <div class="card" style="margin-bottom: 2rem; border-left: 4px solid var(--color-primary);">
+            <div class="card" {% if data_by_year[year].yearly %}id="historical-{{ data_by_year[year].yearly.id }}"{% endif %} style="margin-bottom: 2rem; border-left: 4px solid var(--color-primary);">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
                     <h2 style="margin: 0;">{{ year }}</h2>
                     {% if data_by_year[year].yearly %}
@@ -117,7 +117,7 @@
                         </thead>
                         <tbody>
                             {% for record in data_by_year[year].monthly|sort(attribute='month') %}
-                            <tr style="border-bottom: 1px solid #eee;">
+                            <tr id="historical-{{ record.id }}" style="border-bottom: 1px solid #eee;">
                                 <td style="padding: 0.75rem;">{{ get_month_name(record.month) }}</td>
                                 <td style="padding: 0.75rem; color: #4caf50;">+{{ "{:,.2f}".format(record.total_income) }}</td>
                                 <td style="padding: 0.75rem; color: #f44336;">-{{ "{:,.2f}".format(record.total_expense) }}</td>

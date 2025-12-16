@@ -12,7 +12,7 @@
     </div>
 
     {% for trans in recurring %}
-    <div class="card" style="margin-bottom: 1rem; display: flex; justify-content: space-between; align-items: center;">
+    <div class="card" id="recurring-{{ trans.id }}" style="margin-bottom: 1rem; display: flex; justify-content: space-between; align-items: center;">
         <div>
             <h3 style="margin-bottom: 0.25rem;">
                 <span style="font-size: 1.25rem; margin-right: 0.5rem;">{{ trans.category.icon }}</span>
