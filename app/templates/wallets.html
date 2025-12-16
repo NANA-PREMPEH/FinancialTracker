@@ -70,12 +70,12 @@
                         <td>{{ transfer.date.strftime('%Y-%m-%d') }}</td>
                         <td>{{ transfer.description }}</td>
                         <td>{{ transfer.wallet.name }}</td>
-                        <td class="{{ 'text-danger' if transfer.transaction_type == 'expense' else 'text-success' }}">
+                        <td class="{{ 'text-danger' if transfer.transaction_type in ['expense', 'transfer_out'] else 'text-success' }}">
                             {{ transfer.wallet.currency }} {{ "%.2f"|format(transfer.amount) }}
                         </td>
                         <td>
-                            <span class="badge {{ 'badge-danger' if transfer.transaction_type == 'expense' else 'badge-success' }}">
-                                {{ 'Outgoing' if transfer.transaction_type == 'expense' else 'Incoming' }}
+                            <span class="badge {{ 'badge-danger' if transfer.transaction_type in ['expense', 'transfer_out'] else 'badge-success' }}">
+                                {{ 'Outgoing' if transfer.transaction_type in ['expense', 'transfer_out'] else 'Incoming' }}
                             </span>
                         </td>
                     </tr>
@@ -111,6 +111,12 @@
                     <option value="{{ wallet.id }}" data-currency="{{ wallet.currency }}">{{ wallet.name }} ({{ wallet.currency }} {{ "%.2f"|format(wallet.balance) }})</option>
                     {% endfor %}
                 </select>
+            </div>
+
+            <div class="form-group mb-4" id="exchange_rate_group" style="display: none;">
+                <label class="form-label">Exchange Rate</label>
+                <div class="text-sm text-muted mb-1" id="exchange_rate_help">Rate</div>
+                <input type="number" name="exchange_rate" id="exchange_rate" step="any" min="0.000001" class="form-control" value="1.0">
             </div>
 
             <div class="form-group mb-4">
@@ -172,14 +178,18 @@ document.addEventListener('DOMContentLoaded', function() {
     const transferModal = document.getElementById('transferModal');
     const sourceSelect = document.getElementById('source_wallet');
     const destSelect = document.getElementById('dest_wallet');
+    const rateGroup = document.getElementById('exchange_rate_group');
+    const rateHelp = document.getElementById('exchange_rate_help');
 
     window.showTransferModal = function() {
         transferModal.style.display = 'flex';
+        checkCurrencies();
     };
 
     window.hideTransferModal = function() {
         transferModal.style.display = 'none';
-        // Reset form? maybe later
+        rateGroup.style.display = 'none';
+        document.getElementById('exchange_rate').value = '1.0';
     };
 
     window.updateDestOptions = function() {
@@ -196,7 +206,30 @@ document.addEventListener('DOMContentLoaded', function() {
                 destOptions[i].disabled = false;
             }
         }
+        checkCurrencies();
     };
+
+    window.checkCurrencies = function() {
+        const sourceOption = sourceSelect.options[sourceSelect.selectedIndex];
+        const destOption = destSelect.options[destSelect.selectedIndex];
+        
+        if (sourceOption && destOption && sourceOption.value && destOption.value) {
+            const sourceCurr = sourceOption.getAttribute('data-currency');
+            const destCurr = destOption.getAttribute('data-currency');
+            
+            if (sourceCurr && destCurr && sourceCurr !== destCurr) {
+                rateGroup.style.display = 'block';
+                rateHelp.textContent = `1 ${sourceCurr} = ? ${destCurr}`;
+            } else {
+                rateGroup.style.display = 'none';
+            }
+        } else {
+            rateGroup.style.display = 'none';
+        }
+    };
+
+    // Add listener to destSelect as well
+    destSelect.addEventListener('change', checkCurrencies);
 
     // Attach click handlers to all delete buttons
     document.querySelectorAll('.delete-wallet-btn').forEach(button => {

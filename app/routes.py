@@ -344,7 +344,10 @@ def all_expenses():
         query = query.filter_by(wallet_id=int(wallet_filter))
     
     if type_filter:
-        query = query.filter_by(transaction_type=type_filter)
+        if type_filter == 'transfer':
+            query = query.filter(Expense.transaction_type.in_(['transfer', 'transfer_out', 'transfer_in']))
+        else:
+            query = query.filter_by(transaction_type=type_filter)
     
     if date_from:
         query = query.filter(Expense.date >= datetime.strptime(date_from, '%Y-%m-%d'))
@@ -483,6 +486,7 @@ def transfer_funds():
     source_wallet_id = int(request.form.get('source_wallet_id'))
     dest_wallet_id = int(request.form.get('dest_wallet_id'))
     amount = float(request.form.get('amount'))
+    exchange_rate = float(request.form.get('exchange_rate', 1.0))
     date_str = request.form.get('date')
     
     if source_wallet_id == dest_wallet_id:
@@ -496,7 +500,10 @@ def transfer_funds():
     source_wallet = Wallet.query.get_or_404(source_wallet_id)
     dest_wallet = Wallet.query.get_or_404(dest_wallet_id)
     
-    # Optional: Check for sufficient funds
+    # Calculate destination amount based on exchange rate
+    dest_amount = amount * exchange_rate
+    
+    # Optional: Check for sufficient funds (commented out as per original)
     # if source_wallet.balance < amount:
     #     flash('Insufficient funds in source wallet!', 'error')
     #     return redirect(url_for('main.wallets'))
@@ -514,25 +521,27 @@ def transfer_funds():
         date_obj = datetime.utcnow()
         
     # Create Expense for Source Wallet
+    # Note: Amount is in Source Wallet Currency
     expense = Expense(
         amount=amount,
-        description=f"Transfer to {dest_wallet.name}",
+        description=f"Transfer to {dest_wallet.name} (Rate: {exchange_rate})",
         category_id=transfer_category.id,
         wallet_id=source_wallet.id,
         date=date_obj,
-        transaction_type='expense',
-        tags='transfer'
+        transaction_type='transfer_out',
+        tags='transfer,outgoing'
     )
     
     # Create Income for Destination Wallet
+    # Note: Amount is in Destination Wallet Currency (converted)
     income = Expense(
-        amount=amount,
-        description=f"Transfer from {source_wallet.name}",
+        amount=dest_amount,
+        description=f"Transfer from {source_wallet.name} (Rate: {exchange_rate})",
         category_id=transfer_category.id,
         wallet_id=dest_wallet.id,
         date=date_obj,
-        transaction_type='income',
-        tags='transfer'
+        transaction_type='transfer_in',
+        tags='transfer,incoming'
     )
     
     db.session.add(expense)
@@ -540,7 +549,7 @@ def transfer_funds():
     
     # Update balances
     source_wallet.balance -= amount
-    dest_wallet.balance += amount
+    dest_wallet.balance += dest_amount
     
     db.session.commit()
     
