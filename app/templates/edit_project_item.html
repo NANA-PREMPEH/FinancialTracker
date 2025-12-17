@@ -25,9 +25,24 @@
 
         <!-- Cost -->
         <div class="form-group">
-            <label for="cost">Cost (GHS)</label>
+            <label for="cost">Amount (GHS)</label>
             <input type="number" id="cost" name="cost" step="0.01" min="0"
                 value="{{ "%.2f"|format(item.cost) }}" required>
+        </div>
+
+        <!-- Type -->
+        <div class="form-group">
+            <label>Type</label>
+            <div style="display: flex; gap: 1.5rem; margin-top: 0.5rem;">
+                <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                    <input type="radio" name="item_type" value="expense" {% if item.item_type != 'income' %}checked{% endif %} style="width: auto;">
+                    <span style="color: var(--color-danger); font-weight: 500;">Outgoing Payment (Expense)</span>
+                </label>
+                <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                    <input type="radio" name="item_type" value="income" {% if item.item_type == 'income' %}checked{% endif %} style="width: auto;">
+                    <span style="color: var(--color-success); font-weight: 500;">Payment Received (Income)</span>
+                </label>
+            </div>
         </div>
 
         <!-- Description -->

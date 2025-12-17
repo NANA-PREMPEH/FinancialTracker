@@ -42,25 +42,39 @@
         <form method="POST"
             action="{{ url_for('main.add_project_item', project_id=project.id) }}"
             style="display: flex; flex-direction: column; gap: 1rem;">
-            <div style="display: flex; gap: 1rem;">
+            <div style="display: flex; gap: 1rem; margin-bottom: 0;">
                 <div class="form-group" style="flex: 2; margin-bottom: 0;">
                     <label for="item_name">Item Name</label>
                     <input type="text" id="item_name" name="item_name"
-                        placeholder="e.g., Venue Booking, Catering" required>
+                        placeholder="e.g., Venue Booking, Sponsorship" required>
                 </div>
                 <div class="form-group" style="flex: 1; margin-bottom: 0;">
-                    <label for="cost">Cost (GHS)</label>
+                    <label for="cost">Amount (GHS)</label>
                     <input type="number" id="cost" name="cost" step="0.01"
                         min="0" value="0.00" required>
                 </div>
             </div>
+            
+            <div class="form-group" style="margin-bottom: 0;">
+                <label>Type</label>
+                <div style="display: flex; gap: 1.5rem; margin-top: 0.5rem;">
+                    <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                        <input type="radio" name="item_type" value="expense" checked style="width: auto;">
+                        <span style="color: var(--color-danger); font-weight: 500;">Outgoing Payment (Expense)</span>
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                        <input type="radio" name="item_type" value="income" style="width: auto;">
+                        <span style="color: var(--color-success); font-weight: 500;">Payment Received (Income)</span>
+                    </label>
+                </div>
+            </div>
+
             <div class="form-group" style="margin-bottom: 0;">
                 <label for="description">Description (Optional)</label>
                 <textarea id="description" name="description" rows="2"
                     placeholder="Add details about this item..."></textarea>
             </div>
-            <button type="submit" style="align-self: flex-start;">+ Add
-                Item</button>
+            <button type="submit" style="align-self: flex-start;">+ Add Item</button>
         </form>
     </div>
 
@@ -105,12 +119,17 @@
         <div style="display: grid; gap: 1rem;">
             {% for item in project.items %}
             <div class="card project-item-card" id="item-{{ item.id }}"
-                style="background-color: white; border-left: 4px solid var(--color-primary);">
+                style="background-color: white; border-left: 4px solid {{ '#22c55e' if item.item_type == 'income' else '#ef4444' }};">
                 <div
                     style="display: flex; justify-content: space-between; align-items: flex-start;">
                     <div style="flex: 1;">
-                        <h4 style="margin: 0;">
+                        <h4 style="margin: 0; display: flex; align-items: center; gap: 0.75rem;">
                             {{ item.item_name }}
+                            {% if item.item_type == 'income' %}
+                            <span style="background-color: #dcfce7; color: #166534; font-size: 0.75rem; padding: 0.1rem 0.5rem; border-radius: 999px; font-weight: 500;">Income</span>
+                            {% else %}
+                            <span style="background-color: #fee2e2; color: #991b1b; font-size: 0.75rem; padding: 0.1rem 0.5rem; border-radius: 999px; font-weight: 500;">Expense</span>
+                            {% endif %}
                         </h4>
                         {% if item.description %}
                         <p
@@ -194,8 +213,8 @@
                     <div
                         style="display: flex; align-items: center; gap: 0.75rem; margin-left: 1rem;">
                         <span
-                            style="font-size: 1.25rem; font-weight: 700; color: var(--color-primary);">
-                            GHS {{ "{:,.2f}".format(item.cost) }}
+                            style="font-size: 1.25rem; font-weight: 700; color: {{ '#22c55e' if item.item_type == 'income' else '#ef4444' }};">
+                            {{ '+' if item.item_type == 'income' else '' }}GHS {{ "{:,.2f}".format(item.cost) }}
                         </span>
                         <a
                             href="{{ url_for('main.edit_project_item', project_id=project.id, item_id=item.id) }}">

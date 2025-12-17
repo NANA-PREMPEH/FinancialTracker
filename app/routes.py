@@ -1202,12 +1202,14 @@ def add_project_item(project_id):
     item_name = request.form.get('item_name')
     cost = float(request.form.get('cost', 0))
     description = request.form.get('description', '')
+    item_type = request.form.get('item_type', 'expense')
     
     item = ProjectItem(
         project_id=project_id,
         item_name=item_name,
         cost=cost,
-        description=description
+        description=description,
+        item_type=item_type
     )
     db.session.add(item)
     db.session.commit()
@@ -1232,6 +1234,7 @@ def edit_project_item(project_id, item_id):
         item.item_name = request.form.get('item_name')
         item.cost = float(request.form.get('cost', 0))
         item.description = request.form.get('description', '')
+        item.item_type = request.form.get('item_type', 'expense')
         db.session.commit()
         flash('Item updated successfully!', 'success')
         return redirect(url_for('main.project_details', id=project_id) + f'#item-{item_id}')
