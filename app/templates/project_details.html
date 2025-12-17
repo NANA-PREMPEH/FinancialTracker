@@ -145,7 +145,9 @@
                                     onchange="togglePayment({{ project.id }}, {{ item.id }}, {{ payment.id }})"
                                     style="width: 16px; height: 16px; cursor: pointer;">
                                 <span style="font-size: 0.85rem; flex: 1; {% if payment.is_paid %}text-decoration: line-through; opacity: 0.7;{% endif %}">
-                                    {{ payment.description or 'Payment' }} - GHS {{ "{:,.2f}".format(payment.amount) }}
+                                    {{ payment.description or 'Payment' }} 
+                                    <span style="color: var(--color-text-muted); font-size: 0.8rem;">({{ payment.payment_date.strftime('%d %b') if payment.payment_date else 'No Date' }})</span>
+                                    - GHS {{ "{:,.2f}".format(payment.amount) }}
                                 </span>
                                 <form method="POST"
                                     action="{{ url_for('main.delete_project_item_payment', project_id=project.id, item_id=item.id, payment_id=payment.id) }}"
@@ -176,6 +178,10 @@
                                         <input type="text" name="payment_description"
                                             placeholder="Description (e.g., First payment, Deposit)"
                                             style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px; font-size: 0.85rem;">
+                                    </div>
+                                    <div>
+                                        <input type="date" name="payment_date" required
+                                            style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px; font-size: 0.85rem; font-family: inherit;">
                                     </div>
                                     <button type="submit"
                                         style="background: var(--color-primary); color: white; border: none; padding: 0.5rem; border-radius: 4px; cursor: pointer; font-size: 0.85rem; font-weight: 600;">
@@ -332,6 +338,15 @@ deleteModal.addEventListener('click', function(e) {
     if (e.target === this) {
         hideDeleteProjectDialog();
     }
+});
+
+// Initialize date inputs to today
+document.addEventListener('DOMContentLoaded', function() {
+    const dateInputs = document.querySelectorAll('input[type="date"]');
+    const today = new Date().toISOString().split('T')[0];
+    dateInputs.forEach(input => {
+        if (!input.value) input.value = today;
+    });
 });
 </script>
 {% endblock %}

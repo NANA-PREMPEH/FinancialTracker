@@ -1253,11 +1253,20 @@ def add_project_item_payment(project_id, item_id):
     
     amount = float(request.form.get('payment_amount'))
     description = request.form.get('payment_description', '')
+    date_str = request.form.get('payment_date')
+    
+    payment_date = datetime.utcnow()
+    if date_str:
+        try:
+            payment_date = datetime.strptime(date_str, '%Y-%m-%d')
+        except ValueError:
+            pass
     
     payment = ProjectItemPayment(
         project_item_id=item_id,
         amount=amount,
-        description=description
+        description=description,
+        payment_date=payment_date
     )
     db.session.add(payment)
     db.session.commit()
