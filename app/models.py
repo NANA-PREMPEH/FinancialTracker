@@ -107,7 +107,23 @@ class Project(db.Model):
     
     @property
     def total_cost(self):
-        return sum(item.cost for item in self.items)
+        """Total projected cost (Expenses only)"""
+        return sum(item.cost for item in self.items if item.item_type != 'income')
+    
+    @property
+    def total_income(self):
+        """Total realized income (Completed Income items)"""
+        return sum(item.cost for item in self.items if item.item_type == 'income' and item.is_completed)
+
+    @property
+    def expense_completed(self):
+        """Total completed expenses"""
+        return sum(item.cost for item in self.items if item.item_type != 'income' and item.is_completed)
+
+    @property
+    def expense_not_completed(self):
+        """Total pending expenses"""
+        return sum(item.cost for item in self.items if item.item_type != 'income' and not item.is_completed)
 
 class ProjectItem(db.Model):
     id = db.Column(db.Integer, primary_key=True)
