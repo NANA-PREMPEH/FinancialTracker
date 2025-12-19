@@ -28,13 +28,8 @@
                             {{ project.funding_source|replace('_', ' ')|title }}
                         {% endif %}
                     </p>
+                        📊 {{ project.items|length }} items • Total: GHS {{ "{:,.2f}".format(project.total_cost) }}
                     </p>
-                    <div style="font-size: 0.85rem; margin-top: 0.75rem; display: grid; grid-template-columns: 1fr 1fr; gap: 0.25rem;">
-                        <div>✓ Completed: <strong>GHS {{ "{:,.2f}".format(project.expense_completed) }}</strong></div>
-                        <div>⏳ Not Completed: <strong>GHS {{ "{:,.2f}".format(project.expense_not_completed) }}</strong></div>
-                        <div style="color: #a7f3d0;">Total Income: <strong>GHS {{ "{:,.2f}".format(project.total_income) }}</strong></div>
-                        <div>Total Cost: <strong>GHS {{ "{:,.2f}".format(project.total_cost) }}</strong></div>
-                    </div>
                 </div>
                 <div style="display: flex; gap: 0.5rem;">
                     <a href="{{ url_for('main.project_details', id=project.id) }}" style="text-decoration: none;">
