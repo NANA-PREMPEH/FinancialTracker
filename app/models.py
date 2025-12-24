@@ -107,7 +107,23 @@ class Project(db.Model):
     
     @property
     def total_cost(self):
-        return sum(item.cost for item in self.items)
+        """Total Projected Expense"""
+        return sum(item.cost for item in self.items if getattr(item, 'item_type', 'expense') != 'income')
+
+    @property
+    def total_income(self):
+        """Total Projected Income"""
+        return sum(item.cost for item in self.items if getattr(item, 'item_type', 'expense') == 'income')
+
+    @property
+    def paid_expense(self):
+        """Total Paid Expense (Completed)"""
+        return sum(item.total_paid for item in self.items if getattr(item, 'item_type', 'expense') != 'income')
+
+    @property
+    def paid_income(self):
+        """Total Received Income"""
+        return sum(item.total_paid for item in self.items if getattr(item, 'item_type', 'expense') == 'income')
 
 class ProjectItem(db.Model):
     id = db.Column(db.Integer, primary_key=True)

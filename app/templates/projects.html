@@ -28,8 +28,25 @@
                             {{ project.funding_source|replace('_', ' ')|title }}
                         {% endif %}
                     </p>
-                        📊 {{ project.items|length }} items • Total: GHS {{ "{:,.2f}".format(project.total_cost) }}
-                    </p>
+                    
+                    <div style="display: flex; gap: 1.5rem; margin-top: 1rem; flex-wrap: wrap;">
+                        <div>
+                            <p style="font-size: 0.75rem; opacity: 0.8; margin-bottom: 0.1rem;">✓ Completed</p>
+                            <p style="font-size: 1rem; font-weight: 700;">GHS {{ "{:,.2f}".format(project.paid_expense) }}</p>
+                        </div>
+                        <div>
+                            <p style="font-size: 0.75rem; opacity: 0.8; margin-bottom: 0.1rem;">⏳ Not Completed</p>
+                            <p style="font-size: 1rem; font-weight: 700;">GHS {{ "{:,.2f}".format(project.total_cost - project.paid_expense) }}</p>
+                        </div>
+                        <div>
+                            <p style="font-size: 0.75rem; opacity: 0.8; margin-bottom: 0.1rem;">Total income</p>
+                            <p style="font-size: 1rem; font-weight: 700;">GHS {{ "{:,.2f}".format(project.paid_income) }}</p>
+                        </div>
+                         <div>
+                            <p style="font-size: 0.75rem; opacity: 0.8; margin-bottom: 0.1rem;">Total Cost</p>
+                            <p style="font-size: 1rem; font-weight: 700;">GHS {{ "{:,.2f}".format(project.total_cost) }}</p>
+                        </div>
+                    </div>
                 </div>
                 <div style="display: flex; gap: 0.5rem;">
                     <a href="{{ url_for('main.project_details', id=project.id) }}" style="text-decoration: none;">

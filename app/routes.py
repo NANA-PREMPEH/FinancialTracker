@@ -1121,13 +1121,24 @@ def add_project():
 def project_details(id):
     project = Project.query.get_or_404(id)
     
-    # Calculate total cost of completed items (sum of all paid payments)
-    completed_cost = sum(item.total_paid for item in project.items)
+    # Calculate total cost of completed items (sum of all paid payments for expenses)
+    completed_cost = project.paid_expense
     
-    # Calculate total cost of not completed items
-    not_completed_cost = sum((item.cost - item.total_paid) for item in project.items)
+    # Calculate total cost of not completed items (Unpaid Expenses)
+    not_completed_cost = project.total_cost - project.paid_expense
     
-    return render_template('project_details.html', project=project, completed_cost=completed_cost, not_completed_cost=not_completed_cost)
+    # Total Realized Income (Payments with indication as income-type items and marked as completed)
+    total_income = project.paid_income
+
+    # Net Total Cost (Total Expense - Total Income) - Using Projected
+    net_cost = project.total_cost - project.total_income
+    
+    return render_template('project_details.html', 
+                         project=project, 
+                         completed_cost=completed_cost, 
+                         not_completed_cost=not_completed_cost,
+                         total_income=total_income,
+                         net_cost=project.total_cost - project.total_income)
 
 @main.route('/projects/edit/<int:id>', methods=['GET', 'POST'])
 def edit_project(id):
