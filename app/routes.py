@@ -902,7 +902,11 @@ def creditors():
     all_creditors = Creditor.query.all()
     wallets = Wallet.query.all()
     total_debt = sum(c.amount for c in all_creditors)
-    return render_template('creditors.html', creditors=all_creditors, wallets=wallets, total_debt=total_debt)
+    
+    # Fetch payment history
+    payment_history = Expense.query.filter(Expense.tags.like('%debt_payment%')).order_by(Expense.date.desc()).all()
+    
+    return render_template('creditors.html', creditors=all_creditors, wallets=wallets, total_debt=total_debt, payment_history=payment_history)
 
 @main.route('/creditors/add', methods=['GET', 'POST'])
 def add_creditor():
