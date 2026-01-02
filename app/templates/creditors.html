@@ -40,6 +40,10 @@
                     <td class="text-danger">{{ creditor.currency }} {{ "%.2f"|format(creditor.amount) }}</td>
                     <td>{{ creditor.created_at.strftime('%Y-%m-%d') }}</td>
                     <td class="flex gap-2">
+                        <button class="btn-success" 
+                                onclick="showPayCreditorModal('{{ creditor.id }}', '{{ creditor.name }}', '{{ creditor.amount }}')">
+                            💸 Pay
+                        </button>
                         <button class="btn-edit" 
                                 onclick="showEditCreditorModal('{{ creditor.id }}', '{{ creditor.name }}', '{{ creditor.amount }}', '{{ creditor.description }}')">
                             ✏️ Edit
@@ -55,6 +59,40 @@
         {% else %}
         <p class="text-center text-muted">You have no creditors tracked properly. Good job!</p>
         {% endif %}
+    </div>
+</div>
+
+<!-- Pay Creditor Modal -->
+<div id="payCreditorModal" class="modal-backdrop">
+    <div class="modal-content">
+        <h3>Record Payment</h3>
+        <p class="text-muted">Paying off debt to <span id="pay_creditor_name" style="font-weight: bold;"></span></p>
+        
+        <form id="payCreditorForm" method="POST">
+            <div class="form-group">
+                <label>Amount to Pay</label>
+                <input type="number" name="amount" id="pay_amount" step="0.01" class="form-control" required>
+            </div>
+            
+            <div class="form-group">
+                <label>Pay From Wallet</label>
+                <select name="wallet_id" class="form-control" required>
+                    {% for wallet in wallets %}
+                        <option value="{{ wallet.id }}">{{ wallet.name }} ({{ wallet.currency }} {{ "%.2f"|format(wallet.balance) }})</option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label>Date</label>
+                <input type="date" name="date" value="{{ now_date }}" class="form-control" required>
+            </div>
+            
+            <div class="flex gap-4 justify-end mt-4">
+                <button type="button" onclick="hidePayCreditorModal()" class="btn-secondary">Cancel</button>
+                <button type="submit" class="btn-success">Record Payment</button>
+            </div>
+        </form>
     </div>
 </div>
 
@@ -111,7 +149,9 @@
 <script>
     const addModal = document.getElementById('addCreditorModal');
     const editModal = document.getElementById('editCreditorModal');
+    const payModal = document.getElementById('payCreditorModal');
     const editForm = document.getElementById('editCreditorForm');
+    const payForm = document.getElementById('payCreditorForm');
 
     function showAddCreditorModal() {
         addModal.style.display = 'flex';
@@ -119,6 +159,24 @@
 
     function hideAddCreditorModal() {
         addModal.style.display = 'none';
+    }
+    
+    function showPayCreditorModal(id, name, amount) {
+        document.getElementById('pay_creditor_name').textContent = name;
+        document.getElementById('pay_amount').value = amount; // Default to full amount? Or empty? Let's default to full.
+        payForm.action = `/creditors/pay/${id}`;
+        
+        // Set today's date default
+        const dateInput = payForm.querySelector('input[type="date"]');
+        if (!dateInput.value) {
+            dateInput.value = new Date().toISOString().split('T')[0];
+        }
+        
+        payModal.style.display = 'flex';
+    }
+
+    function hidePayCreditorModal() {
+        payModal.style.display = 'none';
     }
 
     function showEditCreditorModal(id, name, amount, description) {
@@ -136,6 +194,7 @@
     window.onclick = function(event) {
         if (event.target == addModal) hideAddCreditorModal();
         if (event.target == editModal) hideEditCreditorModal();
+        if (event.target == payModal) hidePayCreditorModal();
     }
 </script>
 {% endblock %}

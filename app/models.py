@@ -37,6 +37,8 @@ class Expense(db.Model):
     tags = db.Column(db.String(200), nullable=True)
     receipt_path = db.Column(db.String(300), nullable=True)
     transaction_type = db.Column(db.String(20), default='expense')
+    original_amount = db.Column(db.Float, nullable=True)
+    original_currency = db.Column(db.String(10), nullable=True)
 
     def __repr__(self):
         return f'<Expense {self.amount} - {self.description}>'

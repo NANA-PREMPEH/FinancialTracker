@@ -1,10 +1,12 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify, send_file, Response
 from . import db
 from .models import Expense, Category, Wallet, Budget, RecurringTransaction, ExchangeRate, Project, ProjectItem, ProjectItemPayment, FinancialSummary, WishlistItem, Creditor
+from .utils import get_exchange_rate
 from datetime import datetime, timedelta
 from sqlalchemy import func, or_
 import io
 import csv
+import requests
 
 main = Blueprint('main', __name__)
 
@@ -53,39 +55,8 @@ def dashboard():
         if wallet.currency == 'GHS':
             total_wallet_balance += wallet.balance
         else:
-            # Get exchange rate
-            rate = ExchangeRate.query.filter_by(
-                from_currency=wallet.currency, 
-                to_currency='GHS'
-            ).order_by(ExchangeRate.date.desc()).first()
-            
-            # If rate exists and is recent (e.g., within 24 hours), use it
-            # Otherwise fetch new rate
-            current_rate = 0
-            if rate and (datetime.utcnow() - rate.date).days < 1:
-                current_rate = rate.rate
-            else:
-                try:
-                    import requests
-                    api_url = f'https://api.exchangerate-api.com/v4/latest/{wallet.currency}'
-                    response = requests.get(api_url, timeout=5)
-                    if response.status_code == 200:
-                        data = response.json()
-                        current_rate = data.get('rates', {}).get('GHS', 0)
-                        
-                        # Save new rate
-                        new_rate = ExchangeRate(
-                            from_currency=wallet.currency,
-                            to_currency='GHS',
-                            rate=current_rate
-                        )
-                        db.session.add(new_rate)
-                        db.session.commit()
-                except Exception as e:
-                    print(f"Error fetching rate for {wallet.currency}: {e}")
-                    # Fallback to last known rate if available
-                    if rate:
-                        current_rate = rate.rate
+            current_rate = get_exchange_rate(wallet.currency, 'GHS')
+            total_wallet_balance += wallet.balance * current_rate
             
             total_wallet_balance += wallet.balance * current_rate
     
@@ -170,6 +141,7 @@ def dashboard():
 def add_expense():
     categories = Category.query.all()
     wallets = Wallet.query.all()
+    from .currencies import CURRENCIES
     
     if request.method == 'POST':
         description = request.form.get('description')
@@ -179,14 +151,15 @@ def add_expense():
         notes = request.form.get('notes', '')
         tags = request.form.get('tags', '')
         transaction_type = request.form.get('transaction_type', 'expense')
+        currency = request.form.get('currency', 'GHS')
         
         if not description or not description.strip():
             flash('Description is required!', 'error')
             return redirect(url_for('main.add_expense'))
             
         try:
-            amount = float(request.form.get('amount'))
-            if amount <= 0:
+            input_amount = float(request.form.get('amount'))
+            if input_amount <= 0:
                  flash('Amount must be greater than 0!', 'error')
                  return redirect(url_for('main.add_expense'))
         except (ValueError, TypeError):
@@ -211,9 +184,18 @@ def add_expense():
                 filepath = os.path.join('app', 'static', 'receipts', filename)
                 file.save(filepath)
                 receipt_path = f"receipts/{filename}"
+        
+        # Currency Conversion Logic
+        wallet = Wallet.query.get(wallet_id)
+        converted_amount = input_amount
+        
+        if currency != wallet.currency:
+            rate = get_exchange_rate(currency, wallet.currency)
+            converted_amount = input_amount * rate
+            print(f"Converting {input_amount} {currency} to {converted_amount} {wallet.currency} (Rate: {rate})")
 
         expense = Expense(
-            amount=amount, 
+            amount=converted_amount, 
             description=description, 
             category_id=category_id,
             wallet_id=wallet_id,
@@ -221,20 +203,20 @@ def add_expense():
             notes=notes,
             tags=tags,
             receipt_path=receipt_path,
-            transaction_type=transaction_type
+            transaction_type=transaction_type,
+            original_amount=input_amount,
+            original_currency=currency
         )
         db.session.add(expense)
         
-        # Update wallet balance
-        wallet = Wallet.query.get(wallet_id)
+        # Update wallet balance (using converted amount)
         if transaction_type == 'expense':
-            wallet.balance -= amount
+            wallet.balance -= converted_amount
         elif transaction_type == 'income':
-            wallet.balance += amount
+            wallet.balance += converted_amount
         
         db.session.commit()
-        db.session.commit()
-        flash('Transaction added successfully!', 'success')
+        flash(f'Transaction added successfully! ({input_amount} {currency})', 'success')
         
         action = request.form.get('action')
         if action == 'save_and_continue':
@@ -242,7 +224,7 @@ def add_expense():
         else:
             return redirect(url_for('main.all_expenses'))
     
-    return render_template('add_expense.html', categories=categories, wallets=wallets)
+    return render_template('add_expense.html', categories=categories, wallets=wallets, currencies=CURRENCIES)
 
 @main.route('/edit/<int:id>', methods=['GET', 'POST'])
 def edit_expense(id):
@@ -918,8 +900,9 @@ def delete_category(id):
 @main.route('/creditors')
 def creditors():
     all_creditors = Creditor.query.all()
+    wallets = Wallet.query.all()
     total_debt = sum(c.amount for c in all_creditors)
-    return render_template('creditors.html', creditors=all_creditors, total_debt=total_debt)
+    return render_template('creditors.html', creditors=all_creditors, wallets=wallets, total_debt=total_debt)
 
 @main.route('/creditors/add', methods=['GET', 'POST'])
 def add_creditor():
@@ -953,6 +936,46 @@ def delete_creditor(id):
     db.session.delete(creditor)
     db.session.commit()
     flash('Creditor removed successfully!', 'success')
+    return redirect(url_for('main.creditors'))
+
+@main.route('/creditors/pay/<int:id>', methods=['POST'])
+def pay_creditor(id):
+    creditor = Creditor.query.get_or_404(id)
+    wallet_id = int(request.form.get('wallet_id'))
+    amount = float(request.form.get('amount'))
+    payment_date = datetime.strptime(request.form.get('date'), '%Y-%m-%d')
+    
+    wallet = Wallet.query.get_or_404(wallet_id)
+    
+    if amount <= 0:
+        flash('Payment amount must be positive.', 'error')
+        return redirect(url_for('main.creditors'))
+    
+    # Logic: Deduct from Wallet, Deduct from Creditor, Create Expense
+    wallet.balance -= amount
+    creditor.amount -= amount
+    
+    # Ensure 'Debt Payment' category exists
+    debt_cat = Category.query.filter_by(name='Debt Payment').first()
+    if not debt_cat:
+        debt_cat = Category(name='Debt Payment', icon='💸', is_custom=False)
+        db.session.add(debt_cat)
+        db.session.flush()
+        
+    expense = Expense(
+        amount=amount,
+        description=f"Payment to {creditor.name}",
+        category_id=debt_cat.id,
+        wallet_id=wallet.id,
+        date=payment_date,
+        transaction_type='expense',
+        tags='debt_payment'
+    )
+    
+    db.session.add(expense)
+    db.session.commit()
+    
+    flash(f'Paid {wallet.currency}{amount} to {creditor.name}!', 'success')
     return redirect(url_for('main.creditors'))
 
 # ===== EXPORT =====
