@@ -5,201 +5,128 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Financial Tracker{% endblock %}</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
     <script>
         // Check for saved theme preference or use system preference
-        const savedTheme = localStorage.getItem('theme');
-        const systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-        
-        if (savedTheme === 'dark' || (!savedTheme && systemTheme === 'dark')) {
-            document.documentElement.setAttribute('data-theme', 'dark');
-        } else {
-            document.documentElement.setAttribute('data-theme', 'light');
-        }
+// ... (lines 10-18)
     </script>
-    <style>
-        /* Ensure header nav items are properly aligned */
-        header nav ul {
-            align-items: center;
-        }
-
-        /* Mobile Navigation Toggle */
-        .mobile-toggle {
-            display: none;
-            background: none;
-            border: none;
-            font-size: 1.5rem;
-            cursor: pointer;
-            color: #4a90e2;
-            padding: 0.5rem;
-            z-index: 1001;
-        }
-
-        .hamburger {
-            display: flex;
-            flex-direction: column;
-            gap: 4px;
-            width: 25px;
-        }
-
-        .hamburger span {
-            display: block;
-            height: 3px;
-            background: #4a90e2;
-            border-radius: 2px;
-            transition: all 0.3s ease;
-        }
-
-        .mobile-toggle.active .hamburger span:nth-child(1) {
-            transform: rotate(45deg) translate(5px, 5px);
-        }
-
-        .mobile-toggle.active .hamburger span:nth-child(2) {
-            opacity: 0;
-        }
-
-        .mobile-toggle.active .hamburger span:nth-child(3) {
-            transform: rotate(-45deg) translate(7px, -6px);
-        }
-
-        /* Mobile styles */
-        @media (max-width: 768px) {
-            .mobile-toggle {
-                display: block;
-            }
-
-            header nav {
-                position: fixed;
-                top: 60px;
-                left: 0;
-                right: 0;
-                background: var(--color-surface);
-                max-height: 0;
-                overflow-y: auto;
-                overflow-x: hidden;
-                transition: max-height 0.3s ease;
-                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-                z-index: 999;
-            }
-
-            header nav.active {
-                max-height: 80vh;
-            }
-
-            header nav ul {
-                flex-direction: column;
-                padding: 1rem 0;
-                gap: 0;
-            }
-
-            header nav li {
-                width: 100%;
-                border-bottom: 1px solid var(--color-border);
-            }
-
-            header nav li a {
-                display: block;
-                padding: 1rem 1.5rem;
-                width: 100%;
-                color: var(--color-text);
-            }
-
-            header nav li a:hover {
-                background: var(--color-primary);
-                color: white;
-            }
-
-            /* Dropdown styles for mobile */
-            nav li.dropdown > a::after {
-                content: '▼';
-                float: right;
-            }
-
-            .dropdown-menu {
-                display: block; /* Override desktop display: none */
-                position: static;
-                box-shadow: none;
-                background: var(--color-surface-hover);
-                margin: 0;
-                border-radius: 0;
-                padding: 0;
-                max-height: 0;
-                opacity: 1;
-                overflow: hidden;
-                transition: max-height 0.3s ease;
-                transform: none;
-            }
-
-            .dropdown-menu.show {
-                max-height: 300px;
-                display: block;
-            }
-
-            .dropdown-menu a {
-                padding: 0.75rem 1.25rem;
-                padding-left: 2.5rem;
-                color: var(--color-text);
-            }
-
-            .dropdown-menu a:hover {
-                background: var(--color-primary);
-                color: white;
-            }
-
-            header .container {
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
-            }
-        }
-    </style>
+// ... (lines 19-154)
 </head>
 <body>
     <a href="#main-content" class="skip-link">Skip to main content</a>
     
-    <header>
-        <div class="container">
-            <a href="{{ url_for('main.dashboard') }}" class="logo">Financial Tracker</a>
-            <button class="mobile-toggle" onclick="toggleMobileMenu()" id="mobileToggle">
-                <div class="hamburger">
-                    <span></span>
-                    <span></span>
-                    <span></span>
-                </div>
+    <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
+
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <a href="{{ url_for('main.dashboard') }}" class="logo">
+                <i data-lucide="calculator"></i>
+                <span>Financial Tracker</span>
+            </a>
+            <button class="close-sidebar" onclick="toggleSidebar()" aria-label="Close Sidebar">
+                <i data-lucide="x"></i>
             </button>
-            <nav id="mainNav">
-                <ul>
-                    <li><a href="{{ url_for('main.dashboard') }}">Dashboard</a></li>
-                    <li class="dropdown">
-                        <a href="javascript:void(0)" class="dropdown-toggle" onclick="toggleDropdown(event, 'addDropdown')">+ ADD</a>
-                        <div class="dropdown-menu" id="addDropdown">
-                            <a href="{{ url_for('main.add_expense') }}">💰 Add Transaction</a>
-                            <a href="{{ url_for('main.add_project') }}">📋 New Project</a>
-                        </div>
-                    </li>
-                    <li class="dropdown">
-                        <a href="javascript:void(0)" class="dropdown-toggle" onclick="toggleDropdown(event, 'viewDropdown')">View</a>
-                        <div class="dropdown-menu" id="viewDropdown">
-                            <a href="{{ url_for('main.all_expenses') }}">📄 All Transactions</a>
-                            <a href="{{ url_for('main.projects') }}">📋 Projects</a>
-                            <a href="{{ url_for('main.reports') }}">📊 Reports</a>
-                            <a href="{{ url_for('main.historical_data') }}">📚 Historical Data</a>
-                            <a href="{{ url_for('main.wishlist') }}">✨ Wishlist</a>
-                        </div>
-                    </li>
-                    <li><a href="{{ url_for('main.wallets') }}">Wallets</a></li>
-                    <li><a href="{{ url_for('main.creditors') }}">Credit</a></li>
-                    <li><a href="{{ url_for('main.budgets') }}">Budgets</a></li>
-                    <li><a href="{{ url_for('main.recurring_transactions') }}">Recurring</a></li>
-                    <li><a href="{{ url_for('main.analytics') }}">Analytics</a></li>
-                    <li><a href="{{ url_for('main.categories') }}">Categories</a></li>
-                    <li>
-                        <button id="themeToggle" class="btn-icon" aria-label="Toggle Dark Mode" style="background: none; border: none; cursor: pointer; font-size: 1.2rem; padding: 0.25rem;">
-                            <span class="light-icon">☀️</span>
-                            <span class="dark-icon" style="display: none;">🌙</span>
-                        </button>
-                    </li>
-                </ul>
-            </nav>
+        </div>
+        
+        <nav class="sidebar-content">
+            <div class="nav-group">
+                <div class="nav-label">Main</div>
+                <a href="{{ url_for('main.dashboard') }}" class="nav-item {% if request.endpoint == 'main.dashboard' %}active{% endif %}">
+                    <i data-lucide="layout-dashboard"></i>
+                    <span>Dashboard</span>
+                </a>
+            </div>
+
+            <div class="nav-group">
+                <div class="nav-label">Actions</div>
+                <a href="{{ url_for('main.add_expense') }}" class="nav-item {% if request.endpoint == 'main.add_expense' %}active{% endif %}">
+                    <i data-lucide="plus-circle"></i>
+                    <span>Add Transaction</span>
+                </a>
+                <a href="{{ url_for('main.add_project') }}" class="nav-item {% if request.endpoint == 'main.add_project' %}active{% endif %}">
+                    <i data-lucide="folder-plus"></i>
+                    <span>New Project</span>
+                </a>
+            </div>
+
+            <div class="nav-group">
+                <div class="nav-label">Insights</div>
+                <a href="{{ url_for('main.all_expenses') }}" class="nav-item {% if request.endpoint == 'main.all_expenses' %}active{% endif %}">
+                    <i data-lucide="list"></i>
+                    <span>All Transactions</span>
+                </a>
+                <a href="{{ url_for('main.analytics') }}" class="nav-item {% if request.endpoint == 'main.analytics' %}active{% endif %}">
+                    <i data-lucide="pie-chart"></i>
+                    <span>Analytics</span>
+                </a>
+                <a href="{{ url_for('main.reports') }}" class="nav-item {% if request.endpoint == 'main.reports' %}active{% endif %}">
+                    <i data-lucide="bar-chart-3"></i>
+                    <span>Reports</span>
+                </a>
+            </div>
+
+            <div class="nav-group">
+                <div class="nav-label">Management</div>
+                <a href="{{ url_for('main.wallets') }}" class="nav-item {% if request.endpoint == 'main.wallets' %}active{% endif %}">
+                    <i data-lucide="wallet"></i>
+                    <span>Wallets</span>
+                </a>
+                <a href="{{ url_for('main.creditors') }}" class="nav-item {% if request.endpoint == 'main.creditors' %}active{% endif %}">
+                    <i data-lucide="credit-card"></i>
+                    <span>Credit</span>
+                </a>
+                <a href="{{ url_for('main.budgets') }}" class="nav-item {% if request.endpoint == 'main.budgets' %}active{% endif %}">
+                    <i data-lucide="piggy-bank"></i>
+                    <span>Budgets</span>
+                </a>
+                <a href="{{ url_for('main.recurring_transactions') }}" class="nav-item {% if request.endpoint == 'main.recurring_transactions' %}active{% endif %}">
+                    <i data-lucide="repeat"></i>
+                    <span>Recurring</span>
+                </a>
+                <a href="{{ url_for('main.projects') }}" class="nav-item {% if request.endpoint == 'main.projects' %}active{% endif %}">
+                    <i data-lucide="briefcase"></i>
+                    <span>Projects</span>
+                </a>
+                <a href="{{ url_for('main.categories') }}" class="nav-item {% if request.endpoint == 'main.categories' %}active{% endif %}">
+                    <i data-lucide="tags"></i>
+                    <span>Categories</span>
+                </a>
+            </div>
+
+            <div class="nav-group">
+                <div class="nav-label">More</div>
+                <a href="{{ url_for('main.historical_data') }}" class="nav-item {% if request.endpoint == 'main.historical_data' %}active{% endif %}">
+                    <i data-lucide="history"></i>
+                    <span>Historical Data</span>
+                </a>
+                <a href="{{ url_for('main.wishlist') }}" class="nav-item {% if request.endpoint == 'main.wishlist' %}active{% endif %}">
+                    <i data-lucide="sparkles"></i>
+                    <span>Wishlist</span>
+                </a>
+            </div>
+        </nav>
+
+        <div class="sidebar-footer">
+            <button id="themeToggleSidebar" class="theme-toggle-btn" aria-label="Toggle Dark Mode">
+                <i data-lucide="sun" class="light-icon"></i>
+                <i data-lucide="moon" class="dark-icon" style="display: none;"></i>
+                <span>Switch Theme</span>
+            </button>
+        </div>
+    </aside>
+
+    <header class="app-header">
+        <div class="container header-content">
+            <button class="menu-toggle" onclick="toggleSidebar()" aria-label="Toggle Sidebar">
+                <i data-lucide="menu"></i>
+            </button>
+            <div class="header-logo desk-only">
+                <a href="{{ url_for('main.dashboard') }}">Financial Tracker</a>
+            </div>
+            <div class="header-actions">
+                <!-- Additional header actions could go here -->
+            </div>
         </div>
     </header>
 
@@ -224,74 +151,33 @@
     </footer>
 
     <script>
-        function toggleMobileMenu() {
-            const nav = document.getElementById('mainNav');
-            const toggle = document.getElementById('mobileToggle');
-            nav.classList.toggle('active');
-            toggle.classList.toggle('active');
+        // Initialize Lucide Icons
+        lucide.createIcons();
+
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('sidebarOverlay');
+            sidebar.classList.toggle('open');
+            overlay.classList.toggle('active');
+            
+            // Save state
+            const isOpen = sidebar.classList.contains('open');
+            localStorage.setItem('sidebarOpen', isOpen);
         }
 
-        function toggleDropdown(event, dropdownId) {
-            event.preventDefault();
-            event.stopPropagation();
-            
-            // Close all other dropdowns first
-            const allDropdowns = document.querySelectorAll('.dropdown-menu');
-            allDropdowns.forEach(d => {
-                if (d.id !== dropdownId) {
-                    d.classList.remove('show');
-                }
-            });
-
-            const dropdown = document.getElementById(dropdownId);
-            dropdown.classList.toggle('show');
-        }
-
-        // Close dropdown when clicking outside
-        document.addEventListener('click', function(event) {
-            const dropdowns = document.querySelectorAll('.dropdown-menu');
-            const dropdownParent = event.target.closest('.dropdown');
-            
-            if (!dropdownParent) {
-                dropdowns.forEach(d => d.classList.remove('show'));
-            }
-        });
-
-        // Close dropdown when pressing Escape key
-        document.addEventListener('keydown', function(event) {
-            if (event.key === 'Escape') {
-                const dropdowns = document.querySelectorAll('.dropdown-menu');
-                dropdowns.forEach(d => d.classList.remove('show'));
-                
-                // Also close mobile menu
-                const nav = document.getElementById('mainNav');
-                const toggle = document.getElementById('mobileToggle');
-                if (nav.classList.contains('active')) {
-                    nav.classList.remove('active');
-                    toggle.classList.remove('active');
+        // Restore sidebar state on desktop
+        window.addEventListener('DOMContentLoaded', () => {
+            if (window.innerWidth > 1024) {
+                const savedState = localStorage.getItem('sidebarOpen');
+                if (savedState === 'true') {
+                    document.getElementById('sidebar').classList.add('open');
+                    document.getElementById('sidebarOverlay').classList.add('active');
                 }
             }
-        });
-
-        // Close mobile menu when clicking on navigation links
-        document.querySelectorAll('nav a').forEach(link => {
-            link.addEventListener('click', function(e) {
-                // Don't close if it's a dropdown toggle
-                if (this.classList.contains('dropdown-toggle')) {
-                    return;
-                }
-
-                const nav = document.getElementById('mainNav');
-                const toggle = document.getElementById('mobileToggle');
-                if (window.innerWidth <= 768) {
-                    nav.classList.remove('active');
-                    toggle.classList.remove('active');
-                }
-            });
         });
 
         // Theme Toggle Logic
-        const themeToggle = document.getElementById('themeToggle');
+        const themeToggle = document.getElementById('themeToggleSidebar');
         const lightIcon = themeToggle.querySelector('.light-icon');
         const darkIcon = themeToggle.querySelector('.dark-icon');
         
@@ -315,6 +201,33 @@
             document.documentElement.setAttribute('data-theme', newTheme);
             localStorage.setItem('theme', newTheme);
             updateThemeIcon(newTheme);
+        });
+
+        // Close sidebar on mobile when window is resized
+        window.addEventListener('resize', () => {
+            if (window.innerWidth > 1024) {
+                // Keep sidebar state on desktop
+            } else {
+                const sidebar = document.getElementById('sidebar');
+                const overlay = document.getElementById('sidebarOverlay');
+                if (sidebar.classList.contains('open') && !overlay.classList.contains('active')) {
+                    // This case shouldn't happen with current logic but good to sanity check
+                }
+            }
+        });
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'b' && (e.ctrlKey || e.metaKey)) {
+                e.preventDefault();
+                toggleSidebar();
+            }
+            if (e.key === 'Escape') {
+                const sidebar = document.getElementById('sidebar');
+                if (sidebar.classList.contains('open') && window.innerWidth <= 1024) {
+                    toggleSidebar();
+                }
+            }
         });
     </script>
 </body>
