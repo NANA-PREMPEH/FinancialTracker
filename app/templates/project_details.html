@@ -1,293 +1,348 @@
 {% extends "base.html" %}
 
 {% block title %}{{ project.name }} - Financial Tracker{% endblock %}
+{% block header_title %}Project Details{% endblock %}
 
 {% block content %}
-<div class="card">
-    <div
-        style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
-        <div>
-            <h1>{{ project.name }}</h1>
-            {% if project.description %}
-            <p
-                style="color: var(--color-text); margin-top: 0.5rem; margin-bottom: 0.75rem;">
-                {{ project.description }}
-            </p>
-            {% endif %}
-            <p style="color: var(--color-text-muted); margin-top: 0.5rem;">
-                💰 Funding:
-                {% if project.funding_source == 'wallet' and project.wallet %}
-                {{ project.wallet.name }}
-                {% elif project.funding_source == 'other' %}
-                {{ project.custom_funding_source }}
-                {% else %}
-                {{ project.funding_source|replace('_', ' ')|title }}
-                {% endif %}
-            </p>
-        </div>
-        <div style="display: flex; gap: 0.5rem;">
-            <a href="{{ url_for('main.edit_project', id=project.id) }}">
-                <button style="background-color: var(--color-primary);">✏️ Edit
-                    Project</button>
-            </a>
-            <button type="button" onclick="showDeleteProjectDialog()"
-                style="background-color: var(--color-danger);">🗑️
-                Delete</button>
-        </div>
-    </div>
-
-    <!-- Add Item Form -->
-    <div class="card" style="background-color: #f8f9fa; margin-bottom: 2rem;">
-        <h3 style="margin-top: 0;">Add New Item</h3>
-        <form method="POST"
-            action="{{ url_for('main.add_project_item', project_id=project.id) }}"
-            style="display: flex; flex-direction: column; gap: 1rem;">
-            <div style="display: flex; gap: 1rem; margin-bottom: 0;">
-                <div class="form-group" style="flex: 2; margin-bottom: 0;">
-                    <label for="item_name">Item Name</label>
-                    <input type="text" id="item_name" name="item_name"
-                        placeholder="e.g., Venue Booking, Sponsorship" required>
+<div class="max-w-7xl mx-auto space-y-8">
+    
+    <!-- Project Header -->
+    <div class="bg-surface rounded-2xl border border-border shadow-sm p-6 sm:p-8 relative overflow-hidden group">
+        <div class="absolute inset-0 bg-gradient-to-br from-primary/10 to-transparent pointer-events-none"></div>
+        <div class="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+            <div class="flex-1">
+                <div class="flex items-center gap-3 mb-2">
+                    <h1 class="text-3xl font-black font-heading text-text m-0">{{ project.name }}</h1>
                 </div>
-                <div class="form-group" style="flex: 1; margin-bottom: 0;">
-                    <label for="cost">Amount (GHS)</label>
-                    <input type="number" id="cost" name="cost" step="0.01"
-                        min="0" value="0.00" required>
+                {% if project.description %}
+                <p class="text-base text-text-muted mt-2 mb-4 max-w-3xl leading-relaxed">
+                    {{ project.description }}
+                </p>
+                {% endif %}
+                <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-surface-active/80 border border-border mt-2 shadow-sm">
+                    <i data-lucide="piggy-bank" class="w-4 h-4 text-primary"></i>
+                    <span class="text-sm font-semibold text-text-muted">Funding:</span>
+                    <span class="text-sm font-bold text-text">
+                        {% if project.funding_source == 'wallet' and project.wallet %}
+                        {{ project.wallet.name }}
+                        {% elif project.funding_source == 'other' %}
+                        {{ project.custom_funding_source }}
+                        {% else %}
+                        {{ project.funding_source|replace('_', ' ')|title }}
+                        {% endif %}
+                    </span>
                 </div>
             </div>
             
-            <div class="form-group" style="margin-bottom: 0;">
-                <label>Type</label>
-                <div style="display: flex; gap: 1.5rem; margin-top: 0.5rem;">
-                    <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
-                        <input type="radio" name="item_type" value="expense" checked style="width: auto;">
-                        <span style="color: var(--color-danger); font-weight: 500;">Outgoing Payment (Expense)</span>
-                    </label>
-                    <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
-                        <input type="radio" name="item_type" value="income" style="width: auto;">
-                        <span style="color: var(--color-success); font-weight: 500;">Payment Received (Income)</span>
-                    </label>
-                </div>
-            </div>
-
-            <div class="form-group" style="margin-bottom: 0;">
-                <label for="description">Description (Optional)</label>
-                <textarea id="description" name="description" rows="2"
-                    placeholder="Add details about this item..."></textarea>
-            </div>
-            <button type="submit" style="align-self: flex-start;">+ Add Item</button>
-        </form>
-    </div>
-
-    <!-- Items List -->
-    <div>
-        <div
-            style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-            <div style="display: flex; align-items: center; gap: 1rem;">
-                <h2>Project List</h2>
-                <input type="text" id="searchProjectItems" onkeyup="filterProjectItems()" 
-                    placeholder="Search items..." 
-                    style="padding: 0.5rem; border-radius: 4px; border: 1px solid #ddd; width: 200px;">
-            </div>
-            <div style="text-align: right;">
-                <p
-                    style="font-size: 0.9rem; color: var(--color-text-muted); margin-bottom: 0.25rem;">Total
-                    Items: {{ project.items|length }}</p>
-                <div style="display: flex; gap: 2rem; align-items: center;">
-                    <div>
-                        <p style="font-size: 0.85rem; color: var(--color-text-muted); margin-bottom: 0.25rem;">✓ Completed</p>
-                        <p
-                            style="font-size: 1.25rem; font-weight: 700; color: #4caf50; margin: 0;">GHS
-                            {{ "{:,.2f}".format(completed_cost) }}</p>
-                    </div>
-                    <div>
-                        <p style="font-size: 0.85rem; color: var(--color-text-muted); margin-bottom: 0.25rem;">⏳ Not Completed</p>
-                        <p
-                            style="font-size: 1.25rem; font-weight: 700; color: #ff9800; margin: 0;">GHS
-                            {{ "{:,.2f}".format(not_completed_cost) }}</p>
-                    </div>
-                    <div>
-                        <p style="font-size: 0.85rem; color: var(--color-text-muted); margin-bottom: 0.25rem;">Total income</p>
-                        <p
-                            style="font-size: 1.25rem; font-weight: 700; color: #166534; margin: 0;">GHS
-                            {{ "{:,.2f}".format(total_income) }}</p>
-                    </div>
-                    <div>
-                        <p style="font-size: 0.85rem; color: var(--color-text-muted); margin-bottom: 0.25rem;">Total Cost</p>
-                        <p
-                            style="font-size: 1.5rem; font-weight: 700; color: var(--color-primary); margin: 0;">GHS
-                            {{ "{:,.2f}".format(project.total_cost) }}</p>
-                    </div>
-                    <div>
-                        <p style="font-size: 0.85rem; color: var(--color-text-muted); margin-bottom: 0.25rem;">Net total Cost</p>
-                        <p
-                            style="font-size: 1.5rem; font-weight: 700; color: var(--color-primary); margin: 0;">GHS
-                            {{ "{:,.2f}".format(net_cost) }}</p>
-                    </div>
-                </div>
+            <div class="flex flex-wrap items-center gap-3 shrink-0">
+                <a href="{{ url_for('main.edit_project', id=project.id) }}" class="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-surface-active/50 border border-border text-text font-bold rounded-xl hover:bg-surface-hover hover:text-primary transition-colors focus:outline-none focus:ring-2 focus:ring-primary/50 shadow-sm">
+                    <i data-lucide="edit-3" class="w-4 h-4"></i> Edit Area
+                </a>
+                <button type="button" onclick="showDeleteProjectDialog()" class="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-danger/10 border border-danger/20 text-danger font-bold rounded-xl hover:bg-danger hover:text-white transition-colors focus:outline-none focus:ring-2 focus:ring-danger/50 shadow-sm">
+                    <i data-lucide="trash-2" class="w-4 h-4"></i> Delete
+                </button>
             </div>
         </div>
+    </div>
 
-        {% if project.items %}
-        <div style="display: grid; gap: 1rem;">
-            {% for item in project.items %}
-            <div class="card project-item-card" id="item-{{ item.id }}"
-                style="background-color: white; border-left: 4px solid {{ '#22c55e' if item.item_type == 'income' else '#ef4444' }};">
-                <div
-                    style="display: flex; justify-content: space-between; align-items: flex-start;">
-                    <div style="flex: 1;">
-                        <h4 style="margin: 0; display: flex; align-items: center; gap: 0.75rem;">
-                            {{ item.item_name }}
-                            {% if item.item_type == 'income' %}
-                            <span style="background-color: #dcfce7; color: #166534; font-size: 0.75rem; padding: 0.1rem 0.5rem; border-radius: 999px; font-weight: 500;">Income</span>
-                            {% else %}
-                            <span style="background-color: #fee2e2; color: #991b1b; font-size: 0.75rem; padding: 0.1rem 0.5rem; border-radius: 999px; font-weight: 500;">Expense</span>
-                            {% endif %}
-                        </h4>
-                        {% if item.description %}
-                        <p
-                            style="margin: 0.5rem 0 0 0; font-size: 0.9rem; color: var(--color-text); white-space: pre-wrap;">
-                            {{ item.description }}
-                        </p>
-                        {% endif %}
-                        <p
-                            style="margin: 0.25rem 0 0 0; font-size: 0.85rem; color: var(--color-text-muted);">
-                            Added {{ item.created_date.strftime('%b %d, %Y') }}
-                        </p>
-                        
-                        <!-- Payment Progress -->
-                        <div style="margin-top: 0.75rem;">
-                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.25rem;">
-                                <span style="font-size: 0.85rem; color: var(--color-text-muted);">Payment Progress</span>
-                                <span style="font-size: 0.85rem; font-weight: 600;">GHS {{ "{:,.2f}".format(item.total_paid) }} / {{ "{:,.2f}".format(item.cost) }}</span>
-                            </div>
-                            <div style="background: #e0e0e0; height: 8px; border-radius: 4px; overflow: hidden;">
-                                <div style="background: #4caf50; height: 100%; width: {{ (item.total_paid / item.cost * 100) if item.cost > 0 else 0 }}%;"></div>
-                            </div>
-                        </div>
-                        
-                        <!-- Payments List -->
-                        {% if item.payments %}
-                        <div style="margin-top: 0.75rem; padding-left: 0.5rem; border-left: 2px solid #e0e0e0;">
-                            <p style="font-size: 0.85rem; font-weight: 600; margin-bottom: 0.5rem;">Payments:</p>
-                            {% for payment in item.payments %}
-                            <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem; padding: 0.25rem;">
-                                <input type="checkbox"
-                                    {% if payment.is_paid %}checked{% endif %}
-                                    onchange="togglePayment({{ project.id }}, {{ item.id }}, {{ payment.id }})"
-                                    style="width: 16px; height: 16px; cursor: pointer;">
-                                <span style="font-size: 0.85rem; flex: 1; {% if payment.is_paid %}text-decoration: line-through; opacity: 0.7;{% endif %}">
-                                    {{ payment.description or 'Payment' }} 
-                                    <span style="color: var(--color-text-muted); font-size: 0.8rem;">({{ payment.payment_date.strftime('%d %b') if payment.payment_date else 'No Date' }})</span>
-                                    - GHS {{ "{:,.2f}".format(payment.amount) }}
-                                </span>
-                                <form method="POST"
-                                    action="{{ url_for('main.delete_project_item_payment', project_id=project.id, item_id=item.id, payment_id=payment.id) }}"
-                                    style="display: inline;"
-                                    onsubmit="return confirm('Delete this payment?');">
-                                    <button type="submit"
-                                        style="background-color: #ef4444; color: white; border: none; padding: 0.25rem 0.5rem; border-radius: 4px; cursor: pointer; font-size: 0.75rem;">
-                                        🗑️
-                                    </button>
-                                </form>
-                            </div>
-                            {% endfor %}
-                        </div>
-                        {% endif %}
-                        
-                        <!-- Add Payment Form -->
-                        <details style="margin-top: 0.75rem;">
-                            <summary style="cursor: pointer; font-size: 0.85rem; color: var(--color-primary); font-weight: 600;">+ Add Payment</summary>
-                            <form method="POST" action="{{ url_for('main.add_project_item_payment', project_id=project.id, item_id=item.id) }}"
-                                style="margin-top: 0.5rem; padding: 0.5rem; background: #f9f9f9; border-radius: 4px;">
-                                <div style="display: grid; gap: 0.5rem;">
-                                    <div>
-                                        <input type="number" name="payment_amount" step="0.01" min="0" required
-                                            placeholder="Amount (GHS)"
-                                            style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px; font-size: 0.85rem;">
-                                    </div>
-                                    <div>
-                                        <input type="text" name="payment_description"
-                                            placeholder="Description (e.g., First payment, Deposit)"
-                                            style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px; font-size: 0.85rem;">
-                                    </div>
-                                    <div>
-                                        <input type="date" name="payment_date" required
-                                            style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px; font-size: 0.85rem; font-family: inherit;">
-                                    </div>
-                                    <button type="submit"
-                                        style="background: var(--color-primary); color: white; border: none; padding: 0.5rem; border-radius: 4px; cursor: pointer; font-size: 0.85rem; font-weight: 600;">
-                                        Add Payment
-                                    </button>
+    <!-- Quick Stats -->
+    <div class="grid grid-cols-2 md:grid-cols-5 gap-4">
+        <div class="bg-surface rounded-xl border border-border p-4 shadow-sm flex flex-col justify-center">
+            <p class="text-xs font-semibold text-text-muted uppercase tracking-wider mb-1">Total Items</p>
+            <p class="text-2xl font-black font-heading text-text">{{ project.items|length }}</p>
+        </div>
+        <div class="bg-success/5 border border-success/20 rounded-xl p-4 shadow-sm flex flex-col justify-center">
+            <p class="text-xs font-semibold text-success/80 uppercase tracking-wider mb-1 flex items-center gap-1"><i data-lucide="check-circle-2" class="w-3.5 h-3.5"></i> Completed</p>
+            <p class="text-xl sm:text-2xl font-black font-heading text-success truncate" title="GHS {{ '{:,.2f}'.format(completed_cost) }}">GHS {{ "{:,.2f}".format(completed_cost) }}</p>
+        </div>
+        <div class="bg-warning/5 border border-warning/20 rounded-xl p-4 shadow-sm flex flex-col justify-center">
+            <p class="text-xs font-semibold text-warning/80 uppercase tracking-wider mb-1 flex items-center gap-1"><i data-lucide="hourglass" class="w-3.5 h-3.5"></i> Pending</p>
+            <p class="text-xl sm:text-2xl font-black font-heading text-warning truncate" title="GHS {{ '{:,.2f}'.format(not_completed_cost) }}">GHS {{ "{:,.2f}".format(not_completed_cost) }}</p>
+        </div>
+        <div class="bg-primary/5 border border-primary/20 rounded-xl p-4 shadow-sm flex flex-col justify-center">
+            <p class="text-xs font-semibold text-primary/80 uppercase tracking-wider mb-1 flex items-center gap-1"><i data-lucide="trending-up" class="w-3.5 h-3.5"></i> Income</p>
+            <p class="text-xl sm:text-2xl font-black font-heading text-primary truncate" title="GHS {{ '{:,.2f}'.format(total_income) }}">GHS {{ "{:,.2f}".format(total_income) }}</p>
+        </div>
+        <div class="bg-surface rounded-xl border border-border p-4 shadow-sm flex flex-col justify-center relative overflow-hidden group">
+            <div class="absolute right-[-10px] bottom-[-10px] opacity-5 pointer-events-none group-hover:scale-110 transition-transform">
+                <i data-lucide="sigma" class="w-20 h-20"></i>
+            </div>
+            <p class="text-xs font-semibold text-text-muted uppercase tracking-wider mb-1">Total Cost (Net)</p>
+            <p class="text-xl sm:text-2xl font-black font-heading text-text truncate" title="GHS {{ '{:,.2f}'.format(net_cost) }}">GHS {{ "{:,.2f}".format(net_cost) }}</p>
+        </div>
+    </div>
+
+    <!-- Main Content Grid -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
+        
+        <!-- Left Sidebar: Add Item Form -->
+        <div class="lg:col-span-1 lg:sticky lg:top-8">
+            <div class="bg-surface rounded-2xl border border-border shadow-sm overflow-hidden flex flex-col">
+                <div class="p-5 border-b border-border bg-surface-active/30 flex items-center gap-2">
+                    <i data-lucide="plus-square" class="w-5 h-5 text-primary"></i>
+                    <h3 class="text-lg font-bold font-heading m-0 text-text">Add New Item</h3>
+                </div>
+                
+                <form method="POST" action="{{ url_for('main.add_project_item', project_id=project.id) }}" class="p-5 flex flex-col gap-5">
+                    
+                    <div class="space-y-4">
+                        <label class="block text-sm font-semibold text-text mb-2">Item Type</label>
+                        <div class="flex gap-3">
+                            <label class="flex-1 relative">
+                                <input type="radio" name="item_type" value="expense" checked class="peer sr-only">
+                                <div class="w-full py-2 px-3 rounded-xl border border-border bg-surface peer-checked:border-danger peer-checked:bg-danger/5 peer-checked:shadow-sm cursor-pointer flex flex-col items-center justify-center gap-1 transition-all hover:border-danger/50">
+                                    <i data-lucide="arrow-down-right" class="w-4 h-4 text-danger"></i>
+                                    <span class="font-bold text-xs text-text peer-checked:text-danger">Expense</span>
                                 </div>
-                            </form>
-                        </details>
+                            </label>
+                            <label class="flex-1 relative">
+                                <input type="radio" name="item_type" value="income" class="peer sr-only">
+                                <div class="w-full py-2 px-3 rounded-xl border border-border bg-surface peer-checked:border-success peer-checked:bg-success/5 peer-checked:shadow-sm cursor-pointer flex flex-col items-center justify-center gap-1 transition-all hover:border-success/50">
+                                    <i data-lucide="arrow-up-right" class="w-4 h-4 text-success"></i>
+                                    <span class="font-bold text-xs text-text peer-checked:text-success">Income</span>
+                                </div>
+                            </label>
+                        </div>
                     </div>
-                    <div
-                        style="display: flex; align-items: center; gap: 0.75rem; margin-left: 1rem;">
-                        <span
-                            style="font-size: 1.25rem; font-weight: 700; color: {{ '#22c55e' if item.item_type == 'income' else '#ef4444' }};">
-                            {{ '+' if item.item_type == 'income' else '' }}GHS {{ "{:,.2f}".format(item.cost) }}
-                        </span>
-                        <a
-                            href="{{ url_for('main.edit_project_item', project_id=project.id, item_id=item.id) }}">
-                            <button
-                                style="background-color: var(--color-primary); padding: 0.5rem 0.75rem; font-size: 0.85rem;">
-                                ✏️
-                            </button>
-                        </a>
-                        <form method="POST"
-                            action="{{ url_for('main.delete_project_item', project_id=project.id, item_id=item.id) }}"
-                            style="display: inline;"
-                            onsubmit="return confirm('Delete this item?');">
-                            <button type="submit"
-                                style="background-color: var(--color-danger); padding: 0.5rem 0.75rem; font-size: 0.85rem;">
-                                🗑️
-                            </button>
-                        </form>
+
+                    <div class="space-y-2">
+                        <label for="item_name" class="block text-sm font-semibold text-text">Item Name</label>
+                        <input type="text" id="item_name" name="item_name" placeholder="e.g., Venue Booking" required
+                            class="w-full h-11 px-3 bg-surface border border-border rounded-xl text-text focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors text-sm">
+                    </div>
+
+                    <div class="space-y-2">
+                        <label for="cost" class="block text-sm font-semibold text-text">Amount</label>
+                        <div class="relative">
+                            <span class="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted font-bold text-sm">GHS</span>
+                            <input type="number" id="cost" name="cost" step="0.01" min="0" value="0.00" required
+                                class="w-full h-11 pl-12 pr-3 bg-surface border border-border rounded-xl text-text font-bold focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors text-sm">
+                        </div>
+                    </div>
+
+                    <div class="space-y-2">
+                        <label for="description" class="block text-sm font-semibold text-text">Description (Optional)</label>
+                        <textarea id="description" name="description" rows="2" placeholder="Add extra details..."
+                            class="w-full p-3 bg-surface border border-border rounded-xl text-text focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors resize-none text-sm"></textarea>
+                    </div>
+
+                    <button type="submit" class="w-full inline-flex items-center justify-center gap-2 px-5 py-3 bg-primary text-primary-content font-bold rounded-xl hover:bg-primary-hover transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-primary/50 mt-2">
+                        <i data-lucide="plus" class="w-4 h-4"></i> Add Item
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Right Side: Items List -->
+        <div class="lg:col-span-2">
+            <div class="bg-surface rounded-2xl border border-border shadow-sm overflow-hidden flex flex-col">
+                <div class="p-5 border-b border-border bg-surface/50 flex flex-col sm:flex-row items-center justify-between gap-4">
+                    <h3 class="text-lg font-bold font-heading m-0 text-text flex items-center gap-2">
+                        <i data-lucide="list" class="w-5 h-5 text-primary"></i> Project Tracking
+                    </h3>
+                    <div class="relative w-full sm:w-64">
+                        <i data-lucide="search" class="w-4 h-4 text-text-muted absolute left-3 top-1/2 -translate-y-1/2"></i>
+                        <input type="text" id="searchProjectItems" onkeyup="filterProjectItems()" placeholder="Search items..."
+                            class="w-full h-10 pl-9 pr-4 bg-surface-active/50 border border-border rounded-xl text-sm text-text focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors">
                     </div>
                 </div>
+
+                <div class="p-0 sm:p-5">
+                    {% if project.items %}
+                    <div class="space-y-4">
+                        {% for item in project.items %}
+                        <div class="project-item-card bg-surface sm:rounded-2xl border-b sm:border border-border p-5 hover:shadow-md transition-shadow relative overflow-hidden group" id="item-{{ item.id }}">
+                            <!-- Color border indicator -->
+                            <div class="absolute left-0 top-0 bottom-0 w-1.5 {% if item.item_type == 'income' %}bg-success{% else %}bg-danger{% endif %}"></div>
+                            
+                            <div class="pl-2 flex flex-col sm:flex-row justify-between items-start gap-4">
+                                <div class="flex-1 min-w-0">
+                                    <div class="flex items-center flex-wrap gap-2 mb-1">
+                                        <h4 class="text-lg font-bold text-text m-0 line-clamp-1">{{ item.item_name }}</h4>
+                                        <span class="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider
+                                            {% if item.item_type == 'income' %}bg-success/10 text-success{% else %}bg-danger/10 text-danger{% endif %}">
+                                            {{ item.item_type }}
+                                        </span>
+                                    </div>
+                                    
+                                    {% if item.description %}
+                                    <p class="text-sm text-text-muted mt-1 mb-2 whitespace-pre-wrap">{{ item.description }}</p>
+                                    {% endif %}
+                                    
+                                    <div class="flex items-center gap-2 text-xs text-text-muted font-medium mt-2">
+                                        <i data-lucide="calendar" class="w-3.5 h-3.5"></i> Added {{ item.created_date.strftime('%b %d, %Y') }}
+                                    </div>
+                                    
+                                    <!-- Payment Progress Bar -->
+                                    <div class="mt-4 pt-4 border-t border-border/50">
+                                        <div class="flex justify-between items-center mb-1.5">
+                                            <span class="text-xs font-semibold text-text-muted">Payment Progress</span>
+                                            <span class="text-xs font-bold text-text">GHS {{ "{:,.2f}".format(item.total_paid) }} <span class="text-text-muted font-normal">/ {{ "{:,.2f}".format(item.cost) }}</span></span>
+                                        </div>
+                                        <div class="w-full bg-surface-active rounded-full h-1.5 overflow-hidden">
+                                            {% set item_progress = (item.total_paid / item.cost * 100) if item.cost > 0 else 0 %}
+                                            <div class="bg-primary h-1.5 rounded-full transition-all duration-500" style="width: {{ item_progress }}%"></div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Payments List -->
+                                    {% if item.payments %}
+                                    <div class="mt-4 bg-surface-active/30 rounded-xl border border-border overflow-hidden">
+                                        <div class="px-4 py-2 border-b border-border bg-surface-active/50">
+                                            <p class="text-xs font-bold text-text-muted uppercase tracking-wider m-0">Payments Handled</p>
+                                        </div>
+                                        <ul class="divide-y divide-border m-0 p-0 list-none">
+                                            {% for payment in item.payments %}
+                                            <li class="p-3 flex items-center gap-3 hover:bg-surface-hover/30 transition-colors">
+                                                <label class="relative flex items-center group cursor-pointer">
+                                                    <input type="checkbox" onchange="togglePayment({{ project.id }}, {{ item.id }}, {{ payment.id }})"
+                                                        {% if payment.is_paid %}checked{% endif %} class="peer sr-only">
+                                                    <div class="w-5 h-5 border-2 border-border rounded bg-surface peer-checked:bg-primary peer-checked:border-primary flex items-center justify-center transition-all group-hover:border-primary">
+                                                        <i data-lucide="check" class="w-3 h-3 text-white opacity-0 peer-checked:opacity-100 scale-50 peer-checked:scale-100 transition-all"></i>
+                                                    </div>
+                                                </label>
+                                                
+                                                <div class="flex-1 min-w-0 flex items-center gap-2">
+                                                    <span class="text-sm font-medium text-text truncate {% if payment.is_paid %}line-through opacity-60{% endif %}">
+                                                        {{ payment.description or 'Payment' }}
+                                                    </span>
+                                                    <span class="text-[10px] px-1.5 py-0.5 rounded-md bg-surface border border-border text-text-muted whitespace-nowrap hidden sm:inline-block">
+                                                        {{ payment.payment_date.strftime('%d %b') if payment.payment_date else 'No Date' }}
+                                                    </span>
+                                                </div>
+                                                
+                                                <span class="text-sm font-bold text-text whitespace-nowrap {% if payment.is_paid %}opacity-60{% endif %}">
+                                                    GHS {{ "{:,.2f}".format(payment.amount) }}
+                                                </span>
+                                                
+                                                <form method="POST" action="{{ url_for('main.delete_project_item_payment', project_id=project.id, item_id=item.id, payment_id=payment.id) }}" class="m-0" onsubmit="return confirm('Delete this payment record?');">
+                                                    <button type="submit" class="p-1.5 text-text-muted hover:text-danger hover:bg-danger/10 rounded-md transition-colors focus:outline-none" title="Delete payment">
+                                                        <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                                                    </button>
+                                                </form>
+                                            </li>
+                                            {% endfor %}
+                                        </ul>
+                                    </div>
+                                    {% endif %}
+
+                                    <!-- Add Payment Toggle Details -->
+                                    <details class="group mt-3 bg-surface border border-border rounded-xl overflow-hidden [&_summary::-webkit-details-marker]:hidden">
+                                        <summary class="flex justify-between items-center px-4 py-2 cursor-pointer font-semibold text-sm text-primary hover:bg-primary/5 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50">
+                                            <span class="flex items-center gap-2"><i data-lucide="plus-circle" class="w-4 h-4"></i> Add Payment Record</span>
+                                            <i data-lucide="chevron-down" class="w-4 h-4 text-primary transition-transform group-open:-rotate-180"></i>
+                                        </summary>
+                                        <div class="p-4 border-t border-border bg-surface-active/10">
+                                            <form method="POST" action="{{ url_for('main.add_project_item_payment', project_id=project.id, item_id=item.id) }}" class="flex flex-col gap-3">
+                                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                                    <div class="relative">
+                                                        <span class="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted font-bold text-xs">GHS</span>
+                                                        <input type="number" name="payment_amount" step="0.01" min="0" required placeholder="0.00"
+                                                            class="w-full h-10 pl-10 pr-3 bg-surface border border-border rounded-lg text-sm text-text focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary font-bold">
+                                                    </div>
+                                                    <div class="relative">
+                                                        <i data-lucide="calendar" class="w-4 h-4 text-text-muted absolute left-3 top-1/2 -translate-y-1/2"></i>
+                                                        <input type="date" name="payment_date" required
+                                                            class="w-full h-10 pl-9 pr-3 bg-surface border border-border rounded-lg text-sm text-text focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary font-medium">
+                                                    </div>
+                                                </div>
+                                                <input type="text" name="payment_description" placeholder="Description (e.g., Deposit, Final Installment)"
+                                                    class="w-full h-10 px-3 bg-surface border border-border rounded-lg text-sm text-text focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary">
+                                                <button type="submit" class="w-full sm:w-auto self-end px-4 py-2 bg-primary text-white text-sm font-bold rounded-lg hover:bg-primary-hover transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-primary/50">
+                                                    Save Payment
+                                                </button>
+                                            </form>
+                                        </div>
+                                    </details>
+
+                                </div>
+
+                                <div class="flex flex-row sm:flex-col items-center sm:items-end justify-between sm:justify-start w-full sm:w-auto gap-4 shrink-0 border-t sm:border-0 border-border/50 pt-4 sm:pt-0">
+                                    <div class="text-right">
+                                        <p class="text-[10px] font-bold text-text-muted uppercase tracking-wider mb-0.5">Item Amount</p>
+                                        <p class="text-lg font-black font-heading m-0 {% if item.item_type == 'income' %}text-success{% else %}text-danger{% endif %}">
+                                            {{ '+' if item.item_type == 'income' else '' }}GHS {{ "{:,.2f}".format(item.cost) }}
+                                        </p>
+                                    </div>
+                                    <div class="flex items-center gap-2">
+                                        <a href="{{ url_for('main.edit_project_item', project_id=project.id, item_id=item.id) }}" 
+                                            class="w-8 h-8 flex items-center justify-center rounded-lg bg-surface-active border border-border text-text hover:bg-primary hover:text-white hover:border-primary transition-colors focus:outline-none" title="Edit Item">
+                                            <i data-lucide="edit-2" class="w-4 h-4"></i>
+                                        </a>
+                                        <form method="POST" action="{{ url_for('main.delete_project_item', project_id=project.id, item_id=item.id) }}" class="m-0" onsubmit="return confirm('Delete this item?');">
+                                            <button type="submit" class="w-8 h-8 flex items-center justify-center rounded-lg bg-surface-active border border-border text-text hover:bg-danger hover:text-white hover:border-danger transition-colors focus:outline-none" title="Delete Item">
+                                                <i data-lucide="trash-2" class="w-4 h-4"></i>
+                                            </button>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <div class="p-12 flex flex-col items-center justify-center text-center">
+                        <div class="w-16 h-16 bg-surface border border-dashed border-border rounded-full flex items-center justify-center mb-4">
+                            <i data-lucide="layout-list" class="w-8 h-8 text-text-muted/50"></i>
+                        </div>
+                        <h4 class="text-lg font-bold text-text m-0 mb-1">No Items Yet</h4>
+                        <p class="text-sm text-text-muted max-w-sm">Use the form on the left to add your first expense or income item to track for this project.</p>
+                    </div>
+                    {% endif %}
+                </div>
             </div>
-            {% endfor %}
-        </div>
-        {% else %}
-        <p
-            style="text-align: center; color: var(--color-text-muted); padding: 2rem;">
-            No items yet. Add your first item above to get started!
-        </p>
-        {% endif %}
-    </div>
-</div>
-
-<!-- Delete Confirmation Modal -->
-<div id="deleteProjectModal"
-    style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.5); z-index: 1000;">
-    <div
-        style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 2rem; border-radius: 12px; max-width: 400px; width: 90%; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
-        <h3
-            style="margin-top: 0; margin-bottom: 1rem; color: var(--color-danger);">⚠️
-            Delete Project</h3>
-        <p style="margin-bottom: 1.5rem; color: var(--color-text-muted);">Are
-            you sure you want to delete this project and all its items? This
-            action cannot be undone.</p>
-        <div style="display: flex; gap: 1rem; justify-content: flex-end;">
-            <button onclick="hideDeleteProjectDialog()"
-                style="background-color: #6b7280; color: white; padding: 0.75rem 1.5rem; border: none; border-radius: 8px; cursor: pointer; font-size: 1rem; font-weight: 500;">
-                Cancel
-            </button>
-            <button onclick="confirmDeleteProject()"
-                style="background-color: #dc2626; color: white; padding: 0.75rem 1.5rem; border: none; border-radius: 8px; cursor: pointer; font-size: 1rem; font-weight: 500;">
-                Delete
-            </button>
         </div>
     </div>
 </div>
 
-<form id="deleteProjectForm" method="POST"
-    action="{{ url_for('main.delete_project', id=project.id) }}"
-    style="display: none;">
-</form>
+<!-- Delete Project Confirmation Modal -->
+<div id="deleteProjectModal" class="hidden fixed inset-0 bg-surface-active/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 opacity-0 transition-opacity duration-300">
+    <div class="bg-surface w-full max-w-md rounded-2xl border border-danger/20 flex flex-col shadow-2xl overflow-hidden relative transform scale-95 transition-transform duration-300" onclick="event.stopPropagation()">
+        <div class="p-6 flex flex-col items-center text-center">
+            <div class="w-16 h-16 rounded-full bg-danger/10 flex items-center justify-center text-danger mb-4">
+                <i data-lucide="alert-triangle" class="w-8 h-8"></i>
+            </div>
+            <h3 class="text-xl font-bold font-heading text-text m-0 mb-2">Delete Project?</h3>
+            <p class="text-sm text-text-muted mb-6">Are you sure you want to delete <strong>{{ project.name }}</strong> and all of its items? This action cannot be undone.</p>
+            
+            <div class="flex gap-3 w-full">
+                <button onclick="hideDeleteProjectDialog()" class="flex-1 px-5 py-3 font-semibold text-text bg-surface border border-border rounded-xl hover:bg-surface-hover transition-colors">
+                    Cancel
+                </button>
+                <button onclick="confirmDeleteProject()" class="flex-1 px-5 py-3 font-bold text-white bg-danger rounded-xl hover:bg-danger/90 transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-danger/50">
+                    Yes, Delete
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<form id="deleteProjectForm" method="POST" action="{{ url_for('main.delete_project', id=project.id) }}" class="hidden"></form>
 
 <script>
+document.addEventListener('DOMContentLoaded', () => {
+    lucide.createIcons();
+    
+    // Initialize date inputs to today for payments
+    const dateInputs = document.querySelectorAll('input[type="date"]');
+    const today = new Date().toISOString().split('T')[0];
+    dateInputs.forEach(input => {
+        if (!input.value) input.value = today;
+    });
+
+    // Check URL hash and scroll to item if present
+    if (window.location.hash) {
+        const targetElement = document.querySelector(window.location.hash);
+        if (targetElement) {
+            setTimeout(() => {
+                targetElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                targetElement.classList.add('ring-2', 'ring-primary', 'delay-100');
+                setTimeout(() => targetElement.classList.remove('ring-2', 'ring-primary', 'delay-100'), 2000);
+            }, 300);
+        }
+    }
+});
+
 function filterProjectItems() {
     const input = document.getElementById('searchProjectItems');
     const filter = input.value.toLowerCase();
@@ -304,28 +359,7 @@ function filterProjectItems() {
     }
 }
 
-function toggleItem(projectId, itemId) {
-    fetch(`/projects/${projectId}/items/${itemId}/toggle`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        }
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            // Update URL hash to preserve scroll position
-            window.location.hash = 'item-' + itemId;
-            // Reload the page to update the UI
-            window.location.reload();
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        alert('Failed to update item status');
-    });
-}
-
+// Keep the fetch API toggles intact
 function togglePayment(projectId, itemId, paymentId) {
     fetch(`/projects/${projectId}/items/${itemId}/payments/${paymentId}/toggle`, {
         method: 'POST',
@@ -336,9 +370,7 @@ function togglePayment(projectId, itemId, paymentId) {
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            // Update URL hash to preserve scroll position
             window.location.hash = 'item-' + itemId;
-            // Reload the page to update payment progress
             window.location.reload();
         }
     })
@@ -350,34 +382,35 @@ function togglePayment(projectId, itemId, paymentId) {
 
 // Delete Modal Logic
 const deleteModal = document.getElementById('deleteProjectModal');
+const deleteModalContent = deleteModal.querySelector('.bg-surface');
 const deleteForm = document.getElementById('deleteProjectForm');
 
-function showDeleteProjectDialog() {
-    deleteModal.style.display = 'block';
-}
+window.showDeleteProjectDialog = function() {
+    deleteModal.classList.remove('hidden');
+    setTimeout(() => {
+        deleteModal.classList.remove('opacity-0');
+        deleteModalContent.classList.remove('scale-95');
+        deleteModalContent.classList.add('scale-100');
+    }, 10);
+};
 
-function hideDeleteProjectDialog() {
-    deleteModal.style.display = 'none';
-}
+window.hideDeleteProjectDialog = function() {
+    deleteModal.classList.add('opacity-0');
+    deleteModalContent.classList.remove('scale-100');
+    deleteModalContent.classList.add('scale-95');
+    setTimeout(() => {
+        deleteModal.classList.add('hidden');
+    }, 300);
+};
 
-function confirmDeleteProject() {
+window.confirmDeleteProject = function() {
     deleteForm.submit();
-}
+};
 
-// Close modal when clicking outside
-deleteModal.addEventListener('click', function(e) {
-    if (e.target === this) {
+window.onclick = function(event) {
+    if (event.target == deleteModal) {
         hideDeleteProjectDialog();
     }
-});
-
-// Initialize date inputs to today
-document.addEventListener('DOMContentLoaded', function() {
-    const dateInputs = document.querySelectorAll('input[type="date"]');
-    const today = new Date().toISOString().split('T')[0];
-    dateInputs.forEach(input => {
-        if (!input.value) input.value = today;
-    });
-});
+};
 </script>
 {% endblock %}

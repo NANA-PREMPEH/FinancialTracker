@@ -3,65 +3,98 @@
 {% block title %}Budgets - Financial Tracker{% endblock %}
 
 {% block content %}
-<div class="card">
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
-        <h1>Budgets</h1>
-        <a href="{{ url_for('main.add_budget') }}">
-            <button>+ Add Budget</button>
+<div class="max-w-5xl mx-auto space-y-6">
+    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8 bg-surface p-6 rounded-2xl border border-border shadow-sm">
+        <div>
+            <h1 class="text-2xl font-bold font-heading text-text m-0">Budgets</h1>
+            <p class="text-text-muted mt-1 text-sm">Manage and track your spending limits</p>
+        </div>
+        <a href="{{ url_for('main.add_budget') }}" class="inline-flex items-center gap-2 px-5 py-2.5 bg-primary text-white font-medium rounded-xl hover:bg-primary-hover transition-colors shadow-md">
+            <i data-lucide="plus" class="w-4 h-4"></i> Add Budget
         </a>
     </div>
 
-    {% for item in budgets %}
-    <div class="card" style="margin-bottom: 1.5rem;">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {% for item in budgets %}
+        <div class="bg-surface rounded-2xl p-6 border border-border shadow-sm hover:shadow-md transition-shadow flex flex-col justify-between">
             <div>
-                <h3 style="margin-bottom: 0.25rem;">
-                    <span style="font-size: 1.5rem; margin-right: 0.5rem;">{{ item.budget.category.icon }}</span>
-                    {{ item.budget.category.name }}
-                </h3>
-                <p style="color: var(--color-text-muted); font-size: 0.9rem;">{{ item.budget.period|title }} Budget</p>
-            </div>
-            <div style="text-align: right;">
-                <div style="font-size: 1.5rem; font-weight: 700; color: {% if item.percentage >= 100 %}var(--color-danger){% elif item.percentage >= 75 %}#f59e0b{% else %}var(--color-success){% endif %};">
-                    GHS {{ "%.2f"|format(item.spent) }}
+                <div class="flex justify-between items-start mb-4">
+                    <div class="flex items-center gap-3">
+                        <div class="w-12 h-12 rounded-full bg-surface-active flex items-center justify-center text-2xl shadow-inner">
+                            {{ item.budget.category.icon }}
+                        </div>
+                        <div>
+                            <h3 class="text-lg font-bold text-text m-0">{{ item.budget.category.name }}</h3>
+                            <p class="text-text-muted text-xs font-medium uppercase tracking-wider">{{ item.budget.period|title }}</p>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <div class="text-xl font-bold {% if item.percentage >= 100 %}text-danger{% elif item.percentage >= 75 %}text-warning{% else %}text-success{% endif %}">
+                            GHS {{ "%.2f"|format(item.spent) }}
+                        </div>
+                        <p class="text-text-muted text-xs">of GHS {{ "%.2f"|format(item.budget.amount) }}</p>
+                    </div>
                 </div>
-                <p style="color: var(--color-text-muted); font-size: 0.9rem;">of GHS {{ "%.2f"|format(item.budget.amount) }}</p>
+
+                <!-- Progress Bar -->
+                <div class="bg-surface-active rounded-full h-2.5 overflow-hidden mb-2">
+                    <div class="h-full rounded-full transition-all duration-500 {% if item.percentage >= 100 %}bg-danger{% elif item.percentage >= 75 %}bg-warning{% else %}bg-success{% endif %}" style="width: {{ item.width_percentage }}%;"></div>
+                </div>
+
+                <div class="flex justify-between text-xs font-medium text-text-muted mb-6">
+                    <span>{{ "%.1f"|format(item.percentage) }}% used</span>
+                    <span>GHS {{ "%.2f"|format(item.remaining) }} remaining</span>
+                </div>
             </div>
+            
+            <button type="button" onclick="showDeleteDialog({{ item.budget.id }}, '{{ item.budget.category.name }}')" class="w-full inline-flex items-center justify-center gap-2 px-4 py-2 bg-surface text-text font-medium text-sm rounded-xl border border-border hover:bg-danger/10 hover:text-danger hover:border-danger/30 transition-colors">
+                <i data-lucide="trash-2" class="w-4 h-4"></i> Delete Budget
+            </button>
         </div>
-
-        <!-- Progress Bar -->
-        <div style="background-color: #e5e7eb; border-radius: 999px; height: 12px; overflow: hidden;">
-            <div style="background-color: {% if item.percentage >= 100 %}var(--color-danger){% elif item.percentage >= 75 %}#f59e0b{% else %}var(--color-success){% endif %}; height: 100%; width: {{ item.width_percentage }}%; transition: width 0.3s;"></div>
-        </div>
-
-        <div style="display: flex; justify-content: space-between; margin-top: 0.5rem; font-size: 0.85rem; color: var(--color-text-muted);">
-            <span>{{ "%.1f"|format(item.percentage) }}% used</span>
-            <span>GHS {{ "%.2f"|format(item.remaining) }} remaining</span>
-        </div>
-        
-        <button type="button" onclick="showDeleteDialog({{ item.budget.id }}, '{{ item.budget.category.name }}')" style="background-color: var(--color-danger); color: white; padding: 0.5rem 1rem; border: none; border-radius: 8px; cursor: pointer; font-size: 0.9rem; margin-top: 1rem;">
-            Delete Budget
-        </button>
+        {% endfor %}
     </div>
-    {% endfor %}
 
     {% if not budgets %}
-        <p>No budgets set yet. Create your first budget to track spending limits!</p>
+        <div class="text-center py-16 px-4 bg-surface rounded-2xl border border-dashed border-border shadow-sm">
+            <div class="w-16 h-16 bg-surface-active rounded-full flex items-center justify-center mx-auto mb-4 border border-border">
+                <i data-lucide="target" class="w-8 h-8 text-text-muted"></i>
+            </div>
+            <h3 class="text-lg font-bold text-text mb-2">No budgets set</h3>
+            <p class="text-text-muted mb-6">Create your first budget to track spending limits and save more!</p>
+            <a href="{{ url_for('main.add_budget') }}" class="inline-flex items-center gap-2 px-6 py-2.5 bg-primary text-white font-medium rounded-xl hover:bg-primary-hover transition-colors shadow-md">
+                <i data-lucide="plus" class="w-4 h-4"></i> Create Budget
+            </a>
+        </div>
     {% endif %}
 </div>
 
 <!-- Delete Confirmation Modal -->
-<div id="deleteModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.5); z-index: 1000; align-items: center; justify-content: center;">
-    <div style="background: white; padding: 2rem; border-radius: 12px; max-width: 400px; width: 90%; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
-        <h3 style="margin-top: 0; margin-bottom: 1rem; color: var(--color-danger);">⚠️ Delete Budget</h3>
-        <p id="deleteMessage" style="margin-bottom: 1.5rem; color: var(--color-text-muted);"></p>
-        <div style="display: flex; gap: 1rem; justify-content: flex-end;">
-            <button onclick="hideDeleteDialog()" style="background-color: #dc2626; color: white; padding: 0.75rem 1.5rem; border: none; border-radius: 8px; cursor: pointer; font-size: 1rem; font-weight: 500;">
-                No
-            </button>
-            <button onclick="confirmDelete()" style="background-color: #16a34a; color: white; padding: 0.75rem 1.5rem; border: none; border-radius: 8px; cursor: pointer; font-size: 1rem; font-weight: 500;">
-                Yes
-            </button>
+<div id="deleteModal" class="hidden fixed inset-0 z-50 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+    <div class="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:p-0">
+        <!-- Background overlay -->
+        <div class="fixed inset-0 transition-opacity bg-background/80 backdrop-blur-sm" aria-hidden="true" onclick="hideDeleteDialog()"></div>
+
+        <!-- Modal panel -->
+        <div class="relative inline-block px-4 pt-5 pb-4 overflow-hidden text-left align-bottom transition-all transform bg-surface rounded-2xl shadow-xl sm:my-8 sm:align-middle sm:max-w-md sm:w-full sm:p-6 border border-border">
+            <div>
+                <div class="flex items-center justify-center w-12 h-12 mx-auto bg-danger/10 rounded-full">
+                    <i data-lucide="alert-triangle" class="w-6 h-6 text-danger"></i>
+                </div>
+                <div class="mt-3 text-center sm:mt-5">
+                    <h3 class="text-lg font-medium leading-6 text-text" id="modal-title">Delete Budget</h3>
+                    <div class="mt-2">
+                        <p class="text-sm text-text-muted" id="deleteMessage"></p>
+                    </div>
+                </div>
+            </div>
+            <div class="mt-5 sm:mt-6 sm:flex sm:flex-row-reverse">
+                <button type="button" onclick="confirmDelete()" class="inline-flex justify-center w-full px-4 py-2 text-base font-medium text-white border border-transparent rounded-xl shadow-sm bg-danger hover:bg-danger-hover focus:outline-none sm:ml-3 sm:w-auto sm:text-sm transition-colors">
+                    Delete
+                </button>
+                <button type="button" onclick="hideDeleteDialog()" class="inline-flex justify-center w-full px-4 py-2 mt-3 text-base font-medium text-text bg-surface border border-border rounded-xl shadow-sm hover:bg-surface-hover focus:outline-none sm:mt-0 sm:w-auto sm:text-sm transition-colors">
+                    Cancel
+                </button>
+            </div>
         </div>
     </div>
 </div>

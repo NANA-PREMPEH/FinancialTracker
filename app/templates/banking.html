@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+
+{% block title %}Banking - Financial Tracker{% endblock %}
+{% block header_title %}Banking{% endblock %}
+
+{% block content %}
+<div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8 bg-surface p-6 rounded-2xl border border-border shadow-sm">
+    <div>
+        <h1 class="text-2xl font-bold font-heading text-text m-0">Banking</h1>
+        <p class="text-text-muted mt-1 text-sm">Manage your bank connections and import transactions.</p>
+    </div>
+</div>
+
+<div class="bg-surface rounded-2xl border border-border shadow-sm p-8 text-center">
+    <div class="w-16 h-16 bg-surface-active rounded-full flex items-center justify-center mx-auto mb-4 border border-border">
+        <i data-lucide="landmark" class="w-8 h-8 text-text-muted"></i>
+    </div>
+    <h3 class="text-lg font-bold text-text mb-2">Banking features coming soon</h3>
+    <p class="text-text-muted max-w-sm mx-auto">Connect your bank accounts for automatic transaction imports and reconciliation.</p>
+</div>
+{% endblock %}

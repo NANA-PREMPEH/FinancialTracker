@@ -1,124 +1,164 @@
 {% extends "base.html" %}
 
 {% block title %}Add Wallet - Financial Tracker{% endblock %}
+{% block header_title %}Add New Wallet{% endblock %}
 
 {% block content %}
-<div class="card">
-    <h1>Add New Wallet</h1>
-
-    <form method="POST" style="max-width: 30rem;">
-        <div class="form-group">
-            <label for="name">Wallet Name</label>
-            <input type="text" id="name" name="name" placeholder="e.g., Cash, Bank Account" required>
-        </div>
-
-        <div class="form-group">
-            <label for="balance">Initial Balance</label>
-            <input type="number" id="balance" name="balance" step="0.01" min="0" value="0.00" placeholder="0.00" required>
-        </div>
-
-        <div class="form-group">
-            <label>Currency Type</label>
-            <div style="display: flex; gap: 1rem; margin-bottom: 0.5rem;">
-                <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
-                    <input type="radio" name="currency_type" value="local" checked onclick="toggleCurrencySelect()">
-                    Local Currency (GHS)
-                </label>
-                <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
-                    <input type="radio" name="currency_type" value="foreign" onclick="toggleCurrencySelect()">
-                    Foreign Currency
-                </label>
+<div class="max-w-2xl mx-auto">
+    <div class="bg-surface rounded-2xl border border-border shadow-sm overflow-hidden text-text">
+        <div class="p-6 border-b border-border bg-surface-active/30 flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
+                <i data-lucide="wallet" class="w-5 h-5"></i>
             </div>
-            
-            <div id="currency_select_group" style="display: none;">
-                <label for="currency">Select Currency</label>
-                <select id="currency" name="currency" style="width: 100%;">
-                    {% for code, name in currencies.items() %}
-                    <option value="{{ code }}" {% if code == 'GHS' %}selected{% endif %}>{{ code }} - {{ name }}</option>
-                    {% endfor %}
-                </select>
-            </div>
-            <!-- Hidden input to submit GHS when local is selected, effectively -->
-            <!-- Actually, if local is selected, we should ensure 'currency' input submits GHS. 
-                 The easiest way is to have the select always present but modify its value or disable/hide it.
-                 If I hide it, I still need to submit 'currency'.
-                 Better: If Local, set select value to GHS and hide parent div. If Foreign, show div. 
-            -->
+            <h2 class="text-xl font-bold font-heading m-0 text-text">Wallet Details</h2>
         </div>
 
-        <script>
-            function toggleCurrencySelect() {
-                const isLocal = document.querySelector('input[name="currency_type"][value="local"]').checked;
-                const currencyGroup = document.getElementById('currency_select_group');
-                const currencySelect = document.getElementById('currency');
+        <div class="p-6 sm:p-8">
+            <form method="POST" class="space-y-6">
                 
-                if (isLocal) {
-                    currencyGroup.style.display = 'none';
-                    currencySelect.value = 'GHS';
-                } else {
-                    currencyGroup.style.display = 'block';
-                }
-            }
-            
-            // Run on load
-            document.addEventListener('DOMContentLoaded', toggleCurrencySelect);
-        </script>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="space-y-2">
+                        <label for="name" class="block text-sm font-semibold text-text">Wallet Name</label>
+                        <input type="text" id="name" name="name" placeholder="e.g., Main Checking, Cash" required
+                            class="w-full h-12 px-4 bg-surface border border-border rounded-xl text-text focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors font-medium">
+                    </div>
 
-        <div class="form-group">
-            <label for="wallet_type">Wallet Type</label>
-            <select id="wallet_type" name="wallet_type" onchange="toggleAccountNumber()">
-                <option value="cash">💵 Cash</option>
-                <option value="bank">🏦 Bank Account</option>
-                <option value="mobile_money">📱 Mobile Money</option>
-                <option value="crypto">₿ Crypto Wallet</option>
-                <option value="ewallet">💳 E-Wallet</option>
-            </select>
+                    <div class="space-y-2">
+                        <label for="balance" class="block text-sm font-semibold text-text">Initial Balance</label>
+                        <div class="relative">
+                            <input type="number" id="balance" name="balance" step="0.01" min="0" value="0.00" placeholder="0.00" required
+                                class="w-full h-12 pl-10 pr-4 bg-surface border border-border rounded-xl text-text font-bold focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors text-lg">
+                            <i data-lucide="coins" class="w-5 h-5 text-text-muted absolute left-3 top-1/2 -translate-y-1/2"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="space-y-3">
+                    <label class="block text-sm font-semibold text-text">Currency Type</label>
+                    <div class="flex flex-wrap gap-4">
+                        <label class="flex items-center gap-2 p-3 bg-surface-active/30 border border-border rounded-xl cursor-pointer hover:bg-surface-hover/50 transition-colors group flex-1">
+                            <input type="radio" name="currency_type" value="local" checked onclick="toggleCurrencySelect()"
+                                class="w-4 h-4 text-primary bg-surface border-border focus:ring-primary">
+                            <span class="font-semibold text-text group-hover:text-primary transition-colors text-sm">Local Currency (GHS)</span>
+                        </label>
+                        <label class="flex items-center gap-2 p-3 bg-surface-active/30 border border-border rounded-xl cursor-pointer hover:bg-surface-hover/50 transition-colors group flex-1">
+                            <input type="radio" name="currency_type" value="foreign" onclick="toggleCurrencySelect()"
+                                class="w-4 h-4 text-primary bg-surface border-border focus:ring-primary">
+                            <span class="font-semibold text-text group-hover:text-primary transition-colors text-sm">Foreign Currency</span>
+                        </label>
+                    </div>
+                    
+                    <div id="currency_select_group" class="hidden mt-3 animate-fade-in">
+                        <label for="currency" class="block text-sm font-medium text-text-muted mb-1">Select Currency</label>
+                        <select id="currency" name="currency"
+                            class="w-full h-12 px-4 bg-surface border border-border rounded-xl text-text focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors appearance-none font-medium bg-no-repeat bg-[right_1rem_center]" style="background-image: url('data:image/svg+xml;charset=utf-8,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' fill=\'none\' viewBox=\'0 0 24 24\' stroke=\'%2364748b\'%3E%3Cpath stroke-linecap=\'round\' stroke-linejoin=\'round\' stroke-width=\'2\' d=\'M19 9l-7 7-7-7\'/%3E%3C/svg%3E'); background-size: 1.25rem;">
+                            {% for code, name in currencies.items() %}
+                            <option value="{{ code }}" {% if code == 'GHS' %}selected{% endif %}>{{ code }} - {{ name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+
+                <script>
+                    function toggleCurrencySelect() {
+                        const isLocal = document.querySelector('input[name="currency_type"][value="local"]').checked;
+                        const currencyGroup = document.getElementById('currency_select_group');
+                        const currencySelect = document.getElementById('currency');
+                        
+                        if (isLocal) {
+                            currencyGroup.style.display = 'none';
+                            currencyGroup.classList.add('hidden');
+                            currencySelect.value = 'GHS';
+                        } else {
+                            currencyGroup.style.display = 'block';
+                            currencyGroup.classList.remove('hidden');
+                        }
+                    }
+                    document.addEventListener('DOMContentLoaded', toggleCurrencySelect);
+                </script>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="space-y-2">
+                        <label for="wallet_type" class="block text-sm font-semibold text-text">Wallet Type</label>
+                        <select id="wallet_type" name="wallet_type" onchange="toggleAccountNumber()"
+                            class="w-full h-12 px-4 bg-surface border border-border rounded-xl text-text focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors font-medium appearance-none bg-no-repeat bg-[right_1rem_center]" style="background-image: url('data:image/svg+xml;charset=utf-8,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' fill=\'none\' viewBox=\'0 0 24 24\' stroke=\'%2364748b\'%3E%3Cpath stroke-linecap=\'round\' stroke-linejoin=\'round\' stroke-width=\'2\' d=\'M19 9l-7 7-7-7\'/%3E%3C/svg%3E'); background-size: 1.25rem;">
+                            <option value="cash">💵 Cash</option>
+                            <option value="bank">🏦 Bank Account</option>
+                            <option value="mobile_money">📱 Mobile Money</option>
+                            <option value="crypto">₿ Crypto Wallet</option>
+                            <option value="ewallet">💳 E-Wallet</option>
+                        </select>
+                    </div>
+
+                    <div class="space-y-2">
+                        <label for="icon" class="block text-sm font-semibold text-text">Icon (Emoji)</label>
+                        <input type="text" id="icon" name="icon" value="💰" maxlength="2"
+                            class="w-full h-12 px-4 bg-surface border border-border rounded-xl text-center text-xl focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors">
+                    </div>
+                </div>
+
+                <div class="space-y-2 hidden animate-fade-in" id="account_number_group">
+                    <label for="account_number" id="account_number_label" class="block text-sm font-semibold text-text">Account Number</label>
+                    <div class="relative">
+                        <input type="text" id="account_number" name="account_number" placeholder="Enter account number"
+                            class="w-full h-12 pl-10 pr-4 bg-surface border border-border rounded-xl text-text font-mono focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors">
+                        <i data-lucide="hash" class="w-5 h-5 text-text-muted absolute left-3 top-1/2 -translate-y-1/2"></i>
+                    </div>
+                </div>
+
+                <script>
+                    function toggleAccountNumber() {
+                        const walletType = document.getElementById('wallet_type').value;
+                        const accountGroup = document.getElementById('account_number_group');
+                        const accountLabel = document.getElementById('account_number_label');
+                        const accountInput = document.getElementById('account_number');
+
+                        if (walletType === 'bank') {
+                            accountGroup.style.display = 'block';
+                            accountGroup.classList.remove('hidden');
+                            accountLabel.textContent = 'Bank Account Number';
+                            accountInput.placeholder = 'Enter bank account number';
+                        } else if (walletType === 'mobile_money') {
+                            accountGroup.style.display = 'block';
+                            accountGroup.classList.remove('hidden');
+                            accountLabel.textContent = 'Mobile Money Number';
+                            accountInput.placeholder = 'Enter mobile money number';
+                        } else {
+                            accountGroup.style.display = 'none';
+                            accountGroup.classList.add('hidden');
+                        }
+                    }
+                    document.addEventListener('DOMContentLoaded', toggleAccountNumber);
+                </script>
+
+                <div class="p-4 bg-surface-active/30 border border-border rounded-xl">
+                    <label class="flex items-center gap-3 cursor-pointer group">
+                        <div class="flex items-center h-5">
+                            <input type="checkbox" name="is_shared" class="w-5 h-5 text-primary bg-surface border-border rounded focus:ring-primary focus:ring-2 cursor-pointer transition-colors">
+                        </div>
+                        <div>
+                            <span class="block text-sm font-bold text-text group-hover:text-primary transition-colors">Shared Wallet</span>
+                            <span class="block text-xs font-medium text-text-muted mt-0.5">Allow tracking with families or couples</span>
+                        </div>
+                    </label>
+                </div>
+
+                <div class="pt-6 border-t border-border flex flex-col sm:flex-row gap-4">
+                    <button type="submit" class="flex-1 inline-flex items-center justify-center gap-2 px-6 py-3 bg-primary text-primary-content font-bold rounded-xl hover:bg-primary-hover transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-primary/50">
+                        <i data-lucide="check" class="w-5 h-5"></i> Create Wallet
+                    </button>
+                    <a href="{{ url_for('main.wallets') }}" class="flex-1 inline-flex items-center justify-center px-6 py-3 bg-surface border border-border text-text font-bold rounded-xl hover:bg-surface-hover transition-colors focus:outline-none focus:ring-2 focus:ring-border">
+                        Cancel
+                    </a>
+                </div>
+            </form>
         </div>
-
-        <div class="form-group" id="account_number_group" style="display: none;">
-            <label for="account_number" id="account_number_label">Account Number</label>
-            <input type="text" id="account_number" name="account_number" placeholder="Enter account number">
-        </div>
-
-        <script>
-            function toggleAccountNumber() {
-                const walletType = document.getElementById('wallet_type').value;
-                const accountGroup = document.getElementById('account_number_group');
-                const accountLabel = document.getElementById('account_number_label');
-                const accountInput = document.getElementById('account_number');
-
-                if (walletType === 'bank') {
-                    accountGroup.style.display = 'block';
-                    accountLabel.textContent = 'Bank Account Number';
-                    accountInput.placeholder = 'Enter bank account number';
-                } else if (walletType === 'mobile_money') {
-                    accountGroup.style.display = 'block';
-                    accountLabel.textContent = 'Mobile Money Number';
-                    accountInput.placeholder = 'Enter mobile money number';
-                } else {
-                    accountGroup.style.display = 'none';
-                }
-            }
-
-            // Initialize on load
-            document.addEventListener('DOMContentLoaded', function() {
-                toggleAccountNumber();
-            });
-        </script>
-
-        <div class="form-group">
-            <label for="icon">Icon</label>
-            <input type="text" id="icon" name="icon" value="💰" maxlength="2">
-        </div>
-
-        <div class="form-group">
-            <label>
-                <input type="checkbox" name="is_shared">
-                Shared Wallet (for families/couples)
-            </label>
-        </div>
-
-        <button type="submit">Create Wallet</button>
-    </form>
+    </div>
 </div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        lucide.createIcons();
+    });
+</script>
 {% endblock %}

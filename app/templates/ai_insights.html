@@ -1,0 +1,138 @@
+{% extends "base.html" %}
+
+{% block title %}AI Financial Insights - Financial Tracker{% endblock %}
+{% block header_title %}AI Financial Insights{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto space-y-8">
+    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-surface p-6 rounded-2xl border border-border shadow-sm">
+        <div>
+            <h2 class="text-xl font-bold font-heading text-text m-0 mb-1 flex items-center gap-2">
+                <i data-lucide="brain" class="w-6 h-6 text-primary"></i> Smart Insights
+            </h2>
+            <p class="text-sm font-medium text-text-muted m-0">Intelligent analysis of your spending patterns and financial health.</p>
+        </div>
+        <button onclick="window.location.reload()" class="shrink-0 inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-surface-active/50 border border-border text-text font-bold rounded-xl hover:bg-surface-hover hover:text-primary transition-colors focus:outline-none focus:ring-2 focus:ring-primary/50 shadow-sm text-sm">
+            <i data-lucide="refresh-cw" class="w-4 h-4"></i> Refresh Analysis
+        </button>
+    </div>
+
+    <!-- Summary Cards -->
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+        <div class="bg-surface rounded-2xl border border-border shadow-sm p-5 sm:p-6 flex flex-col justify-center">
+            <div class="flex items-center gap-2 mb-2">
+                <i data-lucide="trending-up" class="w-5 h-5 text-success"></i>
+                <span class="text-sm font-semibold text-text-muted uppercase tracking-wider">Monthly Income</span>
+            </div>
+            <div class="text-xl sm:text-2xl font-black font-heading text-success truncate" title="GHS {{ '{:,.2f}'.format(monthly_income) }}">
+                GHS {{ "{:,.2f}".format(monthly_income) }}
+            </div>
+        </div>
+
+        <div class="bg-surface rounded-2xl border border-border shadow-sm p-5 sm:p-6 flex flex-col justify-center">
+            <div class="flex items-center gap-2 mb-2">
+                <i data-lucide="trending-down" class="w-5 h-5 text-danger"></i>
+                <span class="text-sm font-semibold text-text-muted uppercase tracking-wider">Monthly Expenses</span>
+            </div>
+            <div class="text-xl sm:text-2xl font-black font-heading text-danger truncate" title="GHS {{ '{:,.2f}'.format(monthly_expenses) }}">
+                GHS {{ "{:,.2f}".format(monthly_expenses) }}
+            </div>
+        </div>
+
+        <div class="bg-surface rounded-2xl border border-border shadow-sm p-5 sm:p-6 flex flex-col justify-center">
+            <div class="flex items-center gap-2 mb-2">
+                <i data-lucide="wallet" class="w-5 h-5 text-primary"></i>
+                <span class="text-sm font-semibold text-text-muted uppercase tracking-wider">Net Savings</span>
+            </div>
+            <div class="text-xl sm:text-2xl font-black font-heading truncate {% if net_savings >= 0 %}text-success{% else %}text-danger{% endif %}" title="GHS {{ '{:,.2f}'.format(net_savings) }}">
+                GHS {{ "{:,.2f}".format(net_savings) }}
+            </div>
+        </div>
+
+        <div class="bg-gradient-to-br from-primary to-primary-dark rounded-2xl border border-primary-hover/50 shadow-md p-5 sm:p-6 flex flex-col justify-center text-white relative overflow-hidden group">
+            <div class="absolute right-[-10px] bottom-[-10px] opacity-10 pointer-events-none group-hover:scale-110 transition-transform duration-500">
+                <i data-lucide="percent" class="w-24 h-24"></i>
+            </div>
+            <div class="relative z-10">
+                <div class="flex items-center gap-2 mb-2">
+                    <i data-lucide="pie-chart" class="w-5 h-5 text-white/80"></i>
+                    <span class="text-sm font-semibold text-white/80 uppercase tracking-wider">Savings Rate</span>
+                </div>
+                <div class="text-3xl font-black font-heading text-white truncate drop-shadow-sm">
+                    {{ "{:.1f}".format(savings_rate) }}%
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Insights Section -->
+    <div class="bg-surface rounded-2xl border border-border shadow-sm overflow-hidden z-10 relative">
+        <div class="p-6 border-b border-border bg-surface-active/30 flex items-center gap-2">
+            <i data-lucide="sparkles" class="w-6 h-6 text-primary"></i>
+            <h2 class="text-xl font-bold font-heading m-0 text-text">Your Personalized Insights</h2>
+        </div>
+        
+        <div class="p-6">
+            {% if insights %}
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {% for insight in insights %}
+                <div class="flex items-start gap-4 p-5 bg-surface-active/30 rounded-2xl border border-border hover:shadow-md transition-all relative overflow-hidden group 
+                    {% if insight.type == 'success' %}hover:border-success/30
+                    {% elif insight.type == 'danger' %}hover:border-danger/30
+                    {% elif insight.type == 'warning' %}hover:border-warning/30
+                    {% else %}hover:border-primary/30{% endif %}">
+                    
+                    <!-- Top accent line -->
+                    <div class="absolute top-0 left-0 right-0 h-1 
+                        {% if insight.type == 'success' %}bg-success
+                        {% elif insight.type == 'danger' %}bg-danger
+                        {% elif insight.type == 'warning' %}bg-warning
+                        {% else %}bg-primary{% endif %}"></div>
+
+                    <div class="w-12 h-12 rounded-xl flex items-center justify-center shrink-0 mt-1
+                        {% if insight.type == 'success' %}bg-success/10 text-success
+                        {% elif insight.type == 'danger' %}bg-danger/10 text-danger
+                        {% elif insight.type == 'warning' %}bg-warning/10 text-warning
+                        {% else %}bg-primary/10 text-primary{% endif %} shadow-sm">
+                        {% if insight.type == 'success' %}
+                            <i data-lucide="thumbs-up" class="w-6 h-6"></i>
+                        {% elif insight.type == 'danger' %}
+                            <i data-lucide="alert-octagon" class="w-6 h-6"></i>
+                        {% elif insight.type == 'warning' %}
+                            <i data-lucide="alert-triangle" class="w-6 h-6"></i>
+                        {% else %}
+                            <i data-lucide="info" class="w-6 h-6"></i>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="flex-1 min-w-0">
+                        <div class="flex items-center gap-2 mb-2">
+                            <h3 class="text-lg font-bold text-text m-0 line-clamp-1">{{ insight.title }}</h3>
+                        </div>
+                        <p class="text-sm text-text-muted m-0 leading-relaxed">{{ insight.message }}</p>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="py-12 flex flex-col items-center justify-center text-center">
+                <div class="w-20 h-20 bg-surface-active rounded-full flex items-center justify-center mb-6">
+                    <i data-lucide="sparkles" class="w-10 h-10 text-text-muted/50"></i>
+                </div>
+                <h3 class="text-xl font-bold text-text m-0 mb-2">Analyzing Your Data</h3>
+                <p class="text-sm text-text-muted max-w-sm mx-auto mb-6">We're still gathering enough data to generate meaningful insights. Add more transactions to unlock personalized financial advice.</p>
+                <a href="{{ url_for('main.add_expense') }}" class="inline-flex items-center justify-center gap-2 px-6 py-3 bg-primary text-primary-content font-bold rounded-xl hover:bg-primary-hover transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-primary/50">
+                    <i data-lucide="plus" class="w-5 h-5"></i> Add Transaction
+                </a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    lucide.createIcons();
+});
+</script>
+{% endblock %}

@@ -1,0 +1,149 @@
+{% extends "base.html" %}
+
+{% block title %}Net Worth - Financial Tracker{% endblock %}
+{% block header_title %}Net Worth Tracker{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto space-y-8">
+    
+    <!-- Summary Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div class="bg-surface rounded-2xl border border-border shadow-sm p-6 sm:p-8 flex flex-col justify-center border-l-4 border-l-success">
+            <div class="flex items-center gap-2 mb-3">
+                <i data-lucide="arrow-up-circle" class="w-5 h-5 text-success"></i>
+                <span class="text-xs font-bold text-text-muted uppercase tracking-wider">Total Assets</span>
+            </div>
+            <div class="text-3xl font-black font-heading text-success truncate" title="GHS {{ '{:,.2f}'.format(total_assets) }}">
+                GHS {{ '{:,.2f}'.format(total_assets) }}
+            </div>
+        </div>
+        <div class="bg-surface rounded-2xl border border-border shadow-sm p-6 sm:p-8 flex flex-col justify-center border-l-4 border-l-danger">
+            <div class="flex items-center gap-2 mb-3">
+                <i data-lucide="arrow-down-circle" class="w-5 h-5 text-danger"></i>
+                <span class="text-xs font-bold text-text-muted uppercase tracking-wider">Total Liabilities</span>
+            </div>
+            <div class="text-3xl font-black font-heading text-danger truncate" title="GHS {{ '{:,.2f}'.format(total_liabilities) }}">
+                GHS {{ '{:,.2f}'.format(total_liabilities) }}
+            </div>
+        </div>
+        <div class="bg-gradient-to-br from-primary to-primary-dark rounded-2xl border border-primary-hover/50 shadow-md p-6 sm:p-8 flex flex-col justify-center text-white relative overflow-hidden group">
+            <div class="absolute right-[-20px] bottom-[-20px] opacity-10 pointer-events-none group-hover:scale-110 transition-transform duration-500">
+                <i data-lucide="gem" class="w-32 h-32"></i>
+            </div>
+            <div class="relative z-10">
+                <div class="flex items-center gap-2 mb-3">
+                    <i data-lucide="wallet" class="w-5 h-5 text-white/80"></i>
+                    <span class="text-xs font-bold text-white/80 uppercase tracking-wider">Current Net Worth</span>
+                </div>
+                <div class="text-3xl font-black font-heading text-white truncate drop-shadow-sm" title="GHS {{ '{:,.2f}'.format(net_worth) }}">
+                    GHS {{ '{:,.2f}'.format(net_worth) }}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
+        
+        <!-- Assets vs Liabilities Breakdown -->
+        <div class="lg:col-span-1 bg-surface rounded-2xl border border-border shadow-sm overflow-hidden flex flex-col lg:sticky lg:top-8 z-10 relative">
+            <div class="p-6 border-b border-border bg-surface-active/30 flex items-center gap-2">
+                <i data-lucide="pie-chart" class="w-6 h-6 text-primary"></i>
+                <h2 class="text-xl font-bold font-heading m-0 text-text">Assets Breakdown</h2>
+            </div>
+            
+            <div class="p-6">
+                {% if assets_breakdown %}
+                <div class="space-y-5">
+                    {% for item in assets_breakdown %}
+                    <div class="bg-surface-active/30 rounded-xl border border-border p-4 hover:border-primary/30 transition-colors">
+                        <div class="text-xs font-bold text-text-muted uppercase tracking-wider mb-1">{{ item.category }}</div>
+                        <div class="text-lg font-black text-text mb-3">GHS {{ '{:,.2f}'.format(item.amount) }}</div>
+                        
+                        {% if total_assets > 0 %}
+                        {% set pct = (item.amount / total_assets * 100) %}
+                        <div class="flex items-center gap-3">
+                            <div class="w-full bg-border rounded-full h-1.5 overflow-hidden">
+                                <div class="bg-primary h-1.5 rounded-full transition-all duration-1000 ease-out" style="width: {{ pct|round(1) }}%"></div>
+                            </div>
+                            <span class="text-xs font-bold text-primary w-10 text-right">{{ pct|round(1) }}%</span>
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="py-10 flex flex-col items-center justify-center text-center">
+                    <div class="w-16 h-16 bg-surface-active rounded-full flex items-center justify-center mb-4">
+                        <i data-lucide="pie-chart" class="w-8 h-8 text-text-muted/50"></i>
+                    </div>
+                    <p class="text-sm font-medium text-text-muted">No asset breakdown data to display.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Snapshot History -->
+        <div class="lg:col-span-2 bg-surface rounded-2xl border border-border shadow-sm overflow-hidden flex flex-col z-10 relative">
+            <div class="p-6 border-b border-border bg-surface-active/30 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <h2 class="text-xl font-bold font-heading m-0 text-text flex items-center gap-2">
+                    <i data-lucide="history" class="w-6 h-6 text-primary"></i> Snapshot History
+                </h2>
+                <form method="POST" action="{{ url_for('networth.create_snapshot') }}" class="m-0 shrink-0">
+                    <button type="submit" class="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-primary text-primary-content font-bold rounded-xl hover:bg-primary-hover transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-primary/50 text-sm">
+                        <i data-lucide="camera" class="w-4 h-4"></i> Take Snapshot
+                    </button>
+                </form>
+            </div>
+
+            <div class="overflow-x-auto p-0 sm:p-2">
+                {% if snapshots %}
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="bg-surface/50 border-b-2 border-border">
+                            <th class="p-4 text-xs font-bold text-text-muted uppercase tracking-wider whitespace-nowrap">Date</th>
+                            <th class="p-4 text-xs font-bold text-text-muted uppercase tracking-wider whitespace-nowrap text-right">Assets</th>
+                            <th class="p-4 text-xs font-bold text-text-muted uppercase tracking-wider whitespace-nowrap text-right">Liabilities</th>
+                            <th class="p-4 text-xs font-bold text-text-muted uppercase tracking-wider whitespace-nowrap text-right">Net Worth</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-border">
+                        {% for s in snapshots %}
+                        <tr class="hover:bg-surface-hover/30 transition-colors">
+                            <td class="p-4 text-sm font-bold text-text whitespace-nowrap flex items-center gap-2 border-b border-transparent">
+                                <i data-lucide="calendar" class="w-4 h-4 text-primary opacity-50"></i> {{ s.date.strftime('%b %d, %Y') }}
+                            </td>
+                            <td class="p-4 text-sm font-semibold text-success text-right whitespace-nowrap">
+                                GHS {{ '{:,.2f}'.format(s.total_assets) }}
+                            </td>
+                            <td class="p-4 text-sm font-semibold text-danger text-right whitespace-nowrap">
+                                GHS {{ '{:,.2f}'.format(s.total_liabilities) }}
+                            </td>
+                            <td class="p-4 text-sm font-black text-text text-right whitespace-nowrap">
+                                <span class="bg-surface-active px-2.5 py-1 rounded-md border border-border">
+                                    GHS {{ '{:,.2f}'.format(s.net_worth) }}
+                                </span>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% else %}
+                <div class="p-12 flex flex-col items-center justify-center text-center">
+                    <div class="w-20 h-20 bg-surface border border-dashed border-border rounded-full flex items-center justify-center mb-6">
+                        <i data-lucide="camera-off" class="w-10 h-10 text-text-muted/50"></i>
+                    </div>
+                    <h3 class="text-lg font-bold text-text m-0 mb-2">No Snapshots Yet</h3>
+                    <p class="text-sm text-text-muted max-w-sm mx-auto mb-6">Take your first snapshot to start tracking how your net worth changes over time. We recommend doing this once a month.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    lucide.createIcons();
+});
+</script>
+{% endblock %}

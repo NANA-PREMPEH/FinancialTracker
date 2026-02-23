@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Verify Email - Financial Tracker</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script>
+        const savedTheme = localStorage.getItem('theme');
+        const systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+        if (savedTheme === 'dark' || (!savedTheme && systemTheme === 'dark')) {
+            document.documentElement.setAttribute('data-theme', 'dark');
+        } else {
+            document.documentElement.setAttribute('data-theme', 'light');
+        }
+    </script>
+</head>
+<body>
+    <div class="auth-container">
+        <div class="auth-card">
+            <div class="auth-header">
+                <div class="auth-logo">
+                    <i data-lucide="mail-check"></i>
+                    <h1>Check Your Email</h1>
+                </div>
+                <p>We've sent a verification link to your email</p>
+            </div>
+
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="alert alert-{{ category }}" style="margin-bottom: 1rem; padding: 0.75rem 1rem; border-radius: var(--radius-md); background: var(--color-surface); border-left: 4px solid var(--color-{{ 'primary' if category == 'message' else 'error' if category == 'error' else category }});">
+                            {{ message }}
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+
+            <div style="text-align: center; padding: 1.5rem 0;">
+                <div style="width: 80px; height: 80px; margin: 0 auto 1rem; background: rgba(99,102,241,0.1); border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+                    <i data-lucide="inbox" style="width: 36px; height: 36px; color: var(--color-primary);"></i>
+                </div>
+                <p style="color: var(--color-text-muted); margin-bottom: 1.5rem;">
+                    Please check your inbox and click the verification link to activate your account. The link expires in 24 hours.
+                </p>
+                <form method="POST" action="{{ url_for('auth.resend_verification') }}">
+                    <input type="hidden" name="email" value="{{ email }}">
+                    <button type="submit" class="btn" style="background: var(--color-surface); color: var(--color-text); border: 1px solid var(--color-border); width: 100%;">
+                        <i data-lucide="refresh-cw" style="width: 16px; height: 16px;"></i>
+                        Resend Verification Email
+                    </button>
+                </form>
+            </div>
+
+            <div class="auth-footer">
+                <p>Already verified? <a href="{{ url_for('auth.login') }}" class="auth-link">Sign in</a></p>
+            </div>
+        </div>
+    </div>
+
+    <script>lucide.createIcons();</script>
+</body>
+</html>

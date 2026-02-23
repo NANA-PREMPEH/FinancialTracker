@@ -1,0 +1,145 @@
+{% extends "base.html" %}
+
+{% block title %}Backup & Recovery - Financial Tracker{% endblock %}
+{% block header_title %}Backup & Recovery{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto space-y-8">
+    <div class="bg-surface p-6 rounded-2xl border border-border shadow-sm">
+        <h2 class="text-xl font-bold font-heading text-text m-0 mb-1 flex items-center gap-2">
+            <i data-lucide="hard-drive" class="w-6 h-6 text-primary"></i> Data Management
+        </h2>
+        <p class="text-sm font-medium text-text-muted m-0">Protect your financial data by creating backups and restoring from previous saves.</p>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <!-- Create Backup Section -->
+        <div class="bg-surface rounded-2xl border border-border shadow-sm overflow-hidden flex flex-col group hover:border-primary/30 transition-colors">
+            <div class="p-6 border-b border-border bg-surface-active/30 flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                    <i data-lucide="download" class="w-5 h-5"></i>
+                </div>
+                <div>
+                    <h2 class="text-lg font-bold font-heading m-0 text-text">Create Backup</h2>
+                    <p class="text-xs font-medium text-text-muted m-0">Export data to a JSON file</p>
+                </div>
+            </div>
+            
+            <div class="p-6 flex-1 flex flex-col justify-between gap-6">
+                <p class="text-sm text-text-muted m-0 leading-relaxed">
+                    Export all your financial data including transactions, wallets, categories, budgets, and settings into a downloadable JSON file. Store this file securely for safekeeping.
+                </p>
+                
+                <form method="POST" action="{{ url_for('backup.create_backup') }}" class="mt-auto">
+                    <button type="submit" class="w-full inline-flex items-center justify-center gap-2 px-5 py-3 bg-primary text-primary-content font-bold rounded-xl hover:bg-primary-hover transition-colors focus:outline-none focus:ring-2 focus:ring-primary/50 shadow-sm">
+                        <i data-lucide="hard-drive-download" class="w-5 h-5"></i> Create Backup
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Restore Backup Section -->
+        <div class="bg-surface rounded-2xl border border-border shadow-sm overflow-hidden flex flex-col group hover:border-warning/30 transition-colors">
+            <div class="p-6 border-b border-border bg-surface-active/30 flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-warning/10 text-warning flex items-center justify-center shrink-0">
+                    <i data-lucide="upload" class="w-5 h-5"></i>
+                </div>
+                <div>
+                    <h2 class="text-lg font-bold font-heading m-0 text-text">Restore Backup</h2>
+                    <p class="text-xs font-medium text-text-muted m-0">Import data from a JSON file</p>
+                </div>
+            </div>
+            
+            <div class="p-6 flex-1 flex flex-col justify-between gap-6">
+                <p class="text-sm text-text-muted m-0 leading-relaxed">
+                    Upload a previously created backup file to restore your financial data. <strong class="text-text font-bold">Warning:</strong> This will replace your current data with the contents of the backup file.
+                </p>
+                
+                <form method="POST" action="{{ url_for('backup.restore_backup') }}" enctype="multipart/form-data" class="mt-auto space-y-4">
+                    <div>
+                        <label for="backup_file" class="sr-only">Select Backup File</label>
+                        <div class="relative flex items-center justify-center w-full">
+                            <label for="backup_file" class="flex flex-col items-center justify-center w-full h-32 border-2 border-border border-dashed rounded-xl cursor-pointer bg-surface-active/30 hover:bg-surface-active/80 hover:border-primary/50 transition-all group-hover:border-warning/30">
+                                <div class="flex flex-col items-center justify-center pt-5 pb-6">
+                                    <i data-lucide="file-json" class="w-8 h-8 text-text-muted mb-2 group-hover:text-warning transition-colors"></i>
+                                    <p class="mb-1 text-sm text-text-muted"><span class="font-bold text-text">Click to upload</span> or drag and drop</p>
+                                    <p class="text-xs text-text-muted/70">JSON files only</p>
+                                </div>
+                                <input id="backup_file" name="backup_file" type="file" accept=".json" required class="hidden" />
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <button type="submit" class="w-full inline-flex items-center justify-center gap-2 px-5 py-3 bg-warning text-white font-bold rounded-xl hover:bg-warning-hover transition-colors focus:outline-none focus:ring-2 focus:ring-warning/50 shadow-sm" onclick="return confirm('WARNING: Are you sure you want to restore from this backup? ALL CURRENT DATA WILL BE REPLACED WITH THE BACKUP DATA. This action cannot be undone.');">
+                        <i data-lucide="rotate-ccw" class="w-5 h-5"></i> Restore Backup
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tips Section -->
+    <div class="bg-surface rounded-2xl border border-border shadow-sm p-6 sm:p-8 relative overflow-hidden group">
+        <!-- Decorative accent -->
+        <div class="absolute left-0 top-0 bottom-0 w-1.5 bg-primary"></div>
+        
+        <div class="absolute right-[-20px] bottom-[-20px] opacity-5 pointer-events-none group-hover:scale-110 transition-transform duration-500">
+            <i data-lucide="lightbulb" class="w-48 h-48"></i>
+        </div>
+
+        <div class="relative z-10">
+            <h3 class="text-lg font-bold font-heading text-text m-0 mb-4 flex items-center gap-2">
+                <i data-lucide="lightbulb" class="w-5 h-5 text-primary"></i> Backup Best Practices
+            </h3>
+            
+            <ul class="space-y-3 text-sm text-text-muted pl-1 m-0 list-none">
+                <li class="flex items-start gap-3">
+                    <i data-lucide="check-circle-2" class="w-4 h-4 text-success mt-0.5 shrink-0"></i>
+                    <span>Create regular backups, ideally at least once a week, to avoid data loss.</span>
+                </li>
+                <li class="flex items-start gap-3">
+                    <i data-lucide="check-circle-2" class="w-4 h-4 text-success mt-0.5 shrink-0"></i>
+                    <span>Store backup files in a secure location, such as cloud storage or an encrypted external drive.</span>
+                </li>
+                <li class="flex items-start gap-3">
+                    <i data-lucide="check-circle-2" class="w-4 h-4 text-success mt-0.5 shrink-0"></i>
+                    <span>Before restoring, ensure the backup file is from a trusted source and has not been modified.</span>
+                </li>
+                <li class="flex items-start gap-3">
+                    <i data-lucide="alert-triangle" class="w-4 h-4 text-warning mt-0.5 shrink-0"></i>
+                    <span>Restoring a backup will overwrite all current data. Consider creating a fresh backup before restoring an old one.</span>
+                </li>
+                <li class="flex items-start gap-3">
+                    <i data-lucide="check-circle-2" class="w-4 h-4 text-success mt-0.5 shrink-0"></i>
+                    <span>Keep multiple backup versions so you can recover from different points in time.</span>
+                </li>
+            </ul>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    lucide.createIcons();
+    
+    // File input UX enhancement
+    const fileInput = document.getElementById('backup_file');
+    if(fileInput) {
+        fileInput.addEventListener('change', function() {
+            if(this.files && this.files.length > 0) {
+                const fileName = this.files[0].name;
+                const uploadContainer = this.closest('label');
+                uploadContainer.innerHTML = `
+                    <div class="flex flex-col items-center justify-center pt-5 pb-6">
+                        <i data-lucide="file-check-2" class="w-8 h-8 text-success mb-2"></i>
+                        <p class="mb-1 text-sm font-bold text-text truncate max-w-[200px]">${fileName}</p>
+                        <p class="text-xs text-text-muted/70">Ready to restore</p>
+                    </div>
+                `;
+                lucide.createIcons();
+            }
+        });
+    }
+});
+</script>
+{% endblock %}

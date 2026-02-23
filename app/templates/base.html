@@ -4,7 +4,49 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Financial Tracker{% endblock %}</title>
+    <!-- PWA Meta Tags -->
+    <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
+    <meta name="theme-color" content="#6366f1">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="FinTracker">
+    <link rel="apple-touch-icon" href="{{ url_for('static', filename='icons/icon-192.png') }}">
+    {% if config.VAPID_PUBLIC_KEY %}<meta name="vapid-public-key" content="{{ config.VAPID_PUBLIC_KEY }}">{% endif %}
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: ['class', '[data-theme="dark"]'],
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            DEFAULT: 'var(--color-primary)',
+                            hover: 'var(--color-primary-hover)',
+                            light: 'var(--color-primary-light)',
+                            dark: 'var(--color-primary-dark)'
+                        },
+                        surface: {
+                            DEFAULT: 'var(--color-surface)',
+                            hover: 'var(--color-surface-hover)',
+                            active: 'var(--color-surface-active)'
+                        },
+                        danger: {
+                            DEFAULT: 'var(--color-danger)',
+                            bg: 'var(--color-danger-bg)',
+                            text: 'var(--color-danger-text)'
+                        },
+                        success: {
+                            DEFAULT: 'var(--color-success)',
+                            bg: 'var(--color-success-bg)',
+                            text: 'var(--color-success-text)'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
     <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
     <script>
@@ -21,141 +63,281 @@
 </head>
 <body>
     <a href="#main-content" class="skip-link">Skip to main content</a>
-    
-    <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
+    <div id="offlineBanner" class="offline-banner">You are offline. Changes will sync when reconnected.</div>
 
-    <aside class="sidebar" id="sidebar">
-        <div class="sidebar-header">
-            <a href="{{ url_for('main.dashboard') }}" class="logo">
-                <i data-lucide="calculator"></i>
-                <span>Financial Tracker</span>
-            </a>
-            <button class="close-sidebar" onclick="toggleSidebar()" aria-label="Close Sidebar">
-                <i data-lucide="x"></i>
-            </button>
-        </div>
-        
-        <nav class="sidebar-content">
-            <div class="nav-group">
-                <div class="nav-label">Main</div>
-                <a href="{{ url_for('main.dashboard') }}" class="nav-item {% if request.endpoint == 'main.dashboard' %}active{% endif %}">
-                    <i data-lucide="layout-dashboard"></i>
-                    <span>Dashboard</span>
+    <div class="app-container">
+        <!-- Sidebar Overlay (Mobile) -->
+        <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
+
+        <!-- Sidebar -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <a href="{{ url_for('main.dashboard') }}" class="logo">
+                    <i data-lucide="calculator"></i>
+                    <span>FinTracker</span>
                 </a>
+                <button class="menu-toggle" onclick="toggleSidebar()" aria-label="Close Sidebar" style="display: none;">
+                    <i data-lucide="x"></i>
+                </button>
             </div>
-
-            <div class="nav-group">
-                <div class="nav-label">Actions</div>
-                <a href="{{ url_for('main.add_expense') }}" class="nav-item {% if request.endpoint == 'main.add_expense' %}active{% endif %}">
-                    <i data-lucide="plus-circle"></i>
-                    <span>Add Transaction</span>
-                </a>
-                <a href="{{ url_for('main.add_project') }}" class="nav-item {% if request.endpoint == 'main.add_project' %}active{% endif %}">
-                    <i data-lucide="folder-plus"></i>
-                    <span>New Project</span>
-                </a>
-            </div>
-
-            <div class="nav-group">
-                <div class="nav-label">Insights</div>
-                <a href="{{ url_for('main.all_expenses') }}" class="nav-item {% if request.endpoint == 'main.all_expenses' %}active{% endif %}">
-                    <i data-lucide="list"></i>
-                    <span>All Transactions</span>
-                </a>
-                <a href="{{ url_for('main.analytics') }}" class="nav-item {% if request.endpoint == 'main.analytics' %}active{% endif %}">
-                    <i data-lucide="pie-chart"></i>
-                    <span>Analytics</span>
-                </a>
-                <a href="{{ url_for('main.reports') }}" class="nav-item {% if request.endpoint == 'main.reports' %}active{% endif %}">
-                    <i data-lucide="bar-chart-3"></i>
-                    <span>Reports</span>
-                </a>
-            </div>
-
-            <div class="nav-group">
-                <div class="nav-label">Management</div>
-                <a href="{{ url_for('main.wallets') }}" class="nav-item {% if request.endpoint == 'main.wallets' %}active{% endif %}">
-                    <i data-lucide="wallet"></i>
-                    <span>Wallets</span>
-                </a>
-                <a href="{{ url_for('main.creditors') }}" class="nav-item {% if request.endpoint == 'main.creditors' %}active{% endif %}">
-                    <i data-lucide="credit-card"></i>
-                    <span>Credit</span>
-                </a>
-                <a href="{{ url_for('main.budgets') }}" class="nav-item {% if request.endpoint == 'main.budgets' %}active{% endif %}">
-                    <i data-lucide="piggy-bank"></i>
-                    <span>Budgets</span>
-                </a>
-                <a href="{{ url_for('main.recurring_transactions') }}" class="nav-item {% if request.endpoint == 'main.recurring_transactions' %}active{% endif %}">
-                    <i data-lucide="repeat"></i>
-                    <span>Recurring</span>
-                </a>
-                <a href="{{ url_for('main.projects') }}" class="nav-item {% if request.endpoint == 'main.projects' %}active{% endif %}">
-                    <i data-lucide="briefcase"></i>
-                    <span>Projects</span>
-                </a>
-                <a href="{{ url_for('main.categories') }}" class="nav-item {% if request.endpoint == 'main.categories' %}active{% endif %}">
-                    <i data-lucide="tags"></i>
-                    <span>Categories</span>
-                </a>
-            </div>
-
-            <div class="nav-group">
-                <div class="nav-label">More</div>
-                <a href="{{ url_for('main.historical_data') }}" class="nav-item {% if request.endpoint == 'main.historical_data' %}active{% endif %}">
-                    <i data-lucide="history"></i>
-                    <span>Historical Data</span>
-                </a>
-                <a href="{{ url_for('main.wishlist') }}" class="nav-item {% if request.endpoint == 'main.wishlist' %}active{% endif %}">
-                    <i data-lucide="sparkles"></i>
-                    <span>Wishlist</span>
-                </a>
-            </div>
-        </nav>
-
-        <div class="sidebar-footer">
-            <button id="themeToggleSidebar" class="theme-toggle-btn" aria-label="Toggle Dark Mode">
-                <i data-lucide="sun" class="light-icon"></i>
-                <i data-lucide="moon" class="dark-icon" style="display: none;"></i>
-                <span>Switch Theme</span>
-            </button>
-        </div>
-    </aside>
-
-    <header class="app-header">
-        <div class="container header-content">
-            <button class="menu-toggle" onclick="toggleSidebar()" aria-label="Toggle Sidebar">
-                <i data-lucide="menu"></i>
-            </button>
-            <div class="header-logo desk-only">
-                <a href="{{ url_for('main.dashboard') }}">Financial Tracker</a>
-            </div>
-            <div class="header-actions">
-                <!-- Additional header actions could go here -->
-            </div>
-        </div>
-    </header>
-
-    <main id="main-content">
-        <div class="container">
-            {% with messages = get_flashed_messages(with_categories=true) %}
-                {% if messages %}
-                    {% for category, message in messages %}
-                        <div class="alert alert-{{ category }}">{{ message }}</div>
-                    {% endfor %}
-                {% endif %}
-            {% endwith %}
             
-            {% block content %}{% endblock %}
-        </div>
-    </main>
+            <nav class="sidebar-content">
+                <div class="nav-group">
+                    <div class="nav-label">Main</div>
+                    <a href="{{ url_for('main.dashboard') }}" class="nav-item {% if request.endpoint == 'main.dashboard' %}active{% endif %}">
+                        <i data-lucide="layout-dashboard"></i>
+                        <span>Dashboard</span>
+                    </a>
+                    <a href="{{ url_for('calendar.calendar_view') }}" class="nav-item {% if request.blueprint == 'calendar' %}active{% endif %}">
+                        <i data-lucide="calendar"></i>
+                        <span>Calendar</span>
+                    </a>
+                    <a href="{{ url_for('notifications.notifications_list') }}" class="nav-item {% if request.blueprint == 'notifications' %}active{% endif %}">
+                        <i data-lucide="bell"></i>
+                        <span>Notifications{% if unread_notification_count %} ({{ unread_notification_count }}){% endif %}</span>
+                    </a>
+                </div>
 
-    <footer>
-        <div class="container">
-            <p>&copy; 2025 Financial Tracker. Built with accessibility in mind.</p>
-        </div>
-    </footer>
+                <div class="nav-group">
+                    <div class="nav-label">Actions</div>
+                    <a href="{{ url_for('main.add_expense') }}" class="nav-item {% if request.endpoint == 'main.add_expense' %}active{% endif %}">
+                        <i data-lucide="plus-circle"></i>
+                        <span>Add Transaction</span>
+                    </a>
+                    <a href="{{ url_for('main.add_project') }}" class="nav-item {% if request.endpoint == 'main.add_project' %}active{% endif %}">
+                        <i data-lucide="folder-plus"></i>
+                        <span>New Project</span>
+                    </a>
+                </div>
 
+                <div class="nav-group">
+                    <div class="nav-label">Insights</div>
+                    <a href="{{ url_for('main.all_expenses') }}" class="nav-item {% if request.endpoint == 'main.all_expenses' %}active{% endif %}">
+                        <i data-lucide="list"></i>
+                        <span>All Transactions</span>
+                    </a>
+                    <a href="{{ url_for('main.analytics') }}" class="nav-item {% if request.endpoint == 'main.analytics' %}active{% endif %}">
+                        <i data-lucide="pie-chart"></i>
+                        <span>Analytics</span>
+                    </a>
+                    <a href="{{ url_for('main.reports') }}" class="nav-item {% if request.endpoint == 'main.reports' %}active{% endif %}">
+                        <i data-lucide="bar-chart-3"></i>
+                        <span>Reports</span>
+                    </a>
+                    <a href="{{ url_for('ai_insights.ai_insights') }}" class="nav-item {% if request.blueprint == 'ai_insights' %}active{% endif %}">
+                        <i data-lucide="brain"></i>
+                        <span>AI Insights</span>
+                    </a>
+                    <a href="{{ url_for('cashflow.cash_flow') }}" class="nav-item {% if request.blueprint == 'cashflow' %}active{% endif %}">
+                        <i data-lucide="trending-up"></i>
+                        <span>Cash Flow</span>
+                    </a>
+                </div>
+
+                <div class="nav-group">
+                    <div class="nav-label">Finance</div>
+                    <a href="{{ url_for('main.wallets') }}" class="nav-item {% if request.endpoint == 'main.wallets' %}active{% endif %}">
+                        <i data-lucide="wallet"></i>
+                        <span>Wallets</span>
+                    </a>
+                    <a href="{{ url_for('goals.goals') }}" class="nav-item {% if request.blueprint == 'goals' %}active{% endif %}">
+                        <i data-lucide="target"></i>
+                        <span>Goals</span>
+                    </a>
+                    <a href="{{ url_for('main.budgets') }}" class="nav-item {% if request.endpoint == 'main.budgets' %}active{% endif %}">
+                        <i data-lucide="piggy-bank"></i>
+                        <span>Budgets</span>
+                    </a>
+                    <a href="{{ url_for('budget_planning.budget_planning') }}" class="nav-item {% if request.blueprint == 'budget_planning' %}active{% endif %}">
+                        <i data-lucide="calculator"></i>
+                        <span>Budget Planning</span>
+                    </a>
+                    <a href="{{ url_for('investments.investments_list') }}" class="nav-item {% if request.blueprint == 'investments' %}active{% endif %}">
+                        <i data-lucide="trending-up"></i>
+                        <span>Investments</span>
+                    </a>
+                    <a href="{{ url_for('networth.net_worth_dashboard') }}" class="nav-item {% if request.blueprint == 'networth' %}active{% endif %}">
+                        <i data-lucide="gem"></i>
+                        <span>Net Worth</span>
+                    </a>
+                </div>
+
+                <div class="nav-group">
+                    <div class="nav-label">Management</div>
+                    <a href="{{ url_for('main.creditors') }}" class="nav-item {% if request.endpoint == 'main.creditors' %}active{% endif %}">
+                        <i data-lucide="credit-card"></i>
+                        <span>Debts</span>
+                    </a>
+                    <a href="{{ url_for('commitments.commitments_list') }}" class="nav-item {% if request.blueprint == 'commitments' %}active{% endif %}">
+                        <i data-lucide="handshake"></i>
+                        <span>Commitments</span>
+                    </a>
+                    <a href="{{ url_for('main.recurring_transactions') }}" class="nav-item {% if request.endpoint == 'main.recurring_transactions' %}active{% endif %}">
+                        <i data-lucide="repeat"></i>
+                        <span>Recurring</span>
+                    </a>
+                    <a href="{{ url_for('main.projects') }}" class="nav-item {% if request.endpoint == 'main.projects' %}active{% endif %}">
+                        <i data-lucide="briefcase"></i>
+                        <span>Projects</span>
+                    </a>
+                    <a href="{{ url_for('main.categories') }}" class="nav-item {% if request.endpoint == 'main.categories' %}active{% endif %}">
+                        <i data-lucide="tags"></i>
+                        <span>Categories</span>
+                    </a>
+                    <a href="{{ url_for('fixed_assets.fixed_assets_list') }}" class="nav-item {% if request.blueprint == 'fixed_assets' %}active{% endif %}">
+                        <i data-lucide="landmark"></i>
+                        <span>Fixed Assets</span>
+                    </a>
+                </div>
+
+                <div class="nav-group">
+                    <div class="nav-label">Banking</div>
+                    <a href="{{ url_for('banking.banking_overview') }}" class="nav-item {% if request.blueprint == 'banking' %}active{% endif %}">
+                        <i data-lucide="building-2"></i>
+                        <span>Banking</span>
+                    </a>
+                    <a href="{{ url_for('accounting.accounting_overview') }}" class="nav-item {% if request.blueprint == 'accounting' %}active{% endif %}">
+                        <i data-lucide="book-open"></i>
+                        <span>Accounting</span>
+                    </a>
+                </div>
+
+                <div class="nav-group">
+                    <div class="nav-label">Ghana</div>
+                    <a href="{{ url_for('domain.smc_list') }}" class="nav-item {% if request.endpoint == 'domain.smc_list' %}active{% endif %}">
+                        <i data-lucide="file-text"></i>
+                        <span>SMC Contracts</span>
+                    </a>
+                    <a href="{{ url_for('domain.construction_list') }}" class="nav-item {% if request.endpoint == 'domain.construction_list' %}active{% endif %}">
+                        <i data-lucide="hard-hat"></i>
+                        <span>Construction</span>
+                    </a>
+                    <a href="{{ url_for('domain.global_finance') }}" class="nav-item {% if request.endpoint == 'domain.global_finance' %}active{% endif %}">
+                        <i data-lucide="globe"></i>
+                        <span>Global Finance</span>
+                    </a>
+                </div>
+
+                <div class="nav-group">
+                    <div class="nav-label">More</div>
+                    <a href="{{ url_for('main.historical_data') }}" class="nav-item {% if request.endpoint == 'main.historical_data' %}active{% endif %}">
+                        <i data-lucide="history"></i>
+                        <span>Historical Data</span>
+                    </a>
+                    <a href="{{ url_for('main.wishlist') }}" class="nav-item {% if request.endpoint == 'main.wishlist' %}active{% endif %}">
+                        <i data-lucide="sparkles"></i>
+                        <span>Wishlist</span>
+                    </a>
+                    <a href="{{ url_for('automation.automation_list') }}" class="nav-item {% if request.blueprint == 'automation' %}active{% endif %}">
+                        <i data-lucide="zap"></i>
+                        <span>Automation</span>
+                    </a>
+                    <a href="{{ url_for('newsletter.newsletter') }}" class="nav-item {% if request.blueprint == 'newsletter' %}active{% endif %}">
+                        <i data-lucide="mail"></i>
+                        <span>Newsletter</span>
+                    </a>
+                </div>
+
+                <div class="nav-group">
+                    <div class="nav-label">System</div>
+                    <a href="{{ url_for('settings.settings') }}" class="nav-item {% if request.blueprint == 'settings' %}active{% endif %}">
+                        <i data-lucide="settings"></i>
+                        <span>Settings</span>
+                    </a>
+                    <a href="{{ url_for('security.security_dashboard') }}" class="nav-item {% if request.blueprint == 'security' %}active{% endif %}">
+                        <i data-lucide="shield"></i>
+                        <span>Security</span>
+                    </a>
+                    <a href="{{ url_for('backup.backup_page') }}" class="nav-item {% if request.blueprint == 'backup' %}active{% endif %}">
+                        <i data-lucide="database"></i>
+                        <span>Backup</span>
+                    </a>
+                    <a href="{{ url_for('api_keys.api_keys_list') }}" class="nav-item {% if request.blueprint == 'api_keys' %}active{% endif %}">
+                        <i data-lucide="key"></i>
+                        <span>API Keys</span>
+                    </a>
+                    {% if current_user.is_authenticated and current_user.role == 'admin' %}
+                    <a href="{{ url_for('admin.admin_panel') }}" class="nav-item {% if request.blueprint == 'admin' %}active{% endif %}">
+                        <i data-lucide="shield-check"></i>
+                        <span>Admin</span>
+                    </a>
+                    {% endif %}
+                </div>
+            </nav>
+
+            <div class="sidebar-footer">
+                <button id="themeToggleSidebar" class="btn btn-secondary" style="width: 100%; justify-content: flex-start;" aria-label="Toggle Dark Mode">
+                    <i data-lucide="sun" class="light-icon"></i>
+                    <i data-lucide="moon" class="dark-icon" style="display: none;"></i>
+                    <span>Switch Theme</span>
+                </button>
+                {% if current_user.is_authenticated %}
+                <div class="user-menu">
+                    <div class="user-avatar">{{ current_user.name[0]|upper }}</div>
+                    <div class="user-info">
+                        <div class="user-name">{{ current_user.name }}</div>
+                        <div class="user-email">{{ current_user.email }}</div>
+                    </div>
+                    <a href="{{ url_for('auth.logout') }}" class="user-logout" title="Sign out">
+                        <i data-lucide="log-out" style="width: 18px; height: 18px;"></i>
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+        </aside>
+
+        <!-- Main Content Wrapper -->
+        <div class="main-content">
+            <header class="app-header">
+                <div class="header-left" style="display: flex; align-items: center; gap: 1rem;">
+                    <button class="menu-toggle" onclick="toggleSidebar()" aria-label="Toggle Sidebar">
+                        <i data-lucide="menu"></i>
+                    </button>
+                    <h1 class="page-title">
+                        {% block header_title %}Overview{% endblock %}
+                    </h1>
+                </div>
+                <div class="header-actions">
+                    <!-- Additional header actions -->
+                </div>
+            </header>
+
+            <main>
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
+                        {% for category, message in messages %}
+                            <div class="alert alert-{{ category }}" style="margin-bottom: 1.5rem; padding: 1rem; border-radius: var(--radius-md); background: var(--color-surface); border-left: 4px solid var(--color-{{ 'primary' if category == 'message' else category }});">
+                                {{ message }}
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+                {% endwith %}
+                
+                {% block content %}{% endblock %}
+            </main>
+
+            <footer style="margin-top: 3rem; text-align: center; color: var(--color-text-muted); font-size: 0.875rem;">
+                <p>&copy; 2025 Financial Tracker. Built for simplicity.</p>
+            </footer>
+        </div>
+    </div>
+
+    <!-- PWA Install Banner -->
+    <div id="pwaInstallBanner" style="display: none; position: fixed; bottom: 1rem; left: 50%; transform: translateX(-50%); z-index: 1100; background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-lg); padding: 1rem 1.5rem; box-shadow: 0 8px 32px rgba(0,0,0,0.15); align-items: center; gap: 1rem; max-width: 420px; width: calc(100% - 2rem);">
+        <div style="flex: 1;">
+            <p style="margin: 0 0 0.25rem 0; font-weight: 600; font-size: 0.95rem;">Install FinTracker</p>
+            <p style="margin: 0; font-size: 0.8rem; color: var(--color-text-muted);">Add to your home screen for quick access</p>
+        </div>
+        <button onclick="installApp()" class="btn btn-primary" style="padding: 0.5rem 1rem; font-size: 0.85rem; white-space: nowrap;">Install</button>
+        <button onclick="dismissInstallBanner()" style="background: none; border: none; color: var(--color-text-muted); cursor: pointer; padding: 0.25rem; font-size: 1.2rem;">&times;</button>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/pwa.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/touch.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/push.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/lightbox.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/offline-store.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/transitions.js') }}"></script>
     <script>
         // Initialize Lucide Icons
         lucide.createIcons();

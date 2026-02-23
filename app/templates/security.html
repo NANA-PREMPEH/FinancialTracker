@@ -1,0 +1,203 @@
+{% extends "base.html" %}
+
+{% block title %}Security - Financial Tracker{% endblock %}
+{% block header_title %}Security{% endblock %}
+
+{% block content %}
+<div class="space-y-8 max-w-5xl mx-auto">
+
+    <!-- Security Score Card -->
+    <div class="bg-surface rounded-2xl border border-border shadow-sm p-6 sm:p-8 flex flex-col sm:flex-row items-center sm:items-start gap-6 sm:gap-8">
+        <div class="relative w-32 h-32 shrink-0">
+            <svg viewBox="0 0 120 120" class="w-32 h-32 -rotate-90 drop-shadow-sm">
+                <circle cx="60" cy="60" r="52" fill="none" class="stroke-surface-active" stroke-width="10"></circle>
+                <circle cx="60" cy="60" r="52" fill="none"
+                    class="{% if security_score > 80 %}stroke-success{% elif security_score > 50 %}stroke-warning{% else %}stroke-danger{% endif %} transition-all duration-1000 ease-out"
+                    stroke-width="10"
+                    stroke-dasharray="{{ (security_score / 100) * 326.73 }} 326.73"
+                    stroke-linecap="round">
+                </circle>
+            </svg>
+            <div class="absolute inset-0 flex flex-col items-center justify-center">
+                <span class="text-3xl font-black font-heading {% if security_score > 80 %}text-success{% elif security_score > 50 %}text-warning{% else %}text-danger{% endif %}">{{ security_score }}</span>
+            </div>
+        </div>
+        <div class="flex-1 text-center sm:text-left">
+            <h2 class="text-2xl font-bold font-heading text-text m-0 mb-3">Security Score</h2>
+            <p class="text-text-muted text-base mb-4 max-w-xl">
+                {% if security_score > 80 %}
+                    Your account security is strong. Keep up the good practices to ensure your financial data remains safe.
+                {% elif security_score > 50 %}
+                    Your account security is moderate. Consider improving your security settings by enabling features like Two-Factor Authentication.
+                {% else %}
+                    Your account security needs attention. Please review your security settings immediately to protect your data.
+                {% endif %}
+            </p>
+            <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-bold
+                {% if security_score > 80 %}bg-success/10 text-success{% elif security_score > 50 %}bg-warning/10 text-warning{% else %}bg-danger/10 text-danger{% endif %}">
+                <i data-lucide="{% if security_score > 80 %}shield-check{% elif security_score > 50 %}shield-alert{% else %}shield-x{% endif %}" class="w-4 h-4"></i>
+                {% if security_score > 80 %}Strong Security{% elif security_score > 50 %}Moderate Security{% else %}Weak Security{% endif %}
+            </span>
+        </div>
+    </div>
+
+    <!-- Two-Factor Authentication -->
+    <div class="bg-surface rounded-2xl border border-border shadow-sm overflow-hidden">
+        <div class="p-6 border-b border-border bg-surface-active/30 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6">
+            <div class="flex items-start sm:items-center gap-4">
+                <div class="w-12 h-12 rounded-full flex items-center justify-center shrink-0
+                    {% if current_user.totp_enabled %}bg-success/10 text-success{% else %}bg-warning/10 text-warning{% endif %}">
+                    <i data-lucide="{% if current_user.totp_enabled %}shield-check{% else %}shield-alert{% endif %}" class="w-6 h-6"></i>
+                </div>
+                <div>
+                    <h3 class="text-lg font-bold text-text m-0 mb-1">Two-Factor Authentication (2FA)</h3>
+                    <p class="text-sm font-medium text-text-muted m-0">
+                        {% if current_user.totp_enabled %}
+                            2FA is <strong class="text-success">enabled</strong>. Your account has an extra layer of security.
+                        {% else %}
+                            2FA is <strong class="text-warning">disabled</strong>. Enable it for additional security.
+                        {% endif %}
+                    </p>
+                </div>
+            </div>
+            <div class="shrink-0 w-full sm:w-auto">
+                {% if current_user.totp_enabled %}
+                    <form method="POST" action="{{ url_for('auth.disable_2fa') }}" class="inline"
+                          onsubmit="return confirm('Are you sure you want to disable 2FA? This will make your account significantly less secure.');">
+                        <input type="hidden" name="password" id="disable2faPassword">
+                        <button type="button" class="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 bg-danger/10 text-danger border border-danger/20 font-bold rounded-xl hover:bg-danger hover:text-white transition-colors focus:outline-none focus:ring-2 focus:ring-danger/50"
+                                onclick="const pw = prompt('Authenticate to disable 2FA:\n\nEnter your password:'); if(pw) { document.getElementById('disable2faPassword').value = pw; this.closest('form').submit(); }">
+                            <i data-lucide="shield-off" class="w-5 h-5"></i>
+                            Disable 2FA
+                        </button>
+                    </form>
+                {% else %}
+                    <a href="{{ url_for('auth.setup_2fa') }}" class="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 bg-primary text-primary-content font-bold rounded-xl hover:bg-primary-hover transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-primary/50">
+                        <i data-lucide="shield" class="w-5 h-5"></i>
+                        Enable 2FA Now
+                    </a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Security Events -->
+    <div class="bg-surface rounded-2xl border border-border shadow-sm overflow-hidden flex flex-col">
+        <div class="p-6 border-b border-border bg-surface-active/30 flex items-center justify-between">
+            <h2 class="text-xl font-bold font-heading text-text m-0 flex items-center gap-2">
+                <i data-lucide="activity" class="w-6 h-6 text-primary"></i> Security Events
+            </h2>
+            <span class="px-3 py-1 bg-surface border border-border rounded-lg text-xs font-bold text-text-muted">{{ events|length }} event(s)</span>
+        </div>
+
+        <div class="p-0 overflow-x-auto flex-1">
+            {% if events %}
+                <table class="w-full text-left border-collapse min-w-[600px]">
+                    <thead>
+                        <tr class="bg-surface-active/10 border-b border-border">
+                            <th class="px-6 py-4 text-sm font-semibold text-text-muted w-48">Event Type</th>
+                            <th class="px-6 py-4 text-sm font-semibold text-text-muted w-36">IP Address</th>
+                            <th class="px-6 py-4 text-sm font-semibold text-text-muted">Details</th>
+                            <th class="px-6 py-4 text-sm font-semibold text-text-muted text-right w-48">Date & Time</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-border">
+                        {% for event in events %}
+                        <tr class="hover:bg-surface-hover/50 transition-colors">
+                            <td class="px-6 py-4">
+                                <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-sm font-bold
+                                    {% if event.event_type == 'login_failed' %}bg-danger/10 text-danger
+                                    {% elif event.event_type == 'login_success' %}bg-success/10 text-success
+                                    {% else %}bg-surface-active text-text-muted{% endif %}">
+                                    <i data-lucide="{% if event.event_type == 'login_failed' %}x-circle{% elif event.event_type == 'login_success' %}check-circle-2{% else %}info{% endif %}" class="w-3.5 h-3.5"></i>
+                                    {{ event.event_type }}
+                                </span>
+                            </td>
+                            <td class="px-6 py-4 font-mono text-sm text-text-muted">{{ event.ip_address }}</td>
+                            <td class="px-6 py-4 text-sm font-medium text-text max-w-xs truncate" title="{{ event.details or '-' }}">{{ event.details or '-' }}</td>
+                            <td class="px-6 py-4 text-sm text-text-muted text-right whitespace-nowrap">{{ event.created_at.strftime('%d %b %Y, %H:%M') }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            {% else %}
+                <div class="flex flex-col items-center justify-center py-12 px-4 text-center">
+                    <div class="w-16 h-16 bg-surface-active rounded-full flex items-center justify-center mb-4">
+                        <i data-lucide="shield-check" class="w-8 h-8 text-text-muted/60"></i>
+                    </div>
+                    <p class="text-text-muted font-medium">No security events recorded yet.</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Audit Logs -->
+    <div class="bg-surface rounded-2xl border border-border shadow-sm overflow-hidden flex flex-col">
+        <div class="p-6 border-b border-border bg-surface-active/30 flex items-center justify-between">
+            <h2 class="text-xl font-bold font-heading text-text m-0 flex items-center gap-2">
+                <i data-lucide="file-clock" class="w-6 h-6 text-primary"></i> Audit Logs
+            </h2>
+            <span class="px-3 py-1 bg-surface border border-border rounded-lg text-xs font-bold text-text-muted">{{ audit_logs|length }} log(s)</span>
+        </div>
+
+        <div class="p-0 overflow-x-auto flex-1">
+            {% if audit_logs %}
+                <table class="w-full text-left border-collapse min-w-[700px]">
+                    <thead>
+                        <tr class="bg-surface-active/10 border-b border-border">
+                            <th class="px-6 py-4 text-sm font-semibold text-text-muted w-32">Action</th>
+                            <th class="px-6 py-4 text-sm font-semibold text-text-muted w-32">Entity Type</th>
+                            <th class="px-6 py-4 text-sm font-semibold text-text-muted w-32">Entity ID</th>
+                            <th class="px-6 py-4 text-sm font-semibold text-text-muted">Details</th>
+                            <th class="px-6 py-4 text-sm font-semibold text-text-muted text-right w-48">Date & Time</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-border">
+                        {% for log in audit_logs %}
+                        <tr class="hover:bg-surface-hover/50 transition-colors">
+                            <td class="px-6 py-4 font-bold text-text uppercase text-xs tracking-wider">{{ log.action }}</td>
+                            <td class="px-6 py-4 text-sm font-medium text-text-muted capitalize">{{ log.entity_type|replace('_', ' ') }}</td>
+                            <td class="px-6 py-4 font-mono text-xs text-text-muted">{{ log.entity_id[:8] if log.entity_id else '-' }}...</td>
+                            <td class="px-6 py-4 text-sm text-text max-w-xs truncate" title="{{ log.details or '-' }}">{{ log.details or '-' }}</td>
+                            <td class="px-6 py-4 text-sm text-text-muted text-right whitespace-nowrap">{{ log.created_at.strftime('%d %b %Y, %H:%M') }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            {% else %}
+                <div class="flex flex-col items-center justify-center py-12 px-4 text-center">
+                    <div class="w-16 h-16 bg-surface-active rounded-full flex items-center justify-center mb-4">
+                        <i data-lucide="clipboard-list" class="w-8 h-8 text-text-muted/60"></i>
+                    </div>
+                    <p class="text-text-muted font-medium">No audit logs recorded yet.</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Danger Zone: Clear Logs -->
+    <div class="bg-danger/5 border border-danger/20 rounded-2xl p-6 sm:p-8">
+        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6">
+            <div>
+                <h3 class="text-lg font-bold text-danger m-0 mb-1 flex items-center gap-2">
+                    <i data-lucide="alert-triangle" class="w-5 h-5"></i> Danger Zone
+                </h3>
+                <p class="text-sm font-medium text-danger/80 m-0">Clear all recorded security events and audit logs. This action cannot be undone and may hinder investigations if an incident occurs.</p>
+            </div>
+            <form method="POST" action="{{ url_for('security.clear_logs') }}" onsubmit="return confirm('Are you absolutely sure you want to clear all security and audit logs? This action is permanent and cannot be undone.');" class="shrink-0 w-full sm:w-auto">
+                <button type="submit" class="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 bg-danger text-white font-bold rounded-xl hover:bg-danger/90 transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-danger/50">
+                    <i data-lucide="trash-2" class="w-5 h-5"></i>
+                    Clear All Logs
+                </button>
+            </form>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        lucide.createIcons();
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+
+{% block title %}Notification Preferences - Financial Tracker{% endblock %}
+{% block header_title %}Notification Preferences{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto">
+    <div class="bg-surface rounded-2xl border border-border shadow-sm overflow-hidden text-text">
+        <div class="p-6 border-b border-border bg-surface-active/30 flex items-center gap-4">
+            <div class="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center text-primary shrink-0">
+                <i data-lucide="bell-ring" class="w-6 h-6"></i>
+            </div>
+            <div>
+                <h2 class="text-xl font-bold font-heading m-0 mb-1">Notification Preferences</h2>
+                <p class="text-sm font-medium text-text-muted m-0">Choose which notifications you want to receive</p>
+            </div>
+        </div>
+
+        <div class="p-6">
+            <form method="POST" action="{{ url_for('notifications.preferences') }}" class="flex flex-col h-full">
+                <div class="space-y-3 mb-8">
+                    {% for t in types %}
+                    <label class="flex items-start gap-4 p-4 bg-surface-active/30 border border-border rounded-xl cursor-pointer hover:bg-surface-hover/50 transition-colors group">
+                        <div class="flex items-center h-6 mt-0.5">
+                            <input type="checkbox" name="{{ t.key }}" value="y"
+                                {% if prefs.get(t.key, True) %}checked{% endif %}
+                                class="w-5 h-5 text-primary bg-surface border-border rounded focus:ring-primary focus:ring-2 cursor-pointer transition-all">
+                        </div>
+                        <div class="flex-1">
+                            <div class="font-bold text-text group-hover:text-primary transition-colors">{{ t.label }}</div>
+                            <div class="text-sm font-medium text-text-muted mt-1">{{ t.description }}</div>
+                        </div>
+                    </label>
+                    {% endfor %}
+                </div>
+
+                <div class="pt-6 border-t border-border flex flex-col sm:flex-row gap-3">
+                    <button type="submit" class="flex-1 inline-flex items-center justify-center gap-2 px-6 py-3 bg-primary text-primary-content font-bold rounded-xl hover:bg-primary-hover transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-primary/50">
+                        <i data-lucide="save" class="w-5 h-5"></i> Save Preferences
+                    </button>
+                    <a href="{{ url_for('notifications.notifications_list') }}" class="inline-flex items-center justify-center px-6 py-3 bg-surface border border-border text-text font-bold rounded-xl hover:bg-surface-hover transition-colors focus:outline-none focus:ring-2 focus:ring-border">
+                        Cancel
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        lucide.createIcons();
+    });
+</script>
+{% endblock %}

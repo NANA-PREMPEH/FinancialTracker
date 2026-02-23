@@ -1,227 +1,355 @@
 {% extends "base.html" %}
 
 {% block title %}Analytics - Financial Tracker{% endblock %}
+{% block header_title %}Analytics & Insights{% endblock %}
 
 {% block content %}
-<div class="card">
-    <h1>Analytics & Insights</h1>
-    <p style="color: var(--color-text-muted); margin-bottom: 2rem;">Visual breakdown of your spending patterns</p>
+<div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8 bg-surface p-6 rounded-2xl border border-border shadow-sm">
+    <div>
+        <h1 class="text-2xl font-bold font-heading text-text m-0">Analytics & Insights</h1>
+        <p class="text-text-muted mt-1 text-sm">Visual breakdown of your financial health and spending patterns.</p>
+    </div>
+</div>
 
-    <div class="grid-analytics">
-        <!-- Category Breakdown -->
-        <div class="card">
-            <h2 class="mb-4">Spending by Category</h2>
-            <div class="chart-container">
-                <canvas id="categoryChart"></canvas>
-            </div>
-        </div>
-
-        <!-- Monthly Trend -->
-        <div class="card">
-            <h2 class="mb-4">Monthly Trend</h2>
-            <div class="chart-container">
-                <canvas id="trendChart"></canvas>
-            </div>
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+    <!-- Category Breakdown -->
+    <div class="bg-surface rounded-2xl p-6 border border-border shadow-sm flex flex-col">
+        <h3 class="text-lg font-bold text-text mb-6 flex items-center gap-2">
+            <i data-lucide="pie-chart" class="w-5 h-5 text-primary"></i> Spending by Category
+        </h3>
+        <div class="relative flex-1 min-h-[300px]">
+            <canvas id="categoryChart"></canvas>
         </div>
     </div>
 
-    <!-- Yearly Trend (12 months) -->
-    <div class="card mb-8">
-        <h2 class="mb-4">Yearly Trend (Last 12 Months)</h2>
-        <div class="chart-container">
-            <canvas id="yearlyTrendChart"></canvas>
+    <!-- Monthly Trend -->
+    <div class="bg-surface rounded-2xl p-6 border border-border shadow-sm flex flex-col">
+        <h3 class="text-lg font-bold text-text mb-6 flex items-center gap-2">
+            <i data-lucide="trending-up" class="w-5 h-5 text-primary"></i> Monthly Trend
+        </h3>
+        <div class="relative flex-1 min-h-[300px]">
+            <canvas id="trendChart"></canvas>
         </div>
     </div>
+</div>
 
+<!-- Yearly Trend (12 months) -->
+<div class="bg-surface rounded-2xl p-6 border border-border shadow-sm mb-8">
+    <h3 class="text-lg font-bold text-text mb-6 flex items-center gap-2">
+        <i data-lucide="bar-chart-2" class="w-5 h-5 text-primary"></i> Yearly Trend (Last 12 Months)
+    </h3>
+    <div class="relative min-h-[300px]">
+        <canvas id="yearlyTrendChart"></canvas>
+    </div>
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
     <!-- Annual Overview (All Years) -->
-    <div class="card">
-        <h2 class="mb-4">Annual Overview</h2>
-        <table>
-            <thead>
-                <tr>
-                    <th>Year</th>
-                    <th class="text-right">Total Income</th>
-                    <th class="text-right">Total Expenses</th>
-                    <th class="text-right">Profit/Loss</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for year_data in annual_data %}
-                <tr class="analytics-table-row">
-                    <td><strong>{{ year_data.year }}</strong></td>
-                    <td class="currency text-right" style="color: #4caf50;">
-                        GHS {{ "{:,.2f}".format(year_data.income) }}
-                    </td>
-                    <td class="currency text-right" style="color: #ef4444;">
-                        GHS {{ "{:,.2f}".format(year_data.expense) }}
-                    </td>
-                    <td class="text-right">
-                        {% set diff = year_data.income - year_data.expense %}
-                        <span style="font-weight: bold; color: {{ '#4caf50' if diff >= 0 else '#f44336' }};">
-                            {{ "{:,.2f}".format(diff) }}
-                        </span>
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+    <div class="bg-surface rounded-2xl p-6 border border-border shadow-sm flex flex-col">
+        <h3 class="text-lg font-bold text-text mb-6 flex items-center gap-2">
+            <i data-lucide="calendar" class="w-5 h-5 text-primary"></i> Annual Overview
+        </h3>
+        <div class="overflow-x-auto flex-1">
+            <table class="w-full text-left border-collapse">
+                <thead>
+                    <tr class="bg-surface-active/50 border-b border-border">
+                        <th class="p-4 text-sm font-semibold text-text-muted">Year</th>
+                        <th class="p-4 text-sm font-semibold text-text-muted text-right">Total Income</th>
+                        <th class="p-4 text-sm font-semibold text-text-muted text-right">Total Expenses</th>
+                        <th class="p-4 text-sm font-semibold text-text-muted text-right">Net Flow</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-border">
+                    {% for year_data in annual_data %}
+                    <tr class="hover:bg-surface-hover/50 transition-colors">
+                        <td class="p-4 font-bold text-text">{{ year_data.year }}</td>
+                        <td class="p-4 font-medium text-success text-right whitespace-nowrap">
+                            GHS {{ "{:,.2f}".format(year_data.income) }}
+                        </td>
+                        <td class="p-4 font-medium text-danger text-right whitespace-nowrap">
+                            GHS {{ "{:,.2f}".format(year_data.expense) }}
+                        </td>
+                        <td class="p-4 text-right whitespace-nowrap">
+                            {% set diff = year_data.income - year_data.expense %}
+                            <span class="inline-flex items-center px-2.5 py-1 rounded-md text-sm font-bold {{ 'bg-success/10 text-success' if diff >= 0 else 'bg-danger/10 text-danger' }}">
+                                {{ "{:,.2f}".format(diff) }}
+                            </span>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                    {% if not annual_data %}
+                    <tr>
+                        <td colspan="4" class="p-8 text-center text-text-muted">No historical data available.</td>
+                    </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
     </div>
 
     <!-- Category Details Table -->
-    <div class="card">
-        <h2 style="margin-bottom: 1rem;">Category Breakdown</h2>
-        <table>
-            <thead>
-                <tr>
-                    <th>Category</th>
-                    <th class="text-right">Total Spent</th>
-                    <th class="text-right">% of Total</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% set total = category_data|sum(attribute=2) %}
-                {% for cat_name, cat_icon, amount in category_data %}
-                <tr class="analytics-table-row">
-                    <td>
-                        <span style="font-size: 1.25rem; margin-right: 0.5rem;">{{ cat_icon }}</span>
-                        {{ cat_name }}
-                    </td>
-                    <td class="currency">GHS {{ "%.2f"|format(amount) }}</td>
-                    <td class="text-right">
-                        {{ "%.1f"|format((amount / total * 100) if total > 0 else 0) }}%
-                        <div class="percentage-bar" style="width: {{ (amount / total * 100) if total > 0 else 0 }}%;"></div>
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+    <div class="bg-surface rounded-2xl p-6 border border-border shadow-sm flex flex-col">
+        <h3 class="text-lg font-bold text-text mb-6 flex items-center gap-2">
+            <i data-lucide="list" class="w-5 h-5 text-primary"></i> Category Breakdown
+        </h3>
+        <div class="overflow-x-auto flex-1">
+            <table class="w-full text-left border-collapse">
+                <thead>
+                    <tr class="bg-surface-active/50 border-b border-border">
+                        <th class="p-4 text-sm font-semibold text-text-muted">Category</th>
+                        <th class="p-4 text-sm font-semibold text-text-muted text-right">Total Spent</th>
+                        <th class="p-4 text-sm font-semibold text-text-muted text-right w-1/3">% of Total</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-border">
+                    {% set total = category_data|sum(attribute=2) %}
+                    {% for cat_name, cat_icon, amount in category_data %}
+                    <tr class="hover:bg-surface-hover/50 transition-colors">
+                        <td class="p-4">
+                            <div class="flex items-center gap-3">
+                                <div class="w-8 h-8 rounded-full bg-surface-active flex items-center justify-center text-xl shrink-0 border border-border">
+                                    {{ cat_icon }}
+                                </div>
+                                <span class="font-medium text-text">{{ cat_name }}</span>
+                            </div>
+                        </td>
+                        <td class="p-4 font-bold text-text text-right whitespace-nowrap">GHS {{ "%.2f"|format(amount) }}</td>
+                        <td class="p-4">
+                            <div class="flex items-center justify-end gap-3">
+                                <span class="text-sm font-medium text-text-muted w-12 text-right">{{ "%.1f"|format((amount / total * 100) if total > 0 else 0) }}%</span>
+                                <div class="w-24 h-2 bg-surface-active rounded-full overflow-hidden shrink-0 border border-border/50">
+                                    {% set percentage = (amount / total * 100) if total > 0 else 0 %}
+                                    <div class="h-full rounded-full transition-all duration-500" 
+                                         style="width: {{ percentage }}%; background-color: {% if loop.index0 % 5 == 0 %}#6366f1{% elif loop.index0 % 5 == 1 %}#10b981{% elif loop.index0 % 5 == 2 %}#f59e0b{% elif loop.index0 % 5 == 3 %}#ef4444{% else %}#8b5cf6{% endif %};">
+                                    </div>
+                                </div>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                    {% if not category_data %}
+                    <tr>
+                        <td colspan="3" class="p-8 text-center text-text-muted">No category data available.</td>
+                    </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
     </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-// Category Pie Chart
-const categoryCtx = document.getElementById('categoryChart').getContext('2d');
-new Chart(categoryCtx, {
-    type: 'doughnut',
-    data: {
-        labels: [{% for cat_name, cat_icon, amount in category_data %}'{{ cat_icon }} {{ cat_name }}'{% if not loop.last %}, {% endif %}{% endfor %}],
-        datasets: [{
-            data: [{% for cat_name, cat_icon, amount in category_data %}{{ amount }}{% if not loop.last %}, {% endif %}{% endfor %}],
-            backgroundColor: [
-                '#4f46e5', '#06b6d4', '#10b981', '#f59e0b', '#ef4444', 
-                '#8b5cf6', '#ec4899', '#14b8a6', '#f97316', '#6366f1'
-            ]
-        }]
-    },
-    options: {
-        responsive: true,
-        plugins: {
-            legend: {
-                position: 'bottom'
-            }
-        }
-    }
-});
+    document.addEventListener('DOMContentLoaded', () => {
+        lucide.createIcons();
+        
+        // Dynamic Chart Colors based on CSS variables (helps with theme toggling)
+        const rootStyles = getComputedStyle(document.documentElement);
+        const chartFontColor = rootStyles.getPropertyValue('--color-text-muted').trim() || '#64748b';
+        const chartGridColor = rootStyles.getPropertyValue('--color-border').trim() || '#e2e8f0';
+        
+        Chart.defaults.color = chartFontColor;
+        Chart.defaults.borderColor = chartGridColor;
+        Chart.defaults.font.family = "'Plus Jakarta Sans', 'Inter', sans-serif";
+        Chart.defaults.font.size = 12;
 
-// Monthly Trend Line Chart
-const trendCtx = document.getElementById('trendChart').getContext('2d');
-new Chart(trendCtx, {
-    type: 'line',
-    data: {
-        labels: [{% for item in monthly_data %}'{{ item.month }}'{% if not loop.last %}, {% endif %}{% endfor %}],
-        datasets: [
-            {
-                label: 'Expenses',
-                data: [{% for item in monthly_data %}{{ item.expense }}{% if not loop.last %}, {% endif %}{% endfor %}],
-                borderColor: '#ef4444',
-                backgroundColor: 'rgba(239, 68, 68, 0.1)',
-                tension: 0.4,
-                fill: true
-            },
-            {
-                label: 'Income',
-                data: [{% for item in monthly_data %}{{ item.income }}{% if not loop.last %}, {% endif %}{% endfor %}],
-                borderColor: '#10b981',
-                backgroundColor: 'rgba(16, 185, 129, 0.1)',
-                tension: 0.4,
-                fill: true
-            }
-        ]
-    },
-    options: {
-        responsive: true,
-        plugins: {
-            legend: {
-                display: true,
-                position: 'top'
-            },
-            tooltip: {
-                mode: 'index',
-                intersect: false,
-            }
-        },
-        scales: {
-            y: {
-                beginAtZero: true
-            }
-        },
-        interaction: {
-            mode: 'nearest',
-            axis: 'x',
-            intersect: false
+        // Category Pie Chart
+        const categoryCanvas = document.getElementById('categoryChart');
+        if (categoryCanvas) {
+            const categoryCtx = categoryCanvas.getContext('2d');
+            new Chart(categoryCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: [{% for cat_name, cat_icon, amount in category_data %}'{{ cat_icon }} {{ cat_name }}'{% if not loop.last %}, {% endif %}{% endfor %}],
+                    datasets: [{
+                        data: [{% for cat_name, cat_icon, amount in category_data %}{{ amount }}{% if not loop.last %}, {% endif %}{% endfor %}],
+                        backgroundColor: [
+                            '#6366f1', '#10b981', '#f59e0b', '#ef4444', 
+                            '#8b5cf6', '#ec4899', '#06b6d4', '#14b8a6', '#f97316', '#64748b'
+                        ],
+                        borderWidth: 2,
+                        borderColor: rootStyles.getPropertyValue('--color-surface').trim() || '#ffffff',
+                        hoverOffset: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                padding: 20,
+                                usePointStyle: true,
+                                boxWidth: 8
+                            }
+                        }
+                    },
+                    cutout: '70%',
+                    layout: {
+                        padding: 10
+                    }
+                }
+            });
         }
-    }
-});
 
-// Yearly Trend Line Chart (12 months)
-const yearlyTrendCtx = document.getElementById('yearlyTrendChart').getContext('2d');
-new Chart(yearlyTrendCtx, {
-    type: 'line',
-    data: {
-        labels: [{% for item in yearly_data %}'{{ item.month }}'{% if not loop.last %}, {% endif %}{% endfor %}],
-        datasets: [
-            {
-                label: 'Expenses',
-                data: [{% for item in yearly_data %}{{ item.expense }}{% if not loop.last %}, {% endif %}{% endfor %}],
-                borderColor: '#ef4444',
-                backgroundColor: 'rgba(239, 68, 68, 0.1)',
-                tension: 0.4,
-                fill: true
+        const commonLineOptions = {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'top',
+                    align: 'end',
+                    labels: {
+                        usePointStyle: true,
+                        boxWidth: 8,
+                        padding: 20
+                    }
+                },
+                tooltip: {
+                    mode: 'index',
+                    intersect: false,
+                    backgroundColor: 'rgba(15, 23, 42, 0.9)',
+                    titleColor: '#f8fafc',
+                    bodyColor: '#cbd5e1',
+                    borderColor: 'rgba(255,255,255,0.1)',
+                    borderWidth: 1,
+                    padding: 12,
+                    cornerRadius: 8,
+                    displayColors: true,
+                    usePointStyle: true
+                }
             },
-            {
-                label: 'Income',
-                data: [{% for item in yearly_data %}{{ item.income }}{% if not loop.last %}, {% endif %}{% endfor %}],
-                borderColor: '#10b981',
-                backgroundColor: 'rgba(16, 185, 129, 0.1)',
-                tension: 0.4,
-                fill: true
-            }
-        ]
-    },
-    options: {
-        responsive: true,
-        plugins: {
-            legend: {
-                display: true,
-                position: 'top'
+            scales: {
+                x: {
+                    grid: {
+                        display: false,
+                        drawBorder: false
+                    },
+                    ticks: {
+                        padding: 10
+                    }
+                },
+                y: {
+                    beginAtZero: true,
+                    grid: {
+                        color: chartGridColor,
+                        borderDash: [5, 5],
+                        drawBorder: false
+                    },
+                    border: {
+                        display: false
+                    },
+                    ticks: {
+                        padding: 10,
+                        maxTicksLimit: 6,
+                        callback: function(value) {
+                            if (value >= 1000) {
+                                return 'GHS ' + (value / 1000).toFixed(1) + 'k';
+                            }
+                            return 'GHS ' + value;
+                        }
+                    }
+                }
             },
-            tooltip: {
-                mode: 'index',
-                intersect: false,
+            interaction: {
+                mode: 'nearest',
+                axis: 'x',
+                intersect: false
+            },
+            elements: {
+                point: {
+                    radius: 0,
+                    hoverRadius: 6,
+                    borderWidth: 2,
+                    backgroundColor: '#ffffff'
+                },
+                line: {
+                    tension: 0.4,
+                    borderWidth: 3
+                }
             }
-        },
-        scales: {
-            y: {
-                beginAtZero: true
-            }
-        },
-        interaction: {
-            mode: 'nearest',
-            axis: 'x',
-            intersect: false
+        };
+
+        // Monthly Trend Line Chart
+        const trendCanvas = document.getElementById('trendChart');
+        if (trendCanvas) {
+            const trendCtx = trendCanvas.getContext('2d');
+            
+            const expenseGradient = trendCtx.createLinearGradient(0, 0, 0, 300);
+            expenseGradient.addColorStop(0, 'rgba(239, 68, 68, 0.2)');
+            expenseGradient.addColorStop(1, 'rgba(239, 68, 68, 0)');
+            
+            const incomeGradient = trendCtx.createLinearGradient(0, 0, 0, 300);
+            incomeGradient.addColorStop(0, 'rgba(16, 185, 129, 0.2)');
+            incomeGradient.addColorStop(1, 'rgba(16, 185, 129, 0)');
+
+            new Chart(trendCtx, {
+                type: 'line',
+                data: {
+                    labels: [{% for item in monthly_data %}'{{ item.month }}'{% if not loop.last %}, {% endif %}{% endfor %}],
+                    datasets: [
+                        {
+                            label: 'Expenses',
+                            data: [{% for item in monthly_data %}{{ item.expense }}{% if not loop.last %}, {% endif %}{% endfor %}],
+                            borderColor: '#ef4444',
+                            backgroundColor: expenseGradient,
+                            fill: true,
+                            pointBorderColor: '#ef4444',
+                        },
+                        {
+                            label: 'Income',
+                            data: [{% for item in monthly_data %}{{ item.income }}{% if not loop.last %}, {% endif %}{% endfor %}],
+                            borderColor: '#10b981',
+                            backgroundColor: incomeGradient,
+                            fill: true,
+                            pointBorderColor: '#10b981',
+                        }
+                    ]
+                },
+                options: commonLineOptions
+            });
         }
-    }
-});
+
+        // Yearly Trend Line Chart (12 months)
+        const yearlyTrendCanvas = document.getElementById('yearlyTrendChart');
+        if (yearlyTrendCanvas) {
+            const yearlyTrendCtx = yearlyTrendCanvas.getContext('2d');
+            
+            const expenseGradientYr = yearlyTrendCtx.createLinearGradient(0, 0, 0, 300);
+            expenseGradientYr.addColorStop(0, 'rgba(239, 68, 68, 0.2)');
+            expenseGradientYr.addColorStop(1, 'rgba(239, 68, 68, 0)');
+            
+            const incomeGradientYr = yearlyTrendCtx.createLinearGradient(0, 0, 0, 300);
+            incomeGradientYr.addColorStop(0, 'rgba(16, 185, 129, 0.2)');
+            incomeGradientYr.addColorStop(1, 'rgba(16, 185, 129, 0)');
+
+            new Chart(yearlyTrendCtx, {
+                type: 'line',
+                data: {
+                    labels: [{% for item in yearly_data %}'{{ item.month }}'{% if not loop.last %}, {% endif %}{% endfor %}],
+                    datasets: [
+                        {
+                            label: 'Expenses',
+                            data: [{% for item in yearly_data %}{{ item.expense }}{% if not loop.last %}, {% endif %}{% endfor %}],
+                            borderColor: '#ef4444',
+                            backgroundColor: expenseGradientYr,
+                            fill: true,
+                            pointBorderColor: '#ef4444',
+                        },
+                        {
+                            label: 'Income',
+                            data: [{% for item in yearly_data %}{{ item.income }}{% if not loop.last %}, {% endif %}{% endfor %}],
+                            borderColor: '#10b981',
+                            backgroundColor: incomeGradientYr,
+                            fill: true,
+                            pointBorderColor: '#10b981',
+                        }
+                    ]
+                },
+                options: commonLineOptions
+            });
+        }
+    });
 </script>
 {% endblock %}

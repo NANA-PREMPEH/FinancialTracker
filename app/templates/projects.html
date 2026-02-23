@@ -1,68 +1,101 @@
 {% extends "base.html" %}
 
 {% block title %}Projects To-Do - Financial Tracker{% endblock %}
+{% block header_title %}Projects To-Do{% endblock %}
 
 {% block content %}
-<div class="card">
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
-        <h1>📋 Projects To-Do</h1>
-        <a href="{{ url_for('main.add_project') }}">
-            <button>+ Add Project</button>
+<div class="max-w-7xl mx-auto space-y-8">
+    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-surface p-6 rounded-2xl border border-border shadow-sm">
+        <div>
+            <h2 class="text-xl font-bold font-heading text-text m-0 mb-1 flex items-center gap-2">
+                <i data-lucide="clipboard-list" class="w-6 h-6 text-primary"></i> Projects To-Do
+            </h2>
+            <p class="text-sm font-medium text-text-muted m-0">Plan, fund, and track expenses for your personal or group projects.</p>
+        </div>
+        <a href="{{ url_for('main.add_project') }}" class="shrink-0 inline-flex items-center justify-center gap-2 px-6 py-3 bg-primary text-primary-content font-bold rounded-xl hover:bg-primary-hover transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-primary/50">
+            <i data-lucide="plus" class="w-5 h-5"></i> Add Project
         </a>
     </div>
 
     {% if projects %}
-    <div style="display: grid; gap: 1.5rem;">
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {% for project in projects %}
-        <div class="card" id="project-{{ project.id }}" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 1.5rem;">
-            <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 1rem;">
-                <div style="flex: 1;">
-                    <h3 style="color: white; margin-bottom: 0.5rem;">{{ project.name }}</h3>
-                    <p style="opacity: 0.9; font-size: 0.9rem; margin-bottom: 0.5rem;">
-                        💰 Funding: 
-                        {% if project.funding_source == 'wallet' and project.wallet %}
-                            {{ project.wallet.name }}
-                        {% elif project.funding_source == 'other' %}
-                            {{ project.custom_funding_source }}
-                        {% else %}
-                            {{ project.funding_source|replace('_', ' ')|title }}
-                        {% endif %}
-                    </p>
-                    
-                    <div style="display: flex; gap: 1.5rem; margin-top: 1rem; flex-wrap: wrap;">
-                        <div>
-                            <p style="font-size: 0.75rem; opacity: 0.8; margin-bottom: 0.1rem;">✓ Completed</p>
-                            <p style="font-size: 1rem; font-weight: 700;">GHS {{ "{:,.2f}".format(project.paid_expense) }}</p>
-                        </div>
-                        <div>
-                            <p style="font-size: 0.75rem; opacity: 0.8; margin-bottom: 0.1rem;">⏳ Not Completed</p>
-                            <p style="font-size: 1rem; font-weight: 700;">GHS {{ "{:,.2f}".format(project.total_cost - project.paid_expense) }}</p>
-                        </div>
-                        <div>
-                            <p style="font-size: 0.75rem; opacity: 0.8; margin-bottom: 0.1rem;">Total income</p>
-                            <p style="font-size: 1rem; font-weight: 700;">GHS {{ "{:,.2f}".format(project.paid_income) }}</p>
-                        </div>
-                         <div>
-                            <p style="font-size: 0.75rem; opacity: 0.8; margin-bottom: 0.1rem;">Total Cost</p>
-                            <p style="font-size: 1rem; font-weight: 700;">GHS {{ "{:,.2f}".format(project.total_cost) }}</p>
-                        </div>
+        <div class="bg-surface rounded-2xl border border-border shadow-sm overflow-hidden flex flex-col group hover:shadow-md hover:border-primary/30 transition-all duration-300 relative" id="project-{{ project.id }}">
+            <div class="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"></div>
+            
+            <div class="p-6 border-b border-border relative z-10 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-surface-active/30">
+                <div class="flex-1 min-w-0">
+                    <h3 class="text-xl font-bold font-heading text-text m-0 mb-1 truncate line-clamp-1" title="{{ project.name }}">{{ project.name }}</h3>
+                    <div class="flex items-center gap-1.5 text-sm font-medium text-text-muted">
+                        <i data-lucide="piggy-bank" class="w-4 h-4 text-primary shrink-0"></i>
+                        <span class="truncate">
+                            {% if project.funding_source == 'wallet' and project.wallet %}
+                                Funded via: <span class="text-text font-semibold">{{ project.wallet.name }}</span>
+                            {% elif project.funding_source == 'other' %}
+                                Funded via: <span class="text-text font-semibold">{{ project.custom_funding_source }}</span>
+                            {% else %}
+                                Funded via: <span class="text-text font-semibold">{{ project.funding_source|replace('_', ' ')|title }}</span>
+                            {% endif %}
+                        </span>
                     </div>
                 </div>
-                <div style="display: flex; gap: 0.5rem;">
-                    <a href="{{ url_for('main.project_details', id=project.id) }}" style="text-decoration: none;">
-                        <button style="background-color: rgba(255, 255, 255, 0.2); color: white; padding: 0.5rem 1rem; border: 1px solid rgba(255, 255, 255, 0.3); border-radius: 6px; cursor: pointer; font-size: 0.85rem;">
-                            👁️ View
-                        </button>
-                    </a>
+                <a href="{{ url_for('main.project_details', id=project.id) }}" class="shrink-0 inline-flex items-center justify-center gap-2 px-4 py-2 bg-surface border border-border text-text font-bold rounded-xl hover:bg-primary hover:text-white hover:border-primary transition-colors focus:outline-none focus:ring-2 focus:ring-primary/50 shadow-sm">
+                    <i data-lucide="eye" class="w-4 h-4"></i> View Details
+                </a>
+            </div>
+            
+            <div class="p-6 grid grid-cols-2 sm:grid-cols-4 gap-4 relative z-10">
+                <div class="bg-success/5 border border-success/20 rounded-xl p-3 flex flex-col justify-center">
+                    <p class="text-xs font-semibold text-text-muted uppercase tracking-wider mb-1 flex items-center gap-1"><i data-lucide="check-circle-2" class="w-3.5 h-3.5 text-success"></i> Completed</p>
+                    <p class="text-base sm:text-lg font-bold font-heading text-text truncate" title="GHS {{ '{:,.2f}'.format(project.paid_expense) }}">GHS {{ "{:,.2f}".format(project.paid_expense) }}</p>
+                </div>
+                
+                <div class="bg-warning/5 border border-warning/20 rounded-xl p-3 flex flex-col justify-center">
+                    <p class="text-xs font-semibold text-text-muted uppercase tracking-wider mb-1 flex items-center gap-1"><i data-lucide="hourglass" class="w-3.5 h-3.5 text-warning"></i> Pending</p>
+                    <p class="text-base sm:text-lg font-bold font-heading text-text truncate" title="GHS {{ '{:,.2f}'.format(project.total_cost - project.paid_expense) }}">GHS {{ "{:,.2f}".format(project.total_cost - project.paid_expense) }}</p>
+                </div>
+                
+                <div class="bg-primary/5 border border-primary/20 rounded-xl p-3 flex flex-col justify-center">
+                    <p class="text-xs font-semibold text-text-muted uppercase tracking-wider mb-1 flex items-center gap-1"><i data-lucide="trending-up" class="w-3.5 h-3.5 text-primary"></i> Income</p>
+                    <p class="text-base sm:text-lg font-bold font-heading text-text truncate" title="GHS {{ '{:,.2f}'.format(project.paid_income) }}">GHS {{ "{:,.2f}".format(project.paid_income) }}</p>
+                </div>
+                 
+                <div class="bg-surface-active/50 border border-border rounded-xl p-3 flex flex-col justify-center">
+                    <p class="text-xs font-semibold text-text-muted uppercase tracking-wider mb-1 flex items-center gap-1"><i data-lucide="sigma" class="w-3.5 h-3.5"></i> Total Cost</p>
+                    <p class="text-base sm:text-lg font-bold font-heading text-text truncate" title="GHS {{ '{:,.2f}'.format(project.total_cost) }}">GHS {{ "{:,.2f}".format(project.total_cost) }}</p>
+                </div>
+            </div>
+            
+            {% set progress = (project.paid_expense / project.total_cost * 100) if project.total_cost > 0 else 0 %}
+            <div class="px-6 pb-6 relative z-10">
+                <div class="flex justify-between items-center mb-1.5">
+                    <span class="text-xs font-bold text-text-muted">Payment Progress</span>
+                    <span class="text-xs font-bold text-primary">{{ "%.1f"|format(progress) }}%</span>
+                </div>
+                <div class="w-full bg-surface-active rounded-full h-2 overflow-hidden border border-border/50">
+                    <div class="bg-primary h-2 rounded-full transition-all duration-1000 ease-out" style="width: {{ progress }}%"></div>
                 </div>
             </div>
         </div>
         {% endfor %}
     </div>
     {% else %}
-    <p style="text-align: center; color: var(--color-text-muted); padding: 3rem;">
-        No projects yet. Create your first project to start planning!
-    </p>
+    <div class="bg-surface rounded-2xl border border-dashed border-border p-12 flex flex-col items-center justify-center text-center">
+        <div class="w-20 h-20 bg-surface-active rounded-full flex items-center justify-center mb-6">
+            <i data-lucide="folder-plus" class="w-10 h-10 text-text-muted/50"></i>
+        </div>
+        <h3 class="text-xl font-bold text-text m-0 mb-2">No Projects Yet</h3>
+        <p class="text-text-muted max-w-md mx-auto mb-6">Create your first project to start planning budgets for events, renovations, or large purchases.</p>
+        <a href="{{ url_for('main.add_project') }}" class="inline-flex items-center justify-center gap-2 px-6 py-3 bg-primary text-primary-content font-bold rounded-xl hover:bg-primary-hover transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-primary/50">
+            <i data-lucide="plus" class="w-5 h-5"></i> Create First Project
+        </a>
+    </div>
     {% endif %}
 </div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        lucide.createIcons();
+    });
+</script>
 {% endblock %}

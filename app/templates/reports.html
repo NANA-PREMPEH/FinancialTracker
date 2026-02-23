@@ -1,90 +1,193 @@
 {% extends "base.html" %}
 
 {% block title %}Reports - Financial Tracker{% endblock %}
+{% block header_title %}Financial Reports{% endblock %}
 
 {% block content %}
-<h1>Reports</h1>
+<div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8 bg-surface p-6 rounded-2xl border border-border shadow-sm">
+    <div>
+        <h1 class="text-2xl font-bold font-heading text-text m-0">Financial Reports</h1>
+        <p class="text-text-muted mt-1 text-sm">Detailed periodic summaries of your spending.</p>
+    </div>
+    <div class="flex gap-3">
+        <button class="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-surface text-text border border-border font-medium rounded-xl hover:bg-surface-hover transition-colors shadow-sm" title="Export as PDF">
+            <i data-lucide="download" class="w-4 h-4 text-text-muted"></i> Export PDF
+        </button>
+        <button class="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-surface text-text border border-border font-medium rounded-xl hover:bg-surface-hover transition-colors shadow-sm" title="Export as CSV">
+            <i data-lucide="file-spreadsheet" class="w-4 h-4 text-text-muted"></i> Export CSV
+        </button>
+    </div>
+</div>
 
-<div class="reports-container">
-    <section>
-        <h2>Weekly Report (Last 7 Days)</h2>
-        {% if weekly %}
-            <table>
-                <thead><tr><th>Category</th><th class="text-right">Total (GHS)</th></tr></thead>
-                <tbody>
-                    {% for category, amount in weekly %}
-                    <tr><td>{{ category }}</td><td class="currency">{{ "%.2f"|format(amount) }}</td></tr>
-                    {% endfor %}
-                </tbody>
-                <tfoot>
-                    <tr style="font-weight: bold; background-color: #f8f9fa;">
-                        <td>Total</td>
-                        <td class="currency">{{ "%.2f"|format(weekly_total) }}</td>
-                    </tr>
-                </tfoot>
-            </table>
-        {% else %}<p>No data for this week.</p>{% endif %}
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <!-- Weekly Report -->
+    <section class="bg-surface rounded-2xl border border-border shadow-sm flex flex-col overflow-hidden h-full">
+        <div class="p-6 border-b border-border bg-surface-active/30 flex items-center justify-between">
+            <h2 class="text-lg font-bold text-text m-0 flex items-center gap-2">
+                <i data-lucide="calendar" class="w-5 h-5 text-primary"></i> Weekly Report
+            </h2>
+            <span class="text-xs font-medium text-text-muted bg-surface-active px-2.5 py-1 rounded-md">Last 7 Days</span>
+        </div>
+        <div class="p-0 flex-1 flex flex-col">
+            {% if weekly %}
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="border-b border-border">
+                            <th class="px-6 py-4 text-sm font-semibold text-text-muted">Category</th>
+                            <th class="px-6 py-4 text-sm font-semibold text-text-muted text-right">Total (GHS)</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-border">
+                        {% for category, amount in weekly %}
+                        <tr class="hover:bg-surface-hover/50 transition-colors">
+                            <td class="px-6 py-4 font-medium text-text">{{ category }}</td>
+                            <td class="px-6 py-4 font-medium text-right whitespace-nowrap">{{ "%.2f"|format(amount) }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            <div class="mt-auto px-6 py-4 bg-surface-active/50 border-t border-border flex justify-between items-center text-lg">
+                <span class="font-bold text-text">Total</span>
+                <span class="font-bold text-danger">GHS {{ "%.2f"|format(weekly_total) }}</span>
+            </div>
+            {% else %}
+            <div class="flex flex-col items-center justify-center p-12 text-center flex-1">
+                <i data-lucide="inbox" class="w-12 h-12 text-text-muted/50 mb-4"></i>
+                <p class="text-text-muted font-medium">No spending data for this week.</p>
+            </div>
+            {% endif %}
+        </div>
     </section>
 
-    <section>
-        <h2>Monthly Report (This Month)</h2>
-        {% if monthly %}
-            <table>
-                <thead><tr><th>Category</th><th class="text-right">Total (GHS)</th></tr></thead>
-                <tbody>
-                    {% for category, amount in monthly %}
-                    <tr><td>{{ category }}</td><td class="currency">{{ "%.2f"|format(amount) }}</td></tr>
-                    {% endfor %}
-                </tbody>
-                <tfoot>
-                    <tr style="font-weight: bold; background-color: #f8f9fa;">
-                        <td>Total</td>
-                        <td class="currency">{{ "%.2f"|format(monthly_total) }}</td>
-                    </tr>
-                </tfoot>
-            </table>
-        {% else %}<p>No data for this month.</p>{% endif %}
+    <!-- Monthly Report -->
+    <section class="bg-surface rounded-2xl border border-border shadow-sm flex flex-col overflow-hidden h-full">
+        <div class="p-6 border-b border-border bg-surface-active/30 flex items-center justify-between">
+            <h2 class="text-lg font-bold text-text m-0 flex items-center gap-2">
+                <i data-lucide="calendar-days" class="w-5 h-5 text-primary"></i> Monthly Report
+            </h2>
+            <span class="text-xs font-medium text-text-muted bg-surface-active px-2.5 py-1 rounded-md">This Month</span>
+        </div>
+        <div class="p-0 flex-1 flex flex-col">
+            {% if monthly %}
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="border-b border-border">
+                            <th class="px-6 py-4 text-sm font-semibold text-text-muted">Category</th>
+                            <th class="px-6 py-4 text-sm font-semibold text-text-muted text-right">Total (GHS)</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-border">
+                        {% for category, amount in monthly %}
+                        <tr class="hover:bg-surface-hover/50 transition-colors">
+                            <td class="px-6 py-4 font-medium text-text">{{ category }}</td>
+                            <td class="px-6 py-4 font-medium text-right whitespace-nowrap">{{ "%.2f"|format(amount) }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            <div class="mt-auto px-6 py-4 bg-surface-active/50 border-t border-border flex justify-between items-center text-lg">
+                <span class="font-bold text-text">Total</span>
+                <span class="font-bold text-danger">GHS {{ "%.2f"|format(monthly_total) }}</span>
+            </div>
+            {% else %}
+            <div class="flex flex-col items-center justify-center p-12 text-center flex-1">
+                <i data-lucide="inbox" class="w-12 h-12 text-text-muted/50 mb-4"></i>
+                <p class="text-text-muted font-medium">No spending data for this month.</p>
+            </div>
+            {% endif %}
+        </div>
     </section>
 
-    <section>
-        <h2>Quarterly Report (Last 90 Days)</h2>
-        {% if quarterly %}
-            <table>
-                <thead><tr><th>Category</th><th class="text-right">Total (GHS)</th></tr></thead>
-                <tbody>
-                    {% for category, amount in quarterly %}
-                    <tr><td>{{ category }}</td><td class="currency">{{ "%.2f"|format(amount) }}</td></tr>
-                    {% endfor %}
-                </tbody>
-                <tfoot>
-                    <tr style="font-weight: bold; background-color: #f8f9fa;">
-                        <td>Total</td>
-                        <td class="currency">{{ "%.2f"|format(quarterly_total) }}</td>
-                    </tr>
-                </tfoot>
-            </table>
-        {% else %}<p>No data for this quarter.</p>{% endif %}
+    <!-- Quarterly Report -->
+    <section class="bg-surface rounded-2xl border border-border shadow-sm flex flex-col overflow-hidden h-full">
+        <div class="p-6 border-b border-border bg-surface-active/30 flex items-center justify-between">
+            <h2 class="text-lg font-bold text-text m-0 flex items-center gap-2">
+                <i data-lucide="pie-chart" class="w-5 h-5 text-primary"></i> Quarterly Report
+            </h2>
+            <span class="text-xs font-medium text-text-muted bg-surface-active px-2.5 py-1 rounded-md">Last 90 Days</span>
+        </div>
+        <div class="p-0 flex-1 flex flex-col">
+            {% if quarterly %}
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="border-b border-border">
+                            <th class="px-6 py-4 text-sm font-semibold text-text-muted">Category</th>
+                            <th class="px-6 py-4 text-sm font-semibold text-text-muted text-right">Total (GHS)</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-border">
+                        {% for category, amount in quarterly %}
+                        <tr class="hover:bg-surface-hover/50 transition-colors">
+                            <td class="px-6 py-4 font-medium text-text">{{ category }}</td>
+                            <td class="px-6 py-4 font-medium text-right whitespace-nowrap">{{ "%.2f"|format(amount) }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            <div class="mt-auto px-6 py-4 bg-surface-active/50 border-t border-border flex justify-between items-center text-lg">
+                <span class="font-bold text-text">Total</span>
+                <span class="font-bold text-danger">GHS {{ "%.2f"|format(quarterly_total) }}</span>
+            </div>
+            {% else %}
+            <div class="flex flex-col items-center justify-center p-12 text-center flex-1">
+                <i data-lucide="inbox" class="w-12 h-12 text-text-muted/50 mb-4"></i>
+                <p class="text-text-muted font-medium">No spending data for this quarter.</p>
+            </div>
+            {% endif %}
+        </div>
     </section>
 
-    <section>
-        <h2>Yearly Report (This Year)</h2>
-        {% if yearly %}
-            <table>
-                <thead><tr><th>Category</th><th class="text-right">Total (GHS)</th></tr></thead>
-                <tbody>
-                    {% for category, amount in yearly %}
-                    <tr><td>{{ category }}</td><td class="currency">{{ "%.2f"|format(amount) }}</td></tr>
-                    {% endfor %}
-                </tbody>
-                <tfoot>
-                    <tr style="font-weight: bold; background-color: #f8f9fa;">
-                        <td>Total</td>
-                        <td class="currency">{{ "%.2f"|format(yearly_total) }}</td>
-                    </tr>
-                </tfoot>
-            </table>
-        {% else %}<p>No data for this year.</p>{% endif %}
+    <!-- Yearly Report -->
+    <section class="bg-surface rounded-2xl border border-border shadow-sm flex flex-col overflow-hidden h-full">
+        <div class="p-6 border-b border-border bg-surface-active/30 flex items-center justify-between">
+            <h2 class="text-lg font-bold text-text m-0 flex items-center gap-2">
+                <i data-lucide="bar-chart-2" class="w-5 h-5 text-primary"></i> Yearly Report
+            </h2>
+            <span class="text-xs font-medium text-text-muted bg-surface-active px-2.5 py-1 rounded-md">This Year</span>
+        </div>
+        <div class="p-0 flex-1 flex flex-col">
+            {% if yearly %}
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="border-b border-border">
+                            <th class="px-6 py-4 text-sm font-semibold text-text-muted">Category</th>
+                            <th class="px-6 py-4 text-sm font-semibold text-text-muted text-right">Total (GHS)</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-border">
+                        {% for category, amount in yearly %}
+                        <tr class="hover:bg-surface-hover/50 transition-colors">
+                            <td class="px-6 py-4 font-medium text-text">{{ category }}</td>
+                            <td class="px-6 py-4 font-medium text-right whitespace-nowrap">{{ "%.2f"|format(amount) }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            <div class="mt-auto px-6 py-4 bg-surface-active/50 border-t border-border flex justify-between items-center text-lg">
+                <span class="font-bold text-text">Total</span>
+                <span class="font-bold text-danger">GHS {{ "%.2f"|format(yearly_total) }}</span>
+            </div>
+            {% else %}
+            <div class="flex flex-col items-center justify-center p-12 text-center flex-1">
+                <i data-lucide="inbox" class="w-12 h-12 text-text-muted/50 mb-4"></i>
+                <p class="text-text-muted font-medium">No spending data for this year.</p>
+            </div>
+            {% endif %}
+        </div>
     </section>
 </div>
 
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        lucide.createIcons();
+    });
+</script>
 {% endblock %}

@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 
 {% block title %}Historical Data - Financial Tracker{% endblock %}
+{% block header_title %}Historical Data{% endblock %}
 
 {% block content %}
 <!-- Helper to convert month number to name -->
@@ -8,32 +9,42 @@
     {% set months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'] %}
     {{ months[n-1] }}
 {% endmacro %}
-<div class="card">
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
-        <h1>📚 Historical Data</h1>
-        <button onclick="document.getElementById('addModal').style.display='block'" 
-            style="background: var(--color-primary); color: white; border: none; padding: 0.5rem 1rem; border-radius: 6px; cursor: pointer;">
-            + Add Record
-        </button>
-    </div>
 
-    <!-- Add Record Modal -->
-    <div id="addModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000;">
-        <div style="background: white; width: 90%; max-width: 500px; margin: 50px auto; padding: 2rem; border-radius: 12px; position: relative;">
-            <span onclick="document.getElementById('addModal').style.display='none'" 
-                style="position: absolute; right: 20px; top: 20px; cursor: pointer; font-size: 1.5rem;">&times;</span>
-            
-            <h2 id="modalTitle" style="margin-top: 0;">Add Historical Record</h2>
-            <form id="historicalForm" action="{{ url_for('main.add_historical_summary') }}" method="POST" style="display: flex; flex-direction: column; gap: 1rem;">
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
-                    <div>
-                        <label>Year</label>
+<div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8 bg-surface p-6 rounded-2xl border border-border shadow-sm">
+    <div>
+        <h1 class="text-2xl font-bold font-heading text-text m-0 flex items-center gap-2">
+            <i data-lucide="library" class="w-6 h-6 text-primary"></i> Historical Data
+        </h1>
+        <p class="text-text-muted mt-1 text-sm">Review your past financial summaries by year and month.</p>
+    </div>
+    <button onclick="openAddModal()" class="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-primary text-primary-content font-semibold rounded-xl hover:bg-primary-hover transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-primary/50">
+        <i data-lucide="plus" class="w-5 h-5"></i> Add Record
+    </button>
+</div>
+
+<!-- Add/Edit Record Modal -->
+<div id="addModal" class="hidden fixed inset-0 bg-surface-active/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div class="bg-surface w-full max-w-lg rounded-2xl border border-border flex flex-col max-h-[90vh] shadow-2xl overflow-hidden relative" onclick="event.stopPropagation()">
+        <!-- Modal Header -->
+        <div class="p-6 border-b border-border flex items-center justify-between bg-surface-active/30">
+            <h2 id="modalTitle" class="text-xl font-bold font-heading text-text m-0">Add Historical Record</h2>
+            <button onclick="document.getElementById('addModal').classList.add('hidden')" class="text-text-muted hover:text-text transition-colors p-1 rounded-lg hover:bg-surface-hover">
+                <i data-lucide="x" class="w-6 h-6"></i>
+            </button>
+        </div>
+        
+        <!-- Modal Body -->
+        <div class="p-6 overflow-y-auto">
+            <form id="historicalForm" action="{{ url_for('main.add_historical_summary') }}" method="POST" class="flex flex-col gap-6">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                    <div class="space-y-2">
+                        <label class="block text-sm font-semibold text-text">Year</label>
                         <input type="number" id="yearInput" name="year" required min="2000" max="2100" value="2024" 
-                            style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px;">
+                            class="w-full h-11 px-4 bg-surface border border-border rounded-xl text-text focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors">
                     </div>
-                    <div>
-                        <label>Month (Optional)</label>
-                        <select id="monthInput" name="month" style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px;">
+                    <div class="space-y-2">
+                        <label class="block text-sm font-semibold text-text">Month (Optional)</label>
+                        <select id="monthInput" name="month" class="w-full h-11 px-4 bg-surface border border-border rounded-xl text-text focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors appearance-none pr-10 bg-no-repeat bg-[right_1rem_center]" style="background-image: url('data:image/svg+xml;charset=utf-8,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' fill=\'none\' viewBox=\'0 0 24 24\' stroke=\'%2364748b\'%3E%3Cpath stroke-linecap=\'round\' stroke-linejoin=\'round\' stroke-width=\'2\' d=\'M19 9l-7 7-7-7\'/%3E%3C/svg%3E'); background-size: 1.25rem;">
                             <option value="">-- Yearly Summary --</option>
                             <option value="1">January</option>
                             <option value="2">February</option>
@@ -51,114 +62,168 @@
                     </div>
                 </div>
 
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
-                    <div>
-                        <label>Total Income</label>
-                        <input type="number" id="incomeInput" name="total_income" step="0.01" value="0" required
-                            style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px;">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                    <div class="space-y-2">
+                        <label class="block text-sm font-semibold text-text">Total Income</label>
+                        <div class="relative">
+                            <span class="absolute left-4 top-1/2 -translate-y-1/2 text-text-muted font-medium">GHS</span>
+                            <input type="number" id="incomeInput" name="total_income" step="0.01" value="0" required
+                                class="w-full h-11 pl-14 pr-4 bg-surface border border-border rounded-xl text-text focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors">
+                        </div>
                     </div>
-                    <div>
-                        <label>Total Expenses</label>
-                        <input type="number" id="expenseInput" name="total_expense" step="0.01" value="0" required
-                            style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px;">
+                    <div class="space-y-2">
+                        <label class="block text-sm font-semibold text-text">Total Expenses</label>
+                        <div class="relative">
+                            <span class="absolute left-4 top-1/2 -translate-y-1/2 text-text-muted font-medium">GHS</span>
+                            <input type="number" id="expenseInput" name="total_expense" step="0.01" value="0" required
+                                class="w-full h-11 pl-14 pr-4 bg-surface border border-border rounded-xl text-text focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors">
+                        </div>
                     </div>
                 </div>
 
-                <div>
-                    <label>Notes</label>
-                    <textarea id="notesInput" name="notes" rows="3" style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px;"></textarea>
+                <div class="space-y-2">
+                    <label class="block text-sm font-semibold text-text">Notes</label>
+                    <textarea id="notesInput" name="notes" rows="3" placeholder="Add any descriptive notes or context..." class="w-full p-4 bg-surface border border-border rounded-xl text-text focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors resize-none"></textarea>
                 </div>
 
-                <button type="submit" style="background: var(--color-primary); color: white; border: none; padding: 0.75rem; border-radius: 6px; cursor: pointer; font-weight: bold;">
-                    Save Record
-                </button>
+                <!-- Modal Footer -->
+                <div class="pt-4 border-t border-border flex justify-end gap-3 mt-2">
+                    <button type="button" onclick="document.getElementById('addModal').classList.add('hidden')" class="px-5 py-2.5 font-semibold text-text bg-surface border border-border rounded-xl hover:bg-surface-hover transition-colors">
+                        Cancel
+                    </button>
+                    <button type="submit" class="px-5 py-2.5 font-bold text-primary-content bg-primary rounded-xl hover:bg-primary-hover transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-primary/50">
+                        Save Record
+                    </button>
+                </div>
             </form>
         </div>
     </div>
+</div>
 
+<div class="space-y-8">
     {% if data_by_year %}
         {% for year in data_by_year|sort(reverse=True) %}
-            <div class="card" {% if data_by_year[year].yearly %}id="historical-{{ data_by_year[year].yearly.id }}"{% endif %} style="margin-bottom: 2rem; border-left: 4px solid var(--color-primary);">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-                    <h2 style="margin: 0;">{{ year }}</h2>
+            <div class="bg-surface rounded-2xl border border-border shadow-sm overflow-hidden flex flex-col" {% if data_by_year[year].yearly %}id="historical-{{ data_by_year[year].yearly.id }}"{% endif %}>
+                
+                <!-- Year Header -->
+                <div class="p-6 border-b border-border bg-surface-active/30 flex flex-col sm:flex-row justify-between sm:items-center gap-4 border-l-4 border-l-primary">
+                    <h2 class="text-2xl font-bold font-heading text-text m-0 flex items-center gap-2">
+                        <i data-lucide="calendar" class="w-6 h-6 text-primary"></i> {{ year }}
+                    </h2>
+                    
                     {% if data_by_year[year].yearly %}
-                        <div style="text-align: right;">
-                            <span style="color: var(--color-text-muted); font-size: 0.9rem;">Yearly Summary:</span>
-                            <strong style="color: #4caf50;">+{{ "{:,.2f}".format(data_by_year[year].yearly.total_income) }}</strong>
-                            <strong style="color: #f44336; margin-left: 0.5rem;">-{{ "{:,.2f}".format(data_by_year[year].yearly.total_expense) }}</strong>
-                            
-                            <button onclick="editRecord(this)" 
-                                data-id="{{ data_by_year[year].yearly.id }}"
-                                data-year="{{ year }}"
-                                data-month=""
-                                data-income="{{ data_by_year[year].yearly.total_income }}"
-                                data-expense="{{ data_by_year[year].yearly.total_expense }}"
-                                data-notes="{{ data_by_year[year].yearly.notes or '' }}"
-                                style="background: none; border: none; cursor: pointer; margin-left: 0.5rem; font-size: 1rem;">✏️</button>
-                                
-                            <form action="{{ url_for('main.delete_historical_summary', id=data_by_year[year].yearly.id) }}" method="POST" style="display: inline; margin-left: 0.25rem;">
-                                <button type="submit" onclick="return confirm('Delete this record?')" style="background: none; border: none; cursor: pointer; font-size: 1rem;">🗑️</button>
-                            </form>
+                        <div class="flex flex-wrap items-center gap-4 sm:gap-6 bg-surface px-4 py-2 rounded-xl border border-border shadow-sm">
+                            <span class="text-sm font-semibold text-text-muted">Yearly Summary</span>
+                            <div class="flex items-center gap-4">
+                                <span class="font-bold text-success flex items-center gap-1">
+                                    <i data-lucide="trending-up" class="w-4 h-4"></i> +{{ "{:,.2f}".format(data_by_year[year].yearly.total_income) }}
+                                </span>
+                                <span class="font-bold text-danger flex items-center gap-1">
+                                    <i data-lucide="trending-down" class="w-4 h-4"></i> -{{ "{:,.2f}".format(data_by_year[year].yearly.total_expense) }}
+                                </span>
+                            </div>
+                            <div class="flex items-center gap-1 pl-4 border-l border-border">
+                                <button onclick="editRecord(this)" 
+                                    data-id="{{ data_by_year[year].yearly.id }}"
+                                    data-year="{{ year }}"
+                                    data-month=""
+                                    data-income="{{ data_by_year[year].yearly.total_income }}"
+                                    data-expense="{{ data_by_year[year].yearly.total_expense }}"
+                                    data-notes="{{ data_by_year[year].yearly.notes or '' }}"
+                                    class="p-2 text-text-muted hover:text-primary hover:bg-primary/10 rounded-lg transition-colors" title="Edit Summary">
+                                    <i data-lucide="edit-2" class="w-4 h-4"></i>
+                                </button>
+                                <form action="{{ url_for('main.delete_historical_summary', id=data_by_year[year].yearly.id) }}" method="POST" class="inline">
+                                    <button type="submit" onclick="return confirm('Delete this yearly summary?')" class="p-2 text-text-muted hover:text-danger hover:bg-danger/10 rounded-lg transition-colors" title="Delete Summary">
+                                        <i data-lucide="trash-2" class="w-4 h-4"></i>
+                                    </button>
+                                </form>
+                            </div>
                         </div>
                     {% endif %}
                 </div>
 
-                {% if data_by_year[year].monthly %}
-                    <table style="width: 100%; border-collapse: collapse;">
-                        <thead>
-                            <tr style="border-bottom: 2px solid #eee; text-align: left;">
-                                <th style="padding: 0.75rem;">Month</th>
-                                <th style="padding: 0.75rem;">Income</th>
-                                <th style="padding: 0.75rem;">Expense</th>
-                                <th style="padding: 0.75rem;">Profit/Loss</th>
-                                <th style="padding: 0.75rem;">Notes</th>
-                                <th style="padding: 0.75rem;">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for record in data_by_year[year].monthly|sort(attribute='month') %}
-                            <tr id="historical-{{ record.id }}" style="border-bottom: 1px solid #eee;">
-                                <td style="padding: 0.75rem;">{{ get_month_name(record.month) }}</td>
-                                <td style="padding: 0.75rem; color: #4caf50;">+{{ "{:,.2f}".format(record.total_income) }}</td>
-                                <td style="padding: 0.75rem; color: #f44336;">-{{ "{:,.2f}".format(record.total_expense) }}</td>
-                                <td style="padding: 0.75rem; font-weight: bold; color: {{ '#4caf50' if record.total_income >= record.total_expense else '#f44336' }};">
-                                    {{ "{:,.2f}".format(record.total_income - record.total_expense) }}
-                                </td>
-                                <td style="padding: 0.75rem; color: var(--color-text-muted);">{{ record.notes or '' }}</td>
-                                <td style="padding: 0.75rem;">
-                                    <button onclick="editRecord(this)" 
-                                        data-id="{{ record.id }}"
-                                        data-year="{{ year }}"
-                                        data-month="{{ record.month }}"
-                                        data-income="{{ record.total_income }}"
-                                        data-expense="{{ record.total_expense }}"
-                                        data-notes="{{ record.notes or '' }}"
-                                        style="background: none; border: none; cursor: pointer; font-size: 1rem;">✏️</button>
-
-                                    <form action="{{ url_for('main.delete_historical_summary', id=record.id) }}" method="POST" style="display: inline; margin-left: 0.5rem;">
-                                        <button type="submit" onclick="return confirm('Delete this record?')" style="background: none; border: none; cursor: pointer; font-size: 1rem;">🗑️</button>
-                                    </form>
-                                </td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                {% else %}
-                   <p style="color: var(--color-text-muted); font-style: italic;">No monthly records for this year.</p>
-                {% endif %}
+                <!-- Monthly Data Table -->
+                <div class="p-0 overflow-x-auto flex-1">
+                    {% if data_by_year[year].monthly %}
+                        <table class="w-full text-left border-collapse min-w-[700px]">
+                            <thead>
+                                <tr class="border-b border-border bg-surface-active/10">
+                                    <th class="px-6 py-4 text-sm font-semibold text-text-muted w-32">Month</th>
+                                    <th class="px-6 py-4 text-sm font-semibold text-text-muted text-right">Income</th>
+                                    <th class="px-6 py-4 text-sm font-semibold text-text-muted text-right">Expense</th>
+                                    <th class="px-6 py-4 text-sm font-semibold text-text-muted text-right">Net Flow</th>
+                                    <th class="px-6 py-4 text-sm font-semibold text-text-muted w-1/3">Notes</th>
+                                    <th class="px-6 py-4 text-sm font-semibold text-text-muted text-right w-24">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-border">
+                                {% for record in data_by_year[year].monthly|sort(attribute='month') %}
+                                <tr id="historical-{{ record.id }}" class="hover:bg-surface-hover/50 transition-colors group">
+                                    <td class="px-6 py-4 font-bold text-text">{{ get_month_name(record.month) }}</td>
+                                    <td class="px-6 py-4 font-medium text-success text-right whitespace-nowrap">+{{ "{:,.2f}".format(record.total_income) }}</td>
+                                    <td class="px-6 py-4 font-medium text-danger text-right whitespace-nowrap">-{{ "{:,.2f}".format(record.total_expense) }}</td>
+                                    <td class="px-6 py-4 text-right whitespace-nowrap">
+                                        {% set diff = record.total_income - record.total_expense %}
+                                        <span class="inline-flex items-center px-2.5 py-1 rounded-md text-sm font-bold {{ 'bg-success/10 text-success' if diff >= 0 else 'bg-danger/10 text-danger' }}">
+                                            {{ "{:,.2f}".format(diff) }}
+                                        </span>
+                                    </td>
+                                    <td class="px-6 py-4 text-text-muted text-sm line-clamp-2" title="{{ record.notes or '' }}">{{ record.notes or '' }}</td>
+                                    <td class="px-6 py-4 text-right whitespace-nowrap">
+                                        <div class="flex items-center justify-end gap-1 opacity-100 sm:opacity-0 group-hover:opacity-100 transition-opacity">
+                                            <button onclick="editRecord(this)" 
+                                                data-id="{{ record.id }}"
+                                                data-year="{{ year }}"
+                                                data-month="{{ record.month }}"
+                                                data-income="{{ record.total_income }}"
+                                                data-expense="{{ record.total_expense }}"
+                                                data-notes="{{ record.notes or '' }}"
+                                                class="p-2 text-text-muted hover:text-primary hover:bg-primary/10 rounded-lg transition-colors" title="Edit Record">
+                                                <i data-lucide="edit-2" class="w-4 h-4"></i>
+                                            </button>
+                                            <form action="{{ url_for('main.delete_historical_summary', id=record.id) }}" method="POST" class="inline">
+                                                <button type="submit" onclick="return confirm('Delete this record?')" class="p-2 text-text-muted hover:text-danger hover:bg-danger/10 rounded-lg transition-colors" title="Delete Record">
+                                                    <i data-lucide="trash-2" class="w-4 h-4"></i>
+                                                </button>
+                                            </form>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    {% else %}
+                        <div class="flex flex-col items-center justify-center py-12 px-4 text-center">
+                            <i data-lucide="calendar-x" class="w-12 h-12 text-text-muted/50 mb-4"></i>
+                            <p class="text-text-muted font-medium">No monthly records found for this year.</p>
+                            <button onclick="openAddModalForYear({{ year }})" class="mt-4 text-primary font-medium hover:underline flex items-center gap-1">
+                                <i data-lucide="plus" class="w-4 h-4"></i> Add Monthly Record
+                            </button>
+                        </div>
+                    {% endif %}
+                </div>
             </div>
         {% endfor %}
     {% else %}
-        <div style="text-align: center; padding: 3rem; color: var(--color-text-muted);">
-            <p>No historical data found. Add your first record to get started!</p>
+        <div class="bg-surface rounded-2xl border border-border border-dashed shadow-sm flex flex-col items-center justify-center py-20 px-4 text-center">
+            <div class="w-20 h-20 bg-surface-active rounded-full flex items-center justify-center mb-6">
+                <i data-lucide="database" class="w-10 h-10 text-text-muted/60"></i>
+            </div>
+            <h2 class="text-xl font-bold text-text mb-2">No Historical Data</h2>
+            <p class="text-text-muted max-w-md mx-auto mb-6">You haven't added any historical financial records yet. Add past years' data to get a comprehensive view of your financial journey.</p>
+            <button onclick="openAddModal()" class="inline-flex items-center justify-center gap-2 px-6 py-3 bg-primary text-primary-content font-bold rounded-xl hover:bg-primary-hover transition-colors shadow-sm">
+                <i data-lucide="plus" class="w-5 h-5"></i> Add First Record
+            </button>
         </div>
     {% endif %}
-
 </div>
 
-
-
 <script>
+    document.addEventListener('DOMContentLoaded', () => {
+        lucide.createIcons();
+    });
+
     function openAddModal() {
         document.getElementById('modalTitle').innerText = 'Add Historical Record';
         document.getElementById('historicalForm').action = "{{ url_for('main.add_historical_summary') }}";
@@ -166,11 +231,16 @@
         // Reset form
         document.getElementById('yearInput').value = new Date().getFullYear();
         document.getElementById('monthInput').value = "";
-        document.getElementById('incomeInput').value = 0;
-        document.getElementById('expenseInput').value = 0;
+        document.getElementById('incomeInput').value = "0.00";
+        document.getElementById('expenseInput').value = "0.00";
         document.getElementById('notesInput').value = "";
         
-        document.getElementById('addModal').style.display = 'block';
+        document.getElementById('addModal').classList.remove('hidden');
+    }
+    
+    function openAddModalForYear(year) {
+        openAddModal();
+        document.getElementById('yearInput').value = year;
     }
 
     function editRecord(btn) {
@@ -178,8 +248,6 @@
         
         // Construct Edit URL
         const id = btn.getAttribute('data-id');
-        // We use a dummy ID '0' to generate the base URL structure, then replace it
-        // Note: Flask's url_for requires the id argument if the route expects it.
         const baseUrl = "{{ url_for('main.edit_historical_summary', id=0) }}";
         const actionUrl = baseUrl.replace('/0', '/' + id);
         
@@ -188,43 +256,18 @@
         // Populate fields
         document.getElementById('yearInput').value = btn.getAttribute('data-year');
         document.getElementById('monthInput').value = btn.getAttribute('data-month');
-        document.getElementById('incomeInput').value = parseFloat(btn.getAttribute('data-income'));
-        document.getElementById('expenseInput').value = parseFloat(btn.getAttribute('data-expense'));
+        document.getElementById('incomeInput').value = parseFloat(btn.getAttribute('data-income')).toFixed(2);
+        document.getElementById('expenseInput').value = parseFloat(btn.getAttribute('data-expense')).toFixed(2);
         document.getElementById('notesInput').value = btn.getAttribute('data-notes');
         
-        document.getElementById('addModal').style.display = 'block';
+        document.getElementById('addModal').classList.remove('hidden');
     }
-
-    // Update the main Add button to call openAddModal
-    // Note: The main Add button is at the top of the file, outside this replacement block potentially?
-    // Let's check the original file content. The button had onclick="document.getElementById('addModal').style.display='block'".
-    // We should update that button too. It was on line 11.
-    // Since this replacement block starts after that, we can't easily change it here.
-    // I made a mistake in the replacement range, I should have included the top button or I need to add a script to override its onclick.
-    // or I can target the button by selector in the script.
-    
-    // Let's check the button markup again from the previous view_file or write_to_file.
-    // <button onclick="document.getElementById('addModal').style.display='block'" ...>
-    
-    // I will add a script to fix that handler on load.
-    document.addEventListener('DOMContentLoaded', function() {
-        // Find the "Add Record" button. It's the only button in the top header div roughly.
-        // Or simpler, replace the onclick in the file using another tool call if needed?
-        // No, I can just select it. It has text "+ Add Record".
-        const buttons = document.getElementsByTagName('button');
-        for (let btn of buttons) {
-            if (btn.innerText.includes('+ Add Record')) {
-                btn.onclick = openAddModal; // Override the inline onclick
-                break;
-            }
-        }
-    });
 
     // Close modal when clicking outside
-    window.onclick = function(event) {
-        if (event.target == document.getElementById('addModal')) {
-            document.getElementById('addModal').style.display = "none";
+    document.getElementById('addModal').addEventListener('click', function(event) {
+        if (event.target === this) {
+            this.classList.add('hidden');
         }
-    }
+    });
 </script>
 {% endblock %}

@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f1f5f9; margin: 0; padding: 2rem; }
+        .container { max-width: 480px; margin: 0 auto; background: white; border-radius: 12px; padding: 2rem; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+        .header { text-align: center; margin-bottom: 1.5rem; }
+        .header h1 { color: #6366f1; margin: 0; font-size: 1.5rem; }
+        .btn { display: inline-block; background: #6366f1; color: white; padding: 0.75rem 2rem; border-radius: 8px; text-decoration: none; font-weight: 600; margin: 1.5rem 0; }
+        .footer { text-align: center; color: #94a3b8; font-size: 0.8rem; margin-top: 1.5rem; }
+        .code { background: #f1f5f9; padding: 0.5rem 1rem; border-radius: 6px; font-family: monospace; font-size: 0.9rem; word-break: break-all; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>FinTracker</h1>
+        </div>
+        <p>Hi {{ user.name }},</p>
+        <p>Thank you for creating your FinTracker account. Please verify your email address by clicking the button below:</p>
+        <div style="text-align: center;">
+            <a href="{{ url_for('auth.verify_email', token=token, _external=True) }}" class="btn">Verify Email Address</a>
+        </div>
+        <p style="font-size: 0.875rem; color: #64748b;">If the button doesn't work, copy and paste this link into your browser:</p>
+        <div class="code">{{ url_for('auth.verify_email', token=token, _external=True) }}</div>
+        <p style="font-size: 0.875rem; color: #64748b;">This link expires in 24 hours.</p>
+        <div class="footer">
+            <p>If you didn't create a FinTracker account, you can safely ignore this email.</p>
+        </div>
+    </div>
+</body>
+</html>

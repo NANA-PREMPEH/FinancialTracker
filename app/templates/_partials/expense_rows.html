@@ -1,0 +1,32 @@
+{% for expense in expenses %}
+<tr id="expense-{{ expense.id }}" class="hover:bg-surface-hover transition-colors">
+    <td class="p-4 text-sm text-text whitespace-nowrap" data-label="Date">{{ expense.date.strftime('%d %b %Y') }}</td>
+    <td class="p-4 text-sm" data-label="Description">
+        <div class="font-medium text-text">{{ expense.description }}</div>
+        {% if expense.tags %}
+            <div class="mt-1 flex flex-wrap gap-1">
+                {% for tag in expense.tags.split(',') %}
+                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-surface-active text-text-secondary">{{ tag.strip() }}</span>
+                {% endfor %}
+            </div>
+        {% endif %}
+    </td>
+    <td class="p-4 text-sm whitespace-nowrap" data-label="Category">
+        <div class="flex items-center gap-2">
+            <span class="text-xl">{{ expense.category.icon }}</span>
+            <span class="text-text font-medium">{{ expense.category.name }}</span>
+        </div>
+    </td>
+    <td class="p-4 text-sm text-right whitespace-nowrap" data-label="Amount">
+        <div class="font-bold text-text">
+            {{ "%.2f"|format(expense.amount) }} <span class="text-xs text-text-muted font-normal">GHS</span>
+            {% if expense.receipt_path %}
+                <div class="text-xs text-text-muted mt-1 flex items-center justify-end gap-1"><i data-lucide="paperclip" class="w-3 h-3"></i> Receipt</div>
+            {% endif %}
+        </div>
+    </td>
+    <td class="p-4 text-sm text-right whitespace-nowrap" data-label="Actions">
+        <a href="{{ url_for('main.edit_expense', id=expense.id) }}" class="inline-flex items-center px-3 py-1.5 bg-surface text-text text-xs font-medium rounded-md border border-border hover:bg-surface-hover transition-colors shadow-sm">Edit</a>
+    </td>
+</tr>
+{% endfor %}

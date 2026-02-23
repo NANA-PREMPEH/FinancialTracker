@@ -1,0 +1,147 @@
+{% extends "base.html" %}
+
+{% block title %}API Keys - Financial Tracker{% endblock %}
+{% block header_title %}API Keys{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto space-y-8">
+    <div class="bg-surface p-6 rounded-2xl border border-border shadow-sm flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div>
+            <h2 class="text-xl font-bold font-heading text-text m-0 mb-1 flex items-center gap-2">
+                <i data-lucide="key" class="w-6 h-6 text-primary"></i> Developer API
+            </h2>
+            <p class="text-sm font-medium text-text-muted m-0">Generate and manage API keys to access your data programmatically.</p>
+        </div>
+    </div>
+
+    <!-- Create API Key -->
+    <div class="bg-surface rounded-2xl border border-border shadow-sm overflow-hidden">
+        <div class="p-6 border-b border-border bg-surface-active/30 flex items-center gap-2">
+            <i data-lucide="plus-circle" class="w-5 h-5 text-primary"></i>
+            <h2 class="text-lg font-bold font-heading m-0 text-text">Create API Key</h2>
+        </div>
+        
+        <form method="POST" action="{{ url_for('api_keys.create_key') }}" class="p-6 space-y-6">
+            <div>
+                <label for="key_name" class="block text-sm font-semibold text-text mb-1.5">Key Name</label>
+                <input type="text" id="key_name" name="name" placeholder="e.g., Mobile App, Integration" required class="w-full max-w-md px-4 py-2.5 bg-surface border border-border rounded-xl focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors text-text placeholder:text-text-muted/50">
+            </div>
+
+            <div>
+                <label class="block text-sm font-semibold text-text mb-2.5">Permissions</label>
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                    {% for perm in permissions %}
+                    <label class="flex items-center gap-3 p-3 bg-surface-active/50 border border-border rounded-xl cursor-pointer hover:border-primary/50 transition-colors group">
+                        <input type="checkbox" name="permissions" value="{{ perm }}" class="w-4 h-4 text-primary bg-surface border-border rounded focus:ring-primary focus:ring-2 accent-primary">
+                        <span class="text-sm font-medium text-text capitalize">{{ perm.replace('_', ' ') }}</span>
+                    </label>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <div class="pt-2">
+                <button type="submit" class="inline-flex items-center justify-center gap-2 px-6 py-2.5 bg-primary text-primary-content font-bold rounded-xl hover:bg-primary-hover transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-primary/50">
+                    <i data-lucide="key" class="w-4 h-4"></i> Generate New Key
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Existing Keys -->
+    <div class="bg-surface rounded-2xl border border-border shadow-sm overflow-hidden">
+        <div class="p-6 border-b border-border bg-surface-active/30 flex items-center gap-2">
+            <i data-lucide="list" class="w-5 h-5 text-primary"></i>
+            <h2 class="text-lg font-bold font-heading m-0 text-text">Your API Keys</h2>
+        </div>
+
+        <div class="p-6">
+            {% if keys %}
+                <div class="space-y-4">
+                    {% for key in keys %}
+                    <div class="bg-surface-active/20 border border-border rounded-xl p-5 hover:border-border-hover transition-colors">
+                        <div class="flex flex-col sm:flex-row justify-between items-start gap-4 mb-4">
+                            <div class="flex items-center gap-3">
+                                <div class="w-10 h-10 rounded-xl bg-surface border border-border flex items-center justify-center shadow-sm">
+                                    <i data-lucide="key" class="w-5 h-5 text-text-muted"></i>
+                                </div>
+                                <div>
+                                    <h4 class="text-base font-bold text-text m-0 flex items-center gap-2">
+                                        {{ key.name }}
+                                        {% if key.is_active %}
+                                            <span class="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider bg-success/10 text-success border border-success/20">Active</span>
+                                        {% else %}
+                                            <span class="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider bg-danger/10 text-danger border border-danger/20">Inactive</span>
+                                        {% endif %}
+                                    </h4>
+                                    <!-- Only showing prefix for security usually, full key shown once on creation -->
+                                    <div class="text-xs font-mono text-text-muted mt-1 bg-surface-active px-2 py-1 rounded-md inline-block border border-border/50">
+                                        {{ key.key[:8] }}...{{ key.key[-4:] }} 
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="flex items-center gap-2 shrink-0">
+                                <form method="POST" action="{{ url_for('api_keys.toggle_key', id=key.id) }}" class="inline-block">
+                                    <button type="submit" class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-surface text-text border border-border rounded-xl hover:bg-surface-hover transition-colors focus:outline-none focus:ring-2 focus:ring-primary/50 text-sm font-semibold">
+                                        {% if key.is_active %}
+                                            <i data-lucide="pause-circle" class="w-4 h-4"></i> Deactivate
+                                        {% else %}
+                                            <i data-lucide="play-circle" class="w-4 h-4"></i> Activate
+                                        {% endif %}
+                                    </button>
+                                </form>
+                                <form method="POST" action="{{ url_for('api_keys.delete_key', id=key.id) }}" class="inline-block" onsubmit="return confirm('Are you sure you want to delete the API key \'{{ key.name }}\'? This action cannot be undone.');">
+                                    <button type="submit" class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-danger/10 text-danger border border-danger/20 rounded-xl hover:bg-danger hover:text-white transition-colors focus:outline-none focus:ring-2 focus:ring-danger/50 text-sm font-semibold">
+                                        <i data-lucide="trash-2" class="w-4 h-4"></i> Delete
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 pt-4 border-t border-border/50">
+                            <div>
+                                <div class="text-xs font-semibold text-text-muted uppercase tracking-wider mb-1">Created</div>
+                                <div class="text-sm font-medium text-text">{{ key.created_at.strftime('%d %b %Y, %H:%M') }}</div>
+                            </div>
+                            <div>
+                                <div class="text-xs font-semibold text-text-muted uppercase tracking-wider mb-1">Last Used</div>
+                                <div class="text-sm font-medium text-text">{{ key.last_used.strftime('%d %b %Y, %H:%M') if key.last_used else 'Never used' }}</div>
+                            </div>
+                            <!-- Permissions span full width on small screens -->
+                            <div class="sm:col-span-2 lg:col-span-1">
+                                <div class="text-xs font-semibold text-text-muted uppercase tracking-wider mb-1.5">Permissions</div>
+                                <div class="flex flex-wrap gap-1.5">
+                                    {% if key.permissions %}
+                                        {% for perm in key.permissions.split(',') %}
+                                            <span class="inline-flex items-center px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider bg-primary/10 text-primary border border-primary/20">
+                                                {{ perm.strip().replace('_', ' ') }}
+                                            </span>
+                                        {% endfor %}
+                                    {% else %}
+                                        <span class="text-sm font-medium text-text-muted italic">None assigned</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="py-12 flex flex-col items-center justify-center text-center">
+                    <div class="w-16 h-16 bg-surface-active rounded-full flex items-center justify-center mb-4">
+                        <i data-lucide="key" class="w-8 h-8 text-text-muted"></i>
+                    </div>
+                    <h3 class="text-lg font-bold text-text mb-1">No API keys generated</h3>
+                    <p class="text-sm text-text-muted mb-0 max-w-sm">Create an API key above to start integrating Financial Tracker with your other applications.</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    lucide.createIcons();
+});
+</script>
+{% endblock %}

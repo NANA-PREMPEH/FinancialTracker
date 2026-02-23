@@ -1,74 +1,114 @@
 {% extends "base.html" %}
 
 {% block title %}Recurring Transactions - Financial Tracker{% endblock %}
+{% block header_title %}Recurring Transactions{% endblock %}
 
 {% block content %}
-<div class="card">
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
-        <h1>Recurring Transactions</h1>
-        <a href="{{ url_for('main.add_recurring') }}">
-            <button>+ Add Recurring</button>
+<div class="max-w-6xl mx-auto space-y-8">
+    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-surface p-6 rounded-2xl border border-border shadow-sm">
+        <div>
+            <h2 class="text-xl font-bold font-heading text-text m-0 mb-1">Automated Bills & Incomes</h2>
+            <p class="text-sm font-medium text-text-muted m-0">Set up automatic transactions to track regular subscriptions and salaries.</p>
+        </div>
+        <a href="{{ url_for('main.add_recurring') }}" class="shrink-0 inline-flex items-center justify-center gap-2 px-6 py-3 bg-primary text-primary-content font-bold rounded-xl hover:bg-primary-hover transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-primary/50">
+            <i data-lucide="plus-circle" class="w-5 h-5"></i> Add Recurring
         </a>
     </div>
 
-    {% for trans in recurring %}
-    <div class="card" id="recurring-{{ trans.id }}" style="margin-bottom: 1rem; display: flex; justify-content: space-between; align-items: center;">
-        <div>
-            <h3 style="margin-bottom: 0.25rem;">
-                <span style="font-size: 1.25rem; margin-right: 0.5rem;">{{ trans.category.icon }}</span>
-                {{ trans.description }}
-            </h3>
-            <p style="color: var(--color-text-muted); font-size: 0.9rem;">
-                {{ trans.frequency|title }} • {{ trans.category.name }} • {{ trans.wallet.icon }} {{ trans.wallet.name }}
-            </p>
-        </div>
-        <div style="display: flex; align-items: center; gap: 1rem;">
-            <div style="text-align: right;">
-                <div style="font-size: 1.25rem; font-weight: 700;">GHS {{ "%.2f"|format(trans.amount) }}</div>
-                <p style="color: var(--color-text-muted); font-size: 0.85rem;">Next: {{ trans.next_due.strftime('%d %b %Y') if trans.next_due else 'N/A' }}</p>
+    {% if recurring %}
+    <div class="space-y-4">
+        {% for trans in recurring %}
+        <div class="bg-surface rounded-2xl border border-border shadow-sm p-5 sm:p-6 hover:shadow-md hover:border-border/80 transition-all duration-300 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6" id="recurring-{{ trans.id }}">
+            <div class="flex items-start gap-4 flex-1 w-full">
+                <div class="w-12 h-12 rounded-xl bg-surface-active flex items-center justify-center text-2xl shadow-sm border border-border/50 shrink-0">
+                    {{ trans.category.icon }}
+                </div>
+                <div>
+                    <h3 class="text-lg font-bold text-text m-0 mb-1 line-clamp-1 truncate" title="{{ trans.description }}">{{ trans.description }}</h3>
+                    <div class="flex flex-wrap items-center gap-2 text-sm">
+                        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md font-bold text-xs capitalize 
+                            {% if trans.transaction_type == 'expense' %}bg-danger/10 text-danger{% else %}bg-success/10 text-success{% endif %}">
+                            <i data-lucide="{% if trans.transaction_type == 'expense' %}arrow-down-right{% else %}arrow-up-right{% endif %}" class="w-3.5 h-3.5"></i>
+                            {{ trans.frequency }}
+                        </span>
+                        <span class="px-2.5 py-1 rounded-md bg-surface-active/50 border border-border text-text-muted font-semibold text-xs flex items-center gap-1.5">
+                            <i data-lucide="folder" class="w-3.5 h-3.5"></i> {{ trans.category.name }}
+                        </span>
+                        <span class="px-2.5 py-1 rounded-md bg-surface-active/50 border border-border text-text-muted font-semibold text-xs flex items-center gap-1.5 line-clamp-1 max-w-[150px] truncate" title="{{ trans.wallet.name }}">
+                            <i data-lucide="wallet" class="w-3.5 h-3.5"></i> {{ trans.wallet.name }}
+                        </span>
+                    </div>
+                </div>
             </div>
-            <div style="display: flex; gap: 0.5rem;">
-                <a href="{{ url_for('main.edit_recurring', id=trans.id) }}" style="text-decoration: none;">
-                    <button style="background-color: var(--color-primary); color: white; padding: 0.5rem 1rem; border: none; border-radius: 6px; cursor: pointer; font-size: 0.85rem;">
-                        ✏️ Edit
+            
+            <div class="flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:gap-6 w-full sm:w-auto mt-4 sm:mt-0 pt-4 sm:pt-0 border-t border-border sm:border-0">
+                <div class="text-left sm:text-right shrink-0">
+                    <div class="text-lg sm:text-xl font-bold font-heading {% if trans.transaction_type == 'expense' %}text-danger{% else %}text-success{% endif %}">
+                        {{ "-" if trans.transaction_type == 'expense' else "+" }}GHS {{ "{:,.2f}".format(trans.amount) }}
+                    </div>
+                    <div class="text-sm font-medium text-text-muted mt-0.5 flex items-center gap-1.5 sm:justify-end">
+                        <i data-lucide="calendar-clock" class="w-4 h-4"></i>
+                        Next: <span class="text-text font-bold">{{ trans.next_due.strftime('%d %b %Y') if trans.next_due else 'N/A' }}</span>
+                    </div>
+                </div>
+                
+                <div class="flex gap-2 w-full sm:w-auto">
+                    <a href="{{ url_for('main.edit_recurring', id=trans.id) }}" class="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-4 py-2 bg-surface-active/50 border border-border text-text font-bold rounded-lg hover:bg-surface-hover hover:text-primary transition-colors focus:outline-none focus:ring-2 focus:ring-primary/50">
+                        <i data-lucide="edit-3" class="w-4 h-4"></i> Edit
+                    </a>
+                    <button class="delete-recurring-btn flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-4 py-2 bg-danger/10 border border-danger/20 text-danger font-bold rounded-lg hover:bg-danger hover:text-white transition-colors focus:outline-none focus:ring-2 focus:ring-danger/50" data-id="{{ trans.id }}" data-description="{{ trans.description }}">
+                        <i data-lucide="trash-2" class="w-4 h-4"></i> Delete
                     </button>
-                </a>
-                <button class="delete-recurring-btn" data-id="{{ trans.id }}" data-description="{{ trans.description }}" style="background-color: var(--color-danger); color: white; padding: 0.5rem 1rem; border: none; border-radius: 6px; cursor: pointer; font-size: 0.85rem;">
-                    🗑️ Delete
-                </button>
+                </div>
             </div>
         </div>
+        {% endfor %}
     </div>
-    {% endfor %}
-
-    {% if not recurring %}
-        <p>No recurring transactions yet. Set up automatic bills and subscriptions!</p>
+    {% else %}
+    <div class="bg-surface rounded-2xl border border-dashed border-border p-12 flex flex-col items-center justify-center text-center">
+        <div class="w-20 h-20 bg-surface-active rounded-full flex items-center justify-center mb-6">
+            <i data-lucide="refresh-cw" class="w-10 h-10 text-text-muted/50"></i>
+        </div>
+        <h3 class="text-xl font-bold text-text m-0 mb-2">No Recurring Transactions</h3>
+        <p class="text-text-muted max-w-md mx-auto mb-6">Set up automated bills, subscriptions, or recurring income to stay on top of your budget.</p>
+        <a href="{{ url_for('main.add_recurring') }}" class="inline-flex items-center justify-center gap-2 px-6 py-3 bg-primary text-primary-content font-bold rounded-xl hover:bg-primary-hover transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-primary/50">
+            <i data-lucide="plus" class="w-5 h-5"></i> Add Recurring
+        </a>
+    </div>
     {% endif %}
 </div>
 
 <!-- Delete Confirmation Modal -->
-<div id="deleteRecurringModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.5); z-index: 1000;">
-    <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 2rem; border-radius: 12px; max-width: 400px; width: 90%; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
-        <h3 style="margin-top: 0; margin-bottom: 1rem; color: var(--color-danger);">⚠️ Delete Recurring Transaction</h3>
-        <p id="deleteRecurringMessage" style="margin-bottom: 1.5rem; color: var(--color-text-muted);"></p>
-        <div style="display: flex; gap: 1rem; justify-content: flex-end;">
-            <button onclick="hideDeleteRecurringDialog()" style="background-color: #6b7280; color: white; padding: 0.75rem 1.5rem; border: none; border-radius: 8px; cursor: pointer; font-size: 1rem; font-weight: 500;">
-                Cancel
-            </button>
-            <button onclick="confirmDeleteRecurring()" style="background-color: #dc2626; color: white; padding: 0.75rem 1.5rem; border: none; border-radius: 8px; cursor: pointer; font-size: 1rem; font-weight: 500;">
-                Delete
-            </button>
+<div id="deleteRecurringModal" class="hidden fixed inset-0 bg-surface-active/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 opacity-0 transition-opacity duration-300">
+    <div class="bg-surface w-full max-w-md rounded-2xl border border-border flex flex-col shadow-2xl overflow-hidden relative transform scale-95 transition-transform duration-300" onclick="event.stopPropagation()">
+        <div class="p-6 flex flex-col items-center text-center">
+            <div class="w-16 h-16 rounded-full bg-danger/10 flex items-center justify-center text-danger mb-4">
+                <i data-lucide="alert-circle" class="w-8 h-8"></i>
+            </div>
+            <h3 class="text-xl font-bold font-heading text-text m-0 mb-2">Delete Recurring?</h3>
+            <p id="deleteRecurringMessage" class="text-text-muted mb-6"></p>
+            
+            <div class="flex gap-3 w-full">
+                <button onclick="hideDeleteRecurringDialog()" class="flex-1 px-5 py-3 font-semibold text-text bg-surface border border-border rounded-xl hover:bg-surface-hover transition-colors">
+                    Cancel
+                </button>
+                <button onclick="confirmDeleteRecurring()" class="flex-1 px-5 py-3 font-bold text-white bg-danger rounded-xl hover:bg-danger/90 transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-danger/50">
+                    Yes, Delete
+                </button>
+            </div>
         </div>
     </div>
 </div>
 
-<form id="deleteRecurringForm" method="POST" style="display: none;">
-</form>
+<form id="deleteRecurringForm" method="POST" class="hidden"></form>
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    lucide.createIcons();
+
     let recurringToDelete = null;
     const deleteModal = document.getElementById('deleteRecurringModal');
+    const deleteModalContent = deleteModal.querySelector('.bg-surface');
     const deleteMessage = document.getElementById('deleteRecurringMessage');
     const deleteForm = document.getElementById('deleteRecurringForm');
     
@@ -78,15 +118,26 @@ document.addEventListener('DOMContentLoaded', function() {
             const id = this.getAttribute('data-id');
             const description = this.getAttribute('data-description');
             recurringToDelete = id;
-            deleteMessage.textContent = `Are you sure you want to delete the recurring transaction "${description}"? This action cannot be undone.`;
-            deleteModal.style.display = 'block';
+            deleteMessage.innerHTML = `Are you sure you want to delete the recurring transaction <strong>"${description}"</strong>? This action cannot be undone.`;
+            
+            deleteModal.classList.remove('hidden');
+            setTimeout(() => {
+                deleteModal.classList.remove('opacity-0');
+                deleteModalContent.classList.remove('scale-95');
+                deleteModalContent.classList.add('scale-100');
+            }, 10);
         });
     });
     
     // Hide modal function
     window.hideDeleteRecurringDialog = function() {
-        deleteModal.style.display = 'none';
-        recurringToDelete = null;
+        deleteModal.classList.add('opacity-0');
+        deleteModalContent.classList.remove('scale-100');
+        deleteModalContent.classList.add('scale-95');
+        setTimeout(() => {
+            deleteModal.classList.add('hidden');
+            recurringToDelete = null;
+        }, 300);
     };
     
     // Confirm delete function

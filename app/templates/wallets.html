@@ -1,80 +1,119 @@
 {% extends "base.html" %}
 
 {% block title %}Wallets - Financial Tracker{% endblock %}
+{% block header_title %}Wallets{% endblock %}
 
 {% block content %}
-<div class="card">
-    <div class="flex justify-between items-center mb-8">
-        <div class="flex gap-2">
-            <button onclick="showTransferModal()" class="btn-secondary">
-                 ↔️ Transfer Funds
+<div class="space-y-8 max-w-7xl mx-auto">
+    <!-- Header Actions -->
+    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-surface p-6 rounded-2xl border border-border shadow-sm">
+        <h2 class="text-xl font-bold font-heading text-text m-0">Your Accounts</h2>
+        <div class="flex flex-wrap gap-3 w-full sm:w-auto">
+            <button onclick="showTransferModal()" class="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-surface border border-border text-text font-bold rounded-xl hover:bg-surface-hover transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-primary/50">
+                <i data-lucide="arrow-left-right" class="w-4 h-4 text-primary"></i> Transfer Funds
             </button>
-            <a href="{{ url_for('main.add_wallet') }}">
-                <button>+ Add Wallet</button>
+            <a href="{{ url_for('main.add_wallet') }}" class="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-primary text-primary-content font-bold rounded-xl hover:bg-primary-hover transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-primary/50">
+                <i data-lucide="plus-circle" class="w-4 h-4"></i> Add Wallet
             </a>
         </div>
     </div>
 
-    <div class="grid-wallets">
+    <!-- Wallets Grid -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
         {% for wallet in wallets %}
-        <div class="card wallet-card" id="wallet-{{ wallet.id }}">
-            <div class="wallet-icon">{{ wallet.icon }}</div>
-            <h3 class="wallet-name">{{ wallet.name }}</h3>
-            <p class="wallet-type">{{ wallet.wallet_type|title }}{% if wallet.is_shared %} • Shared{% endif %}</p>
-            {% if wallet.account_number %}
-            <p class="wallet-account">Acct: {{ wallet.account_number }}</p>
-            {% else %}
-            <div class="wallet-spacer"></div>
-            {% endif %}
-            <div class="wallet-balance">{{ wallet.currency }} {{ "%.2f"|format(wallet.balance) }}</div>
-            <p class="wallet-label">Current Balance</p>
+        <div class="bg-surface rounded-2xl border border-border shadow-sm hover:shadow-md transition-all duration-300 p-6 flex flex-col relative group" id="wallet-{{ wallet.id }}">
+            <div class="flex justify-between items-start mb-4">
+                <div class="w-12 h-12 rounded-xl bg-surface-active/50 flex items-center justify-center text-2xl shadow-sm border border-border/50">
+                    {{ wallet.icon }}
+                </div>
+                <div class="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <a href="{{ url_for('main.edit_wallet', id=wallet.id) }}" class="p-2 text-text-muted hover:text-primary bg-surface hover:bg-primary/10 rounded-lg transition-colors" title="Edit Wallet">
+                        <i data-lucide="edit-3" class="w-4 h-4"></i>
+                    </a>
+                    <button class="delete-wallet-btn p-2 text-text-muted hover:text-danger bg-surface hover:bg-danger/10 rounded-lg transition-colors" data-id="{{ wallet.id }}" data-name="{{ wallet.name }}" title="Delete Wallet">
+                        <i data-lucide="trash-2" class="w-4 h-4"></i>
+                    </button>
+                </div>
+            </div>
             
-            <div class="wallet-actions">
-                <a href="{{ url_for('main.edit_wallet', id=wallet.id) }}" class="btn-edit action-link" style="text-decoration: none; display: inline-flex; align-items: center; justify-content: center;">
-                    ✏️ Edit
-                </a>
-                <button class="delete-wallet-btn btn-delete" data-id="{{ wallet.id }}" data-name="{{ wallet.name }}">
-                    🗑️ Delete
-                </button>
+            <div class="flex-1">
+                <h3 class="text-lg font-bold text-text m-0 mb-1 line-clamp-1" title="{{ wallet.name }}">{{ wallet.name }}</h3>
+                <div class="flex items-center gap-2 mb-4 flex-wrap">
+                    <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-surface-active text-xs font-semibold text-text-muted capitalize">
+                        <i data-lucide="wallet" class="w-3 h-3"></i> {{ wallet.wallet_type }}
+                    </span>
+                    {% if wallet.is_shared %}
+                    <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-primary/10 text-xs font-semibold text-primary">
+                        <i data-lucide="users" class="w-3 h-3"></i> Shared
+                    </span>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="mt-auto pt-4 border-t border-border">
+                <p class="text-xs font-semibold text-text-muted uppercase tracking-wider mb-1">Current Balance</p>
+                <div class="text-2xl font-black font-heading text-text flex items-baseline gap-1">
+                    <span class="text-base font-bold text-text-muted">{{ wallet.currency }}</span>
+                    {{ "{:,.2f}".format(wallet.balance) }}
+                </div>
+                {% if wallet.account_number %}
+                <p class="text-xs text-text-muted font-mono mt-2 flex items-center gap-1 bg-surface-active/30 px-2 py-1 rounded w-fit">
+                    <i data-lucide="hash" class="w-3 h-3"></i> {{ wallet.account_number[-4:] if wallet.account_number|length > 4 else wallet.account_number }}
+                </p>
+                {% endif %}
             </div>
         </div>
         {% endfor %}
     </div>
 
     {% if not wallets %}
-        <p>No wallets yet. Create your first wallet to start tracking!</p>
+    <div class="bg-surface rounded-2xl border border-dashed border-border p-12 flex flex-col items-center justify-center text-center">
+        <div class="w-20 h-20 bg-surface-active rounded-full flex items-center justify-center mb-6">
+            <i data-lucide="wallet" class="w-10 h-10 text-text-muted/50"></i>
+        </div>
+        <h3 class="text-xl font-bold text-text m-0 mb-2">No Wallets Yet</h3>
+        <p class="text-text-muted max-w-md mx-auto mb-6">Create your first wallet to start tracking your cash, bank accounts, and mobile money.</p>
+        <a href="{{ url_for('main.add_wallet') }}" class="inline-flex items-center justify-center gap-2 px-6 py-3 bg-primary text-primary-content font-bold rounded-xl hover:bg-primary-hover transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-primary/50">
+            <i data-lucide="plus" class="w-5 h-5"></i> Create First Wallet
+        </a>
+    </div>
     {% endif %}
 
     <!-- Transfer History Section -->
     {% if transfers %}
-    <div style="margin-top: 3rem;">
-        <div class="flex justify-between items-center mb-4">
-            <h2>Transfer History</h2>
-            <a href="{{ url_for('main.all_expenses', category=transfers[0].category_id) }}" class="action-link">See All</a>
+    <div class="bg-surface rounded-2xl border border-border shadow-sm overflow-hidden flex flex-col mt-8">
+        <div class="p-6 border-b border-border bg-surface-active/30 flex items-center justify-between">
+            <h2 class="text-xl font-bold font-heading text-text m-0 flex items-center gap-2">
+                <i data-lucide="history" class="w-6 h-6 text-primary"></i> Recent Transfers
+            </h2>
+            <a href="{{ url_for('main.all_expenses', category=transfers[0].category_id) }}" class="text-sm font-bold text-primary hover:text-primary-hover hover:underline">See All</a>
         </div>
         
-        <div class="table-container">
-            <table>
+        <div class="p-0 overflow-x-auto">
+            <table class="w-full text-left border-collapse min-w-[600px]">
                 <thead>
-                    <tr>
-                        <th>Date</th>
-                        <th>Description</th>
-                        <th>From/To</th>
-                        <th>Amount</th>
-                        <th>Type</th>
+                    <tr class="bg-surface-active/10 border-b border-border">
+                        <th class="px-6 py-4 text-sm font-semibold text-text-muted w-32">Date</th>
+                        <th class="px-6 py-4 text-sm font-semibold text-text-muted">Description</th>
+                        <th class="px-6 py-4 text-sm font-semibold text-text-muted w-48">Wallet</th>
+                        <th class="px-6 py-4 text-sm font-semibold text-text-muted text-right w-40">Amount</th>
+                        <th class="px-6 py-4 text-sm font-semibold text-text-muted text-center w-32">Type</th>
                     </tr>
                 </thead>
-                <tbody>
+                <tbody class="divide-y divide-border">
                     {% for transfer in transfers %}
-                    <tr>
-                        <td>{{ transfer.date.strftime('%Y-%m-%d') }}</td>
-                        <td>{{ transfer.description }}</td>
-                        <td>{{ transfer.wallet.name }}</td>
-                        <td class="{{ 'text-danger' if transfer.transaction_type in ['expense', 'transfer_out'] else 'text-success' }}">
-                            {{ transfer.wallet.currency }} {{ "%.2f"|format(transfer.amount) }}
+                    <tr class="hover:bg-surface-hover/50 transition-colors">
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-text-muted font-medium">{{ transfer.date.strftime('%Y-%m-%d') }}</td>
+                        <td class="px-6 py-4 text-sm text-text font-medium">{{ transfer.description }}</td>
+                        <td class="px-6 py-4 text-sm text-text flex items-center gap-2">
+                            <span class="w-6 h-6 rounded-md bg-surface-active flex items-center justify-center text-xs border border-border">{{ transfer.wallet.icon }}</span>
+                            {{ transfer.wallet.name }}
                         </td>
-                        <td>
-                            <span class="badge {{ 'badge-danger' if transfer.transaction_type in ['expense', 'transfer_out'] else 'badge-success' }}">
+                        <td class="px-6 py-4 text-sm font-bold text-right whitespace-nowrap {{ 'text-danger' if transfer.transaction_type in ['expense', 'transfer_out'] else 'text-success' }}">
+                            {{ transfer.wallet.currency }} {{ "{:,.2f}".format(transfer.amount) }}
+                        </td>
+                        <td class="px-6 py-4 text-center">
+                            <span class="inline-flex items-center justify-center px-2.5 py-1 rounded-md text-xs font-bold w-full {{ 'bg-danger/10 text-danger' if transfer.transaction_type in ['expense', 'transfer_out'] else 'bg-success/10 text-success' }}">
                                 {{ 'Outgoing' if transfer.transaction_type in ['expense', 'transfer_out'] else 'Incoming' }}
                             </span>
                         </td>
@@ -88,80 +127,133 @@
 </div>
 
 <!-- Transfer Funds Modal -->
-<div id="transferModal" class="modal-backdrop">
-    <div class="modal-content" style="max-width: 500px;">
-        <h3 style="margin-top: 0; margin-bottom: 1.5rem;">↔️ Transfer Funds</h3>
+<div id="transferModal" class="hidden fixed inset-0 bg-surface-active/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 opacity-0 transition-opacity duration-300">
+    <div class="bg-surface w-full max-w-lg rounded-2xl border border-border flex flex-col max-h-[90vh] shadow-2xl overflow-hidden relative transform scale-95 transition-transform duration-300" onclick="event.stopPropagation()">
+        <!-- Modal Header -->
+        <div class="p-6 border-b border-border flex items-center justify-between bg-surface-active/30">
+            <h2 class="text-xl font-bold font-heading text-text m-0 flex items-center gap-2">
+                <div class="w-8 h-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
+                    <i data-lucide="arrow-left-right" class="w-4 h-4"></i>
+                </div>
+                Transfer Funds
+            </h2>
+            <button onclick="hideTransferModal()" class="text-text-muted hover:text-text transition-colors p-1 rounded-lg hover:bg-surface-hover">
+                <i data-lucide="x" class="w-6 h-6"></i>
+            </button>
+        </div>
         
-        <form action="{{ url_for('main.transfer_funds') }}" method="POST">
-            <div class="form-group mb-4">
-                <label class="form-label">Source Wallet (From)</label>
-                <select name="source_wallet_id" id="source_wallet" class="form-control" required onchange="updateDestOptions()">
-                    <option value="" disabled selected>Select Source Wallet</option>
-                    {% for wallet in wallets %}
-                    <option value="{{ wallet.id }}" data-currency="{{ wallet.currency }}">{{ wallet.name }} ({{ wallet.currency }} {{ "%.2f"|format(wallet.balance) }})</option>
-                    {% endfor %}
-                </select>
-            </div>
+        <!-- Modal Body -->
+        <div class="p-6 overflow-y-auto">
+            <form action="{{ url_for('main.transfer_funds') }}" method="POST" class="flex flex-col gap-5">
+                <div class="space-y-2">
+                    <label class="block text-sm font-semibold text-text">Source Wallet (From)</label>
+                    <div class="relative">
+                        <select name="source_wallet_id" id="source_wallet" required onchange="updateDestOptions()"
+                            class="w-full h-12 pl-10 pr-10 bg-surface border border-border rounded-xl text-text focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors appearance-none font-medium">
+                            <option value="" disabled selected>Select Source Wallet</option>
+                            {% for wallet in wallets %}
+                            <option value="{{ wallet.id }}" data-currency="{{ wallet.currency }}">{{ wallet.name }} ({{ wallet.currency }} {{ "{:,.2f}".format(wallet.balance) }})</option>
+                            {% endfor %}
+                        </select>
+                        <i data-lucide="arrow-up-right" class="w-5 h-5 text-text-muted absolute left-3 top-1/2 -translate-y-1/2"></i>
+                        <i data-lucide="chevron-down" class="w-5 h-5 text-text-muted absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none"></i>
+                    </div>
+                </div>
 
-            <div class="form-group mb-4">
-                <label class="form-label">Destination Wallet (To)</label>
-                <select name="dest_wallet_id" id="dest_wallet" class="form-control" required>
-                    <option value="" disabled selected>Select Destination Wallet</option>
-                    {% for wallet in wallets %}
-                    <option value="{{ wallet.id }}" data-currency="{{ wallet.currency }}">{{ wallet.name }} ({{ wallet.currency }} {{ "%.2f"|format(wallet.balance) }})</option>
-                    {% endfor %}
-                </select>
-            </div>
+                <div class="flex justify-center -my-2 relative z-10">
+                    <div class="w-8 h-8 bg-surface border border-border rounded-full flex items-center justify-center shadow-sm text-text-muted hover:text-primary transition-colors cursor-pointer" onclick="swapWallets()" title="Swap Wallets">
+                        <i data-lucide="arrow-down-up" class="w-4 h-4"></i>
+                    </div>
+                </div>
 
-            <div class="form-group mb-4" id="exchange_rate_group" style="display: none;">
-                <label class="form-label">Exchange Rate</label>
-                <div class="text-sm text-muted mb-1" id="exchange_rate_help">Rate</div>
-                <input type="number" name="exchange_rate" id="exchange_rate" step="any" min="0.000001" class="form-control" value="1.0">
-            </div>
+                <div class="space-y-2">
+                    <label class="block text-sm font-semibold text-text">Destination Wallet (To)</label>
+                    <div class="relative">
+                        <select name="dest_wallet_id" id="dest_wallet" required
+                            class="w-full h-12 pl-10 pr-10 bg-surface border border-border rounded-xl text-text focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors appearance-none font-medium">
+                            <option value="" disabled selected>Select Destination Wallet</option>
+                            {% for wallet in wallets %}
+                            <option value="{{ wallet.id }}" data-currency="{{ wallet.currency }}">{{ wallet.name }} ({{ wallet.currency }} {{ "{:,.2f}".format(wallet.balance) }})</option>
+                            {% endfor %}
+                        </select>
+                        <i data-lucide="arrow-down-right" class="w-5 h-5 text-text-muted absolute left-3 top-1/2 -translate-y-1/2"></i>
+                        <i data-lucide="chevron-down" class="w-5 h-5 text-text-muted absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none"></i>
+                    </div>
+                </div>
 
-            <div class="form-group mb-4">
-                <label class="form-label">Amount</label>
-                <input type="number" name="amount" step="0.01" min="0.01" class="form-control" required placeholder="0.00">
-            </div>
+                <div class="space-y-2 hidden bg-warning/10 p-4 rounded-xl border border-warning/20" id="exchange_rate_group">
+                    <div class="flex items-center gap-2 mb-2">
+                        <i data-lucide="refresh-cw" class="w-4 h-4 text-warning"></i>
+                        <label class="block text-sm font-bold text-warning m-0">Exchange Rate Required</label>
+                    </div>
+                    <div class="text-xs font-semibold text-warning/80 mb-3" id="exchange_rate_help">Rate</div>
+                    <div class="relative">
+                        <input type="number" name="exchange_rate" id="exchange_rate" step="any" min="0.000001" value="1.0"
+                            class="w-full h-11 px-4 bg-surface border border-warning/30 rounded-lg text-text focus:outline-none focus:border-warning focus:ring-1 focus:ring-warning transition-colors font-mono">
+                    </div>
+                </div>
 
-            <div class="form-group mb-6">
-                <label class="form-label">Date</label>
-                <input type="date" name="date" class="form-control" value="{{ now_date }}">
-            </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div class="space-y-2">
+                        <label class="block text-sm font-semibold text-text">Amount</label>
+                        <div class="relative">
+                            <input type="number" name="amount" step="0.01" min="0.01" required placeholder="0.00"
+                                class="w-full h-12 pl-10 pr-4 bg-surface border border-border rounded-xl text-text focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors font-bold text-lg">
+                            <i data-lucide="banknote" class="w-5 h-5 text-text-muted absolute left-3 top-1/2 -translate-y-1/2"></i>
+                        </div>
+                    </div>
 
-            <div class="flex gap-4 justify-end">
-                <button type="button" onclick="hideTransferModal()" class="btn-secondary">
-                    Cancel
-                </button>
-                <button type="submit" class="btn-primary">
-                    Transfer
-                </button>
-            </div>
-        </form>
-    </div>
-</div>
+                    <div class="space-y-2">
+                        <label class="block text-sm font-semibold text-text">Date</label>
+                        <div class="relative">
+                            <input type="date" name="date" value="{{ now_date }}" required
+                                class="w-full h-12 px-4 bg-surface border border-border rounded-xl text-text focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors font-medium">
+                        </div>
+                    </div>
+                </div>
 
-<!-- Delete Confirmation Modal -->
-<div id="deleteWalletModal" class="modal-backdrop">
-    <div class="modal-content" style="max-width: 400px;">
-        <h3 class="text-danger" style="margin-top: 0; margin-bottom: 1rem;">⚠️ Delete Wallet</h3>
-        <p id="deleteWalletMessage" class="text-muted" style="margin-bottom: 1.5rem;"></p>
-        <div class="flex gap-4 justify-end">
-            <button onclick="hideDeleteWalletDialog()" class="btn-secondary">
-                Cancel
-            </button>
-            <button onclick="confirmDeleteWallet()" class="btn-danger">
-                Delete
-            </button>
+                <!-- Modal Footer -->
+                <div class="pt-6 border-t border-border flex justify-end gap-3 mt-2">
+                    <button type="button" onclick="hideTransferModal()" class="px-5 py-2.5 font-semibold text-text bg-surface border border-border rounded-xl hover:bg-surface-hover transition-colors">
+                        Cancel
+                    </button>
+                    <button type="submit" class="px-5 py-2.5 font-bold text-primary-content bg-primary rounded-xl hover:bg-primary-hover transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-primary/50 flex items-center gap-2">
+                        Complete Transfer <i data-lucide="check" class="w-4 h-4"></i>
+                    </button>
+                </div>
+            </form>
         </div>
     </div>
 </div>
 
-<form id="deleteWalletForm" method="POST" style="display: none;">
-</form>
+<!-- Delete Confirmation Modal -->
+<div id="deleteWalletModal" class="hidden fixed inset-0 bg-danger/10 backdrop-blur-sm z-50 flex items-center justify-center p-4 opacity-0 transition-opacity duration-300">
+    <div class="bg-surface w-full max-w-md rounded-2xl border border-danger/20 flex flex-col shadow-2xl overflow-hidden relative transform scale-95 transition-transform duration-300" onclick="event.stopPropagation()">
+        <div class="p-6 flex flex-col items-center text-center">
+            <div class="w-16 h-16 rounded-full bg-danger/10 flex items-center justify-center text-danger mb-4">
+                <i data-lucide="alert-triangle" class="w-8 h-8"></i>
+            </div>
+            <h3 class="text-xl font-bold font-heading text-text m-0 mb-2">Delete Wallet?</h3>
+            <p id="deleteWalletMessage" class="text-text-muted mb-6">Are you sure you want to delete this wallet? This action cannot be undone.</p>
+            
+            <div class="flex gap-3 w-full">
+                <button onclick="hideDeleteWalletDialog()" class="flex-1 px-5 py-3 font-semibold text-text bg-surface border border-border rounded-xl hover:bg-surface-hover transition-colors">
+                    Cancel
+                </button>
+                <button onclick="confirmDeleteWallet()" class="flex-1 px-5 py-3 font-bold text-white bg-danger rounded-xl hover:bg-danger/90 transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-danger/50">
+                    Yes, Delete
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<form id="deleteWalletForm" method="POST" class="hidden"></form>
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    lucide.createIcons();
+
     // Set default date to today
     const dateInputs = document.querySelectorAll('input[type="date"]');
     const today = new Date().toISOString().split('T')[0];
@@ -171,25 +263,46 @@ document.addEventListener('DOMContentLoaded', function() {
 
     let walletToDelete = null;
     const deleteModal = document.getElementById('deleteWalletModal');
+    const deleteModalContent = deleteModal.querySelector('.bg-surface');
     const deleteMessage = document.getElementById('deleteWalletMessage');
     const deleteForm = document.getElementById('deleteWalletForm');
     
     // Transfer Modal Logic
     const transferModal = document.getElementById('transferModal');
+    const transferModalContent = transferModal.querySelector('.bg-surface');
     const sourceSelect = document.getElementById('source_wallet');
     const destSelect = document.getElementById('dest_wallet');
     const rateGroup = document.getElementById('exchange_rate_group');
     const rateHelp = document.getElementById('exchange_rate_help');
 
     window.showTransferModal = function() {
-        transferModal.style.display = 'flex';
+        transferModal.classList.remove('hidden');
+        // trigger animation
+        setTimeout(() => {
+            transferModal.classList.remove('opacity-0');
+            transferModalContent.classList.remove('scale-95');
+            transferModalContent.classList.add('scale-100');
+        }, 10);
         checkCurrencies();
     };
 
     window.hideTransferModal = function() {
-        transferModal.style.display = 'none';
-        rateGroup.style.display = 'none';
-        document.getElementById('exchange_rate').value = '1.0';
+        transferModal.classList.add('opacity-0');
+        transferModalContent.classList.remove('scale-100');
+        transferModalContent.classList.add('scale-95');
+        setTimeout(() => {
+            transferModal.classList.add('hidden');
+            rateGroup.classList.add('hidden');
+            document.getElementById('exchange_rate').value = '1.0';
+        }, 300);
+    };
+
+    window.swapWallets = function() {
+        const temp = sourceSelect.value;
+        sourceSelect.value = destSelect.value;
+        updateDestOptions(); // Update constraints
+        destSelect.value = temp;
+        checkCurrencies();
     };
 
     window.updateDestOptions = function() {
@@ -197,7 +310,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const destOptions = destSelect.options;
         
         for (let i = 0; i < destOptions.length; i++) {
-            if (destOptions[i].value === sourceId) {
+            if (destOptions[i].value === sourceId && sourceId !== "") {
                 destOptions[i].disabled = true;
                 if (destSelect.value === sourceId) {
                     destSelect.value = "";
@@ -218,13 +331,13 @@ document.addEventListener('DOMContentLoaded', function() {
             const destCurr = destOption.getAttribute('data-currency');
             
             if (sourceCurr && destCurr && sourceCurr !== destCurr) {
-                rateGroup.style.display = 'block';
+                rateGroup.classList.remove('hidden');
                 rateHelp.textContent = `1 ${sourceCurr} = ? ${destCurr}`;
             } else {
-                rateGroup.style.display = 'none';
+                rateGroup.classList.add('hidden');
             }
         } else {
-            rateGroup.style.display = 'none';
+            rateGroup.classList.add('hidden');
         }
     };
 
@@ -237,14 +350,25 @@ document.addEventListener('DOMContentLoaded', function() {
             const id = this.getAttribute('data-id');
             const name = this.getAttribute('data-name');
             walletToDelete = id;
-            deleteMessage.textContent = `Are you sure you want to delete the wallet "${name}"? This action cannot be undone.`;
-            deleteModal.style.display = 'flex';
+            deleteMessage.innerHTML = `Are you sure you want to delete the wallet <strong>"${name}"</strong>? This action cannot be undone.`;
+            
+            deleteModal.classList.remove('hidden');
+            setTimeout(() => {
+                deleteModal.classList.remove('opacity-0');
+                deleteModalContent.classList.remove('scale-95');
+                deleteModalContent.classList.add('scale-100');
+            }, 10);
         });
     });
 
     window.hideDeleteWalletDialog = function() {
-        deleteModal.style.display = 'none';
-        walletToDelete = null;
+        deleteModal.classList.add('opacity-0');
+        deleteModalContent.classList.remove('scale-100');
+        deleteModalContent.classList.add('scale-95');
+        setTimeout(() => {
+            deleteModal.classList.add('hidden');
+            walletToDelete = null;
+        }, 300);
     };
 
     window.confirmDeleteWallet = function() {

@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:apiligufinanceapp.netlify.app)",
+      "Bash(curl -s -L \"https://apiligufinanceapp.netlify.app/\")",
+      "Bash(curl -s -L \"https://apiligufinanceapp.netlify.app/assets/index-BsHjhTnB.js\")",
+      "Bash(python -m flask db migrate:*)",
+      "Bash(pip install:*)",
+      "Bash(pip show:*)",
+      "Bash(python:*)",
+      "Bash(grep:*)",
+      "WebSearch",
+      "Bash(cd /c/Users/HP/Documents/GitHub/FinancialTracker && flask db migrate -m \"Add email verification, 2FA, and password reset tokens\" 2>&1)"
+    ]
+  }
+}

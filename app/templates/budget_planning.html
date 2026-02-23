@@ -1,0 +1,278 @@
+{% extends "base.html" %}
+
+{% block title %}Budget Planning - Financial Tracker{% endblock %}
+{% block header_title %}Budget Planning{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto space-y-8">
+    <!-- Summary Row -->
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+        <div class="bg-surface rounded-2xl border border-border shadow-sm p-5 sm:p-6 flex flex-col justify-center">
+            <div class="flex items-center gap-2 mb-2">
+                <i data-lucide="arrow-down-to-line" class="w-5 h-5 text-success"></i>
+                <span class="text-sm font-semibold text-text-muted uppercase tracking-wider">Monthly Income</span>
+            </div>
+            <div class="text-xl sm:text-2xl font-black font-heading text-text truncate" title="GHS {{ '{:,.2f}'.format(monthly_income) }}">GHS {{ '{:,.2f}'.format(monthly_income) }}</div>
+        </div>
+        <div class="bg-surface rounded-2xl border border-border shadow-sm p-5 sm:p-6 flex flex-col justify-center">
+            <div class="flex items-center gap-2 mb-2">
+                <i data-lucide="arrow-up-from-line" class="w-5 h-5 text-danger"></i>
+                <span class="text-sm font-semibold text-text-muted uppercase tracking-wider">Monthly Expenses</span>
+            </div>
+            <div class="text-xl sm:text-2xl font-black font-heading text-text truncate" title="GHS {{ '{:,.2f}'.format(monthly_expenses) }}">GHS {{ '{:,.2f}'.format(monthly_expenses) }}</div>
+        </div>
+        <div class="bg-surface rounded-2xl border border-border shadow-sm p-5 sm:p-6 flex flex-col justify-center">
+            <div class="flex items-center gap-2 mb-2">
+                <i data-lucide="piggy-bank" class="w-5 h-5 text-primary"></i>
+                <span class="text-sm font-semibold text-text-muted uppercase tracking-wider">Savings</span>
+            </div>
+            <div class="text-xl sm:text-2xl font-black font-heading text-text truncate" title="GHS {{ '{:,.2f}'.format(savings) }}">GHS {{ '{:,.2f}'.format(savings) }}</div>
+        </div>
+        <div class="bg-surface rounded-2xl border border-border shadow-sm p-5 sm:p-6 flex flex-col justify-center">
+            <div class="flex items-center gap-2 mb-2">
+                <i data-lucide="percent" class="w-5 h-5 text-primary"></i>
+                <span class="text-sm font-semibold text-text-muted uppercase tracking-wider">Savings Rate</span>
+            </div>
+            <div class="text-xl sm:text-2xl font-black font-heading truncate {% if savings_rate >= 10 %}text-success{% else %}text-danger{% endif %}">{{ '{:.1f}'.format(savings_rate) }}%</div>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <!-- Arkad's 10% Rule -->
+        <div class="bg-surface rounded-2xl border border-border shadow-sm p-6 sm:p-8 {% if arkad_met %}border-l-4 border-l-success{% else %}border-l-4 border-l-warning{% endif %}">
+            <div class="flex flex-col sm:flex-row justify-between items-start mb-6 gap-4">
+                <div>
+                    <h2 class="text-xl font-bold font-heading m-0 mb-1 flex items-center gap-2 text-text">
+                        <i data-lucide="scroll-text" class="w-6 h-6 {% if arkad_met %}text-success{% else %}text-warning{% endif %}"></i>
+                        Arkad's 10% Rule
+                    </h2>
+                    <p class="text-sm text-text-muted font-medium m-0">"A part of all I earn is mine to keep"</p>
+                </div>
+                <div class="text-left sm:text-right w-full sm:w-auto p-3 sm:p-0 bg-surface-active/50 sm:bg-transparent rounded-lg sm:rounded-none">
+                    <div class="text-xs font-bold text-text-muted uppercase tracking-wider mb-1">Target</div>
+                    <div class="font-black text-lg text-text">GHS {{ '{:,.2f}'.format(arkad_target) }}</div>
+                    <div class="text-sm font-bold mt-1 {% if arkad_met %}text-success{% else %}text-danger{% endif %} flex items-center gap-1 sm:justify-end">
+                        {% if arkad_met %}<i data-lucide="check-circle-2" class="w-4 h-4"></i> Met{% else %}<i data-lucide="x-circle" class="w-4 h-4"></i> Not Met{% endif %}
+                    </div>
+                </div>
+            </div>
+            <div class="w-full bg-surface-active rounded-full h-3 mb-2 overflow-hidden border border-border/50">
+                {% set arkad_pct = (savings / arkad_target * 100) if arkad_target > 0 else 0 %}
+                <div class="{% if arkad_met %}bg-success{% else %}bg-warning{% endif %} h-3 rounded-full transition-all duration-1000 ease-out" style="width: {{ [arkad_pct, 100]|min }}%"></div>
+            </div>
+            <div class="flex justify-between items-center text-xs font-bold text-text-muted">
+                <span>GHS {{ '{:,.2f}'.format(savings) }} saved</span>
+                <span>{{ '{:.1f}'.format(arkad_pct) }}%</span>
+            </div>
+            <p class="text-xs text-text-muted mt-4 bg-primary/5 p-3 rounded-xl border border-primary/10">
+                <i data-lucide="info" class="w-3 h-3 inline pb-0.5"></i> The timeless rule from <em>"The Richest Man in Babylon"</em>. Pay yourself first by saving at least 10% of everything you earn before paying any expenses.
+            </p>
+        </div>
+
+        <!-- Savings Rate Gauge -->
+        <div class="bg-surface rounded-2xl border border-border shadow-sm p-6 sm:p-8 flex flex-col items-center justify-center relative overflow-hidden group">
+            <div class="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity"></div>
+            <h2 class="text-xl font-bold font-heading m-0 mb-6 text-text self-start">Savings Rate Gauge</h2>
+            
+            <div class="relative w-48 h-24 sm:w-56 sm:h-28 mx-auto mb-4">
+                <div class="absolute inset-x-0 bottom-0 h-full w-full rounded-t-full bg-surface-active overflow-hidden border-t-8 border-l-8 border-r-8 border-surface-active">
+                    <div class="absolute bottom-0 left-1/2 -translate-x-1/2 w-full h-[200%] origin-bottom transition-transform duration-1000 ease-out {% if savings_rate >= 20 %}bg-success{% elif savings_rate >= 10 %}bg-warning{% else %}bg-danger{% endif %}"
+                         style="transform: rotate({{ (savings_rate / 100 * 180) - 180 }}deg);"></div>
+                </div>
+                <div class="absolute bottom-0 left-1/2 -translate-x-1/2 w-32 h-16 sm:w-36 sm:h-18 bg-surface rounded-t-full flex items-end justify-center pb-2 border-t border-l border-r border-border shadow-inner">
+                    <span class="text-3xl sm:text-4xl font-black font-heading {% if savings_rate >= 20 %}text-success{% elif savings_rate >= 10 %}text-warning{% else %}text-danger{% endif %}">{{ '{:.0f}'.format(savings_rate) }}%</span>
+                </div>
+            </div>
+            
+            <p class="text-sm font-medium text-text-muted text-center max-w-sm mt-4 p-3 bg-surface-active/30 rounded-xl border border-border">
+                {% if savings_rate >= 20 %}
+                <i data-lucide="award" class="inline w-4 h-4 text-success mb-1"></i> Excellent! You are saving well above the recommended rate.
+                {% elif savings_rate >= 10 %}
+                <i data-lucide="thumbs-up" class="inline w-4 h-4 text-warning mb-1"></i> Good job! You are meeting the minimum recommended savings rate.
+                {% else %}
+                <i data-lucide="alert-circle" class="inline w-4 h-4 text-danger mb-1"></i> Consider reducing expenses to reach the 10% savings target.
+                {% endif %}
+            </p>
+        </div>
+    </div>
+
+    <!-- Budgets List -->
+    {% if budgets %}
+    <div class="bg-surface rounded-2xl border border-border shadow-sm overflow-hidden flex flex-col z-10 relative">
+        <div class="p-6 border-b border-border bg-surface-active/30 flex justify-between items-center">
+            <h2 class="text-xl font-bold font-heading m-0 text-text flex items-center gap-2">
+                <i data-lucide="pie-chart" class="w-6 h-6 text-primary"></i> Category Budgets
+            </h2>
+        </div>
+        <div class="p-6">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {% for b in budgets %}
+                <div class="bg-surface-active/30 rounded-xl border border-border p-5 hover:border-primary/30 hover:shadow-sm transition-all relative overflow-hidden group">
+                    {% set bpct = (b.spent / b.limit * 100) if b.limit > 0 else 0 %}
+                    <div class="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none 
+                        {% if bpct >= 100 %}bg-danger/5{% elif bpct >= 75 %}bg-warning/5{% else %}bg-success/5{% endif %}"></div>
+                    
+                    <div class="flex justify-between items-end mb-3 relative z-10">
+                        <div>
+                            <h3 class="text-base font-bold text-text m-0 mb-1">{{ b.category.name }}</h3>
+                            <p class="text-xs font-semibold text-text-muted m-0">GHS {{ '{:,.2f}'.format(b.spent) }} / {{ '{:,.2f}'.format(b.limit) }}</p>
+                        </div>
+                        <span class="text-sm font-black {% if bpct >= 100 %}text-danger{% elif bpct >= 75 %}text-warning{% else %}text-success{% endif %}">
+                            {{ "{:.1f}%".format(bpct) }}
+                        </span>
+                    </div>
+                    
+                    <div class="w-full bg-border/50 rounded-full h-2 overflow-hidden relative z-10">
+                        <div class="{% if bpct >= 100 %}bg-danger{% elif bpct >= 75 %}bg-warning{% else %}bg-success{% endif %} h-2 rounded-full transition-all duration-1000 ease-out" style="width: {{ [bpct, 100]|min }}%"></div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Budget Periods -->
+    <div class="bg-surface rounded-2xl border border-border shadow-sm overflow-hidden flex flex-col z-10 relative">
+        <div class="p-6 border-b border-border bg-surface-active/30 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <h2 class="text-xl font-bold font-heading m-0 text-text flex items-center gap-2">
+                <i data-lucide="calendar-range" class="w-6 h-6 text-primary"></i> Budget Periods
+            </h2>
+            <button onclick="showAddPeriodModal()" class="shrink-0 inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-primary text-primary-content font-bold rounded-xl hover:bg-primary-hover transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-primary/50 text-sm">
+                <i data-lucide="plus" class="w-4 h-4"></i> Add Period
+            </button>
+        </div>
+        
+        <div class="p-6">
+            {% if periods %}
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {% for period in periods %}
+                <div class="bg-surface-active/30 rounded-xl border border-border p-5 hover:shadow-md transition-shadow">
+                    <div class="flex justify-between items-start mb-4">
+                        <div class="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center text-primary shrink-0 mr-3">
+                            <i data-lucide="calendar" class="w-5 h-5"></i>
+                        </div>
+                        <div class="text-right">
+                            <p class="text-[10px] font-bold text-text-muted uppercase tracking-wider mb-0.5">Budget</p>
+                            <p class="text-base font-black font-heading text-text">GHS {{ '{:,.2f}'.format(period.budget_amount) }}</p>
+                        </div>
+                    </div>
+                    <div class="mt-2">
+                        <h3 class="text-sm font-bold text-text m-0 mb-1 line-clamp-1">{{ period.name }}</h3>
+                        <p class="text-xs font-semibold text-text-muted m-0 flex items-center gap-1.5 opacity-80">
+                            <i data-lucide="clock" class="w-3 h-3"></i>
+                            {{ period.start_date.strftime('%b %d') }} - {{ period.end_date.strftime('%b %d, %Y') }}
+                        </p>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="p-8 flex flex-col items-center justify-center text-center">
+                <div class="w-16 h-16 bg-surface border border-dashed border-border rounded-full flex items-center justify-center mb-4">
+                    <i data-lucide="calendar-off" class="w-8 h-8 text-text-muted/50"></i>
+                </div>
+                <h4 class="text-lg font-bold text-text m-0 mb-2">No Budget Periods</h4>
+                <p class="text-sm text-text-muted max-w-sm mb-6">Create time-bound budget periods to track your spending over specific weeks or months.</p>
+                <button onclick="showAddPeriodModal()" class="inline-flex items-center justify-center gap-2 px-6 py-3 bg-surface border border-border text-text font-bold rounded-xl hover:bg-surface-hover hover:text-primary transition-colors focus:outline-none focus:ring-2 focus:ring-primary/50">
+                    <i data-lucide="plus" class="w-4 h-4"></i> Create First Period
+                </button>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Add Period Modal -->
+<div id="addPeriodModal" class="hidden fixed inset-0 bg-surface-active/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 opacity-0 transition-opacity duration-300">
+    <div class="bg-surface w-full max-w-md rounded-2xl border border-border shadow-2xl overflow-hidden relative transform scale-95 transition-transform duration-300" onclick="event.stopPropagation()">
+        <div class="p-6 border-b border-border bg-surface-active/30 flex justify-between items-center">
+            <h2 class="text-xl font-bold font-heading m-0 text-text flex items-center gap-2">
+                <i data-lucide="calendar-plus" class="w-5 h-5 text-primary"></i> Add Budget Period
+            </h2>
+            <button onclick="hideAddPeriodModal()" class="text-text-muted hover:text-danger hover:bg-danger/10 p-2 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-danger/50">
+                <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+        </div>
+        <div class="p-6">
+            <form method="POST" action="{{ url_for('budget_planning.add_period') }}" class="space-y-5">
+                <div class="space-y-2">
+                    <label class="block text-sm font-semibold text-text">Period Name</label>
+                    <input type="text" name="name" required placeholder="e.g., January 2026, Summer Trip" 
+                        class="w-full h-11 px-4 bg-surface border border-border rounded-xl text-text focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors text-sm font-medium">
+                </div>
+                
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                    <div class="space-y-2">
+                        <label class="block text-sm font-semibold text-text">Start Date</label>
+                        <div class="relative">
+                            <i data-lucide="calendar" class="w-4 h-4 text-text-muted absolute left-3 top-1/2 -translate-y-1/2"></i>
+                            <input type="date" name="start_date" required 
+                                class="w-full h-11 pl-9 pr-3 bg-surface border border-border rounded-xl text-text focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors text-sm font-medium">
+                        </div>
+                    </div>
+                    <div class="space-y-2">
+                        <label class="block text-sm font-semibold text-text">End Date</label>
+                        <div class="relative">
+                            <i data-lucide="calendar" class="w-4 h-4 text-text-muted absolute left-3 top-1/2 -translate-y-1/2"></i>
+                            <input type="date" name="end_date" required 
+                                class="w-full h-11 pl-9 pr-3 bg-surface border border-border rounded-xl text-text focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors text-sm font-medium">
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="space-y-2">
+                    <label class="block text-sm font-semibold text-text">Budget Amount</label>
+                    <div class="relative">
+                        <span class="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted font-bold text-sm">GHS</span>
+                        <input type="number" name="budget_amount" step="0.01" min="0" required placeholder="0.00"
+                            class="w-full h-11 pl-12 pr-4 bg-surface border border-border rounded-xl text-text font-bold focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors text-sm">
+                    </div>
+                </div>
+                
+                <div class="pt-4 flex gap-3">
+                    <button type="button" onclick="hideAddPeriodModal()" class="flex-1 px-5 py-3 font-bold text-text bg-surface border border-border rounded-xl hover:bg-surface-hover transition-colors focus:outline-none focus:ring-2 focus:ring-border">
+                        Cancel
+                    </button>
+                    <button type="submit" class="flex-1 px-5 py-3 font-bold text-white bg-primary rounded-xl hover:bg-primary-hover transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-primary/50">
+                        Create Period
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    lucide.createIcons();
+});
+
+const modal = document.getElementById('addPeriodModal');
+const modalContent = modal.querySelector('.bg-surface');
+
+window.showAddPeriodModal = function() {
+    modal.classList.remove('hidden');
+    setTimeout(() => {
+        modal.classList.remove('opacity-0');
+        modalContent.classList.remove('scale-95');
+        modalContent.classList.add('scale-100');
+    }, 10);
+};
+
+window.hideAddPeriodModal = function() {
+    modal.classList.add('opacity-0');
+    modalContent.classList.remove('scale-100');
+    modalContent.classList.add('scale-95');
+    setTimeout(() => {
+        modal.classList.add('hidden');
+    }, 300);
+};
+
+window.onclick = function(event) {
+    if (event.target == modal) {
+        hideAddPeriodModal();
+    }
+};
+</script>
+{% endblock %}

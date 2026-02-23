@@ -1,0 +1,115 @@
+{% extends "base.html" %}
+
+{% block title %}Settings - Financial Tracker{% endblock %}
+{% block header_title %}Settings{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto space-y-8">
+
+    <!-- Profile Section -->
+    <div class="bg-surface rounded-2xl border border-border shadow-sm overflow-hidden text-text">
+        <div class="p-6 border-b border-border bg-surface-active/30 flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
+                <i data-lucide="user" class="w-5 h-5"></i>
+            </div>
+            <h2 class="text-xl font-bold font-heading m-0">Profile Settings</h2>
+        </div>
+
+        <div class="p-6">
+            <form method="POST" action="{{ url_for('settings.settings') }}" class="space-y-6">
+                <input type="hidden" name="action" value="update_profile">
+
+                <div class="space-y-2">
+                    <label for="name" class="block text-sm font-semibold text-text">Full Name</label>
+                    <input type="text" id="name" name="name" value="{{ current_user.name }}" required
+                        class="w-full h-11 px-4 bg-surface border border-border rounded-xl text-text focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors">
+                </div>
+
+                <div class="space-y-2">
+                    <label for="email" class="block text-sm font-semibold text-text">Email Address</label>
+                    <input type="email" id="email" name="email" value="{{ current_user.email }}" required
+                        class="w-full h-11 px-4 bg-surface border border-border rounded-xl text-text focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors">
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                    <div class="space-y-2">
+                        <label for="default_currency" class="block text-sm font-semibold text-text">Default Currency</label>
+                        <select id="default_currency" name="default_currency"
+                            class="w-full h-11 px-4 bg-surface border border-border rounded-xl text-text focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors appearance-none pr-10 bg-no-repeat bg-[right_1rem_center]" style="background-image: url('data:image/svg+xml;charset=utf-8,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' fill=\'none\' viewBox=\'0 0 24 24\' stroke=\'%2364748b\'%3E%3Cpath stroke-linecap=\'round\' stroke-linejoin=\'round\' stroke-width=\'2\' d=\'M19 9l-7 7-7-7\'/%3E%3C/svg%3E'); background-size: 1.25rem;">
+                            <option value="GHS" {% if current_user.default_currency == 'GHS' %}selected{% endif %}>GHS - Ghana Cedi</option>
+                            <option value="USD" {% if current_user.default_currency == 'USD' %}selected{% endif %}>USD - US Dollar</option>
+                            <option value="EUR" {% if current_user.default_currency == 'EUR' %}selected{% endif %}>EUR - Euro</option>
+                            <option value="GBP" {% if current_user.default_currency == 'GBP' %}selected{% endif %}>GBP - British Pound</option>
+                            <option value="NGN" {% if current_user.default_currency == 'NGN' %}selected{% endif %}>NGN - Nigerian Naira</option>
+                            <option value="KES" {% if current_user.default_currency == 'KES' %}selected{% endif %}>KES - Kenyan Shilling</option>
+                            <option value="ZAR" {% if current_user.default_currency == 'ZAR' %}selected{% endif %}>ZAR - South African Rand</option>
+                        </select>
+                    </div>
+                    <div class="space-y-2">
+                        <label for="theme_preference" class="block text-sm font-semibold text-text">Theme Preference</label>
+                        <select id="theme_preference" name="theme_preference"
+                            class="w-full h-11 px-4 bg-surface border border-border rounded-xl text-text focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors appearance-none pr-10 bg-no-repeat bg-[right_1rem_center]" style="background-image: url('data:image/svg+xml;charset=utf-8,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' fill=\'none\' viewBox=\'0 0 24 24\' stroke=\'%2364748b\'%3E%3Cpath stroke-linecap=\'round\' stroke-linejoin=\'round\' stroke-width=\'2\' d=\'M19 9l-7 7-7-7\'/%3E%3C/svg%3E'); background-size: 1.25rem;">
+                            <option value="system" {% if current_user.theme_preference == 'system' %}selected{% endif %}>System Default</option>
+                            <option value="light" {% if current_user.theme_preference == 'light' %}selected{% endif %}>Light</option>
+                            <option value="dark" {% if current_user.theme_preference == 'dark' %}selected{% endif %}>Dark</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="pt-4 flex justify-end">
+                    <button type="submit" class="inline-flex items-center justify-center gap-2 px-6 py-3 bg-primary text-primary-content font-bold rounded-xl hover:bg-primary-hover transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-primary/50">
+                        <i data-lucide="save" class="w-5 h-5"></i> Save Profile
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Change Password Section -->
+    <div class="bg-surface rounded-2xl border border-border shadow-sm overflow-hidden text-text">
+        <div class="p-6 border-b border-border bg-surface-active/30 flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl bg-danger/10 flex items-center justify-center text-danger">
+                <i data-lucide="lock" class="w-5 h-5"></i>
+            </div>
+            <h2 class="text-xl font-bold font-heading m-0">Change Password</h2>
+        </div>
+
+        <div class="p-6">
+            <form method="POST" action="{{ url_for('settings.settings') }}" class="space-y-6">
+                <input type="hidden" name="action" value="change_password">
+
+                <div class="space-y-2">
+                    <label for="current_password" class="block text-sm font-semibold text-text">Current Password</label>
+                    <input type="password" id="current_password" name="current_password" required
+                        class="w-full h-11 px-4 bg-surface border border-border rounded-xl text-text focus:outline-none focus:border-danger focus:ring-1 focus:ring-danger transition-colors">
+                </div>
+
+                <div class="space-y-2">
+                    <label for="new_password" class="block text-sm font-semibold text-text">New Password</label>
+                    <input type="password" id="new_password" name="new_password" required minlength="8"
+                        class="w-full h-11 px-4 bg-surface border border-border rounded-xl text-text focus:outline-none focus:border-danger focus:ring-1 focus:ring-danger transition-colors">
+                </div>
+
+                <div class="space-y-2">
+                    <label for="confirm_password" class="block text-sm font-semibold text-text">Confirm New Password</label>
+                    <input type="password" id="confirm_password" name="confirm_password" required minlength="8"
+                        class="w-full h-11 px-4 bg-surface border border-border rounded-xl text-text focus:outline-none focus:border-danger focus:ring-1 focus:ring-danger transition-colors">
+                </div>
+
+                <div class="pt-4 flex justify-end">
+                    <button type="submit" class="inline-flex items-center justify-center gap-2 px-6 py-3 bg-danger text-white font-bold rounded-xl hover:bg-danger/90 transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-danger/50">
+                        <i data-lucide="key" class="w-5 h-5"></i> Update Password
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        lucide.createIcons();
+    });
+</script>
+{% endblock %}

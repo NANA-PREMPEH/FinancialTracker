@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Two-Factor Authentication - Financial Tracker</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script>
+        const savedTheme = localStorage.getItem('theme');
+        const systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+        if (savedTheme === 'dark' || (!savedTheme && systemTheme === 'dark')) {
+            document.documentElement.setAttribute('data-theme', 'dark');
+        } else {
+            document.documentElement.setAttribute('data-theme', 'light');
+        }
+    </script>
+</head>
+<body>
+    <div class="auth-container">
+        <div class="auth-card">
+            <div class="auth-header">
+                <div class="auth-logo">
+                    <i data-lucide="shield-check"></i>
+                    <h1>FinTracker</h1>
+                </div>
+                <p>Two-Factor Authentication</p>
+            </div>
+
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="alert alert-{{ category }}" style="margin-bottom: 1rem; padding: 0.75rem 1rem; border-radius: var(--radius-md); background: var(--color-surface); border-left: 4px solid var(--color-{{ 'primary' if category == 'message' else 'error' if category == 'error' else category }});">
+                            {{ message }}
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+
+            <div style="text-align: center; margin-bottom: 1.5rem;">
+                <div style="width: 64px; height: 64px; margin: 0 auto 1rem; background: rgba(99,102,241,0.1); border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+                    <i data-lucide="smartphone" style="width: 32px; height: 32px; color: var(--color-primary);"></i>
+                </div>
+                <p style="color: var(--color-text-muted);">Enter the 6-digit code from your authenticator app.</p>
+            </div>
+
+            <form method="POST" class="auth-form">
+                <div class="form-group">
+                    <label for="totp_code">
+                        <i data-lucide="hash" style="width: 16px; height: 16px;"></i>
+                        Authentication Code
+                    </label>
+                    <input type="text" id="totp_code" name="totp_code" required placeholder="000000"
+                           pattern="[0-9]{6}" maxlength="6" autocomplete="one-time-code"
+                           style="text-align: center; font-size: 1.5rem; letter-spacing: 0.3em;" autofocus>
+                </div>
+
+                <button type="submit" class="btn btn-primary" style="width: 100%;">
+                    <i data-lucide="log-in" style="width: 18px; height: 18px;"></i>
+                    Verify &amp; Sign In
+                </button>
+            </form>
+
+            <div class="auth-footer">
+                <p><a href="{{ url_for('auth.login') }}" class="auth-link">Back to login</a></p>
+            </div>
+        </div>
+    </div>
+
+    <script>lucide.createIcons();</script>
+</body>
+</html>

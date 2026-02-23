@@ -2,51 +2,97 @@
 
 {% block title %}Dashboard - Financial Tracker{% endblock %}
 
+{% block header_title %}Dashboard{% endblock %}
+
 {% block content %}
-<div class="dashboard-header">
-    <h1 style="margin: 0;">Dashboard</h1>
-    <button onclick="togglePrivacy()" id="privacyToggle" class="btn-privacy">
-        <span id="privacyIcon">👁️</span> <span id="privacyText">Hide Amounts</span>
-    </button>
-</div>
-
-<div class="dashboard-summary-wrapper">
-    <div class="glass-grid">
-        <div class="glass-panel">
-            <h2>Total Expenses</h2>
-            {% if oldest_date %}
-                <p class="text-muted">Since {{ oldest_date.strftime('%B %Y') }}</p>
-            {% else %}
-                <p class="text-muted">Since Beginning</p>
-            {% endif %}
-            <div class="amount-value" data-amount="GHS {{ '{:,.2f}'.format(total_expenses) }}">GHS {{ "{:,.2f}".format(total_expenses) }}</div>
-        </div>
-
-        <div class="glass-panel">
-            <h2>Current Year Expenses</h2>
-            <p class="text-muted">Year {{ current_date.strftime('%Y') }}</p>
-            <div class="amount-value" data-amount="GHS {{ '{:,.2f}'.format(yearly_expenses) }}">GHS {{ "{:,.2f}".format(yearly_expenses) }}</div>
-        </div>
-
-        <div class="glass-panel">
-            <h2>Current Month Expenses</h2>
-            <p class="text-muted">{{ current_date.strftime('%B %Y') }}</p>
-            <div class="amount-value" data-amount="GHS {{ '{:,.2f}'.format(monthly_expenses) }}">GHS {{ "{:,.2f}".format(monthly_expenses) }}</div>
-        </div>
-
-        <div class="glass-panel">
-            <h2>Net Available Funds</h2>
-            <p class="text-muted">Wallets - Debt</p>
-            <div class="amount-value" data-amount="GHS {{ '{:,.2f}'.format(net_wallet_balance) }}">GHS {{ "{:,.2f}".format(net_wallet_balance) }}</div>
-            <button onclick="convertCurrency()" class="btn-convert">
-                💱 Convert
+<div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
+    <div class="flex items-center gap-3">
+        {% if current_user.is_authenticated and current_user.role == 'admin' %}
+        <a href="{{ url_for('admin.admin_panel') }}" class="inline-flex items-center gap-2 px-4 py-2 bg-surface border border-border rounded-lg text-sm font-medium hover:bg-surface-hover transition-colors shadow-sm">
+            <i data-lucide="users" class="w-4 h-4"></i> Manage Users
+        </a>
+        <a href="{{ url_for('settings.settings') }}" class="inline-flex items-center gap-2 px-4 py-2 bg-surface border border-border rounded-lg text-sm font-medium hover:bg-surface-hover transition-colors shadow-sm">
+            <i data-lucide="settings" class="w-4 h-4"></i> System Settings
+        </a>
+        {% endif %}
+    </div>
+    <div class="flex items-center gap-3">
+        <div class="flex bg-surface rounded-lg border border-border p-1 shadow-sm">
+            <button class="px-3 py-1.5 text-xs font-medium hover:bg-surface-hover rounded-md transition-colors flex items-center gap-1">
+                <i data-lucide="file-text" class="w-3 h-3"></i> PDF
+            </button>
+            <button class="px-3 py-1.5 text-xs font-medium hover:bg-surface-hover rounded-md transition-colors flex items-center gap-1">
+                <i data-lucide="file-spreadsheet" class="w-3 h-3"></i> Excel
+            </button>
+            <button class="px-3 py-1.5 text-xs font-medium hover:bg-surface-hover rounded-md transition-colors flex items-center gap-1">
+                <i data-lucide="file" class="w-3 h-3"></i> CSV
             </button>
         </div>
+        <button onclick="togglePrivacy()" id="privacyToggle" class="inline-flex items-center gap-2 px-4 py-2 bg-surface border border-border rounded-lg text-sm font-medium hover:bg-surface-hover transition-colors shadow-sm">
+            <span id="privacyIcon">👁️</span> <span id="privacyText">Hide Amounts</span>
+        </button>
+    </div>
+</div>
 
-        <div class="glass-panel">
-            <h2>Total Debt</h2>
-            <p class="text-muted">{{ creditors|length }} Creditors</p>
-            <div class="amount-value text-danger" data-amount="GHS {{ '{:,.2f}'.format(total_debt) }}">GHS {{ "{:,.2f}".format(total_debt) }}</div>
+<div class="mb-8">
+    <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
+        <!-- Net Worth Card -->
+        <div class="bg-surface rounded-2xl p-6 border border-border shadow-sm hover:shadow-md transition-all duration-300">
+            <div class="flex justify-between items-start mb-4">
+                <div>
+                    <h3 class="font-heading font-bold text-text mb-1">Net Worth</h3>
+                    <p class="text-xs text-text-muted">Total assets - liabilities</p>
+                </div>
+                <div class="p-2 bg-primary/10 rounded-lg text-primary">
+                    <i data-lucide="wallet"></i>
+                </div>
+            </div>
+            <div class="amount-value text-2xl font-bold text-text" data-amount="GHS {{ '{:,.2f}'.format(net_wallet_balance) }}">GHS {{ "{:,.2f}".format(net_wallet_balance) }}</div>
+        </div>
+
+        <!-- Total Income Card -->
+        <div class="bg-surface rounded-2xl p-6 border border-border shadow-sm hover:shadow-md transition-all duration-300">
+            <div class="flex justify-between items-start mb-4">
+                <div>
+                    <h3 class="font-heading font-bold text-text mb-1">Total Income</h3>
+                    <p class="text-xs text-text-muted">All time earnings</p>
+                </div>
+                <div class="p-2 bg-success-bg rounded-lg text-success-text">
+                    <i data-lucide="trending-up"></i>
+                </div>
+            </div>
+            <div class="amount-value text-2xl font-bold text-success-text" data-amount="GHS {{ '{:,.2f}'.format(total_income) }}">GHS {{ "{:,.2f}".format(total_income) }}</div>
+        </div>
+
+        <!-- Total Expenses Card -->
+        <div class="bg-surface rounded-2xl p-6 border border-border shadow-sm hover:shadow-md transition-all duration-300 border-l-4 border-l-danger">
+            <div class="flex justify-between items-start mb-4">
+                <div>
+                    <h3 class="font-heading font-bold text-text mb-1">Total Expenses</h3>
+                    <p class="text-xs text-text-muted">All time spending</p>
+                </div>
+                <div class="p-2 bg-danger-bg rounded-lg text-danger-text">
+                    <i data-lucide="trending-down"></i>
+                </div>
+            </div>
+            <div class="amount-value text-2xl font-bold text-danger-text" data-amount="GHS {{ '{:,.2f}'.format(total_expenses) }}">GHS {{ "{:,.2f}".format(total_expenses) }}</div>
+        </div>
+
+        <!-- Net Income Card -->
+        <div class="bg-gradient-to-br from-primary to-primary-dark rounded-2xl p-6 shadow-md hover:shadow-lg transition-all duration-300 text-white border-0">
+            <div class="flex justify-between items-start mb-4">
+                <div>
+                    <h3 class="font-heading font-bold mb-1 text-white/90">Net Income</h3>
+                    <p class="text-xs text-white/70">Income - Expenses</p>
+                </div>
+                <div class="p-2 bg-white/20 rounded-lg text-white">
+                    <i data-lucide="pie-chart"></i>
+                </div>
+            </div>
+            <div class="amount-value text-2xl font-bold text-white relative z-10" data-amount="GHS {{ '{:,.2f}'.format(total_income - total_expenses) }}">GHS {{ "{:,.2f}".format(total_income - total_expenses) }}</div>
+            <button onclick="convertCurrency()" class="mt-4 w-full py-2 bg-white/10 hover:bg-white/20 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2">
+                <i data-lucide="arrow-left-right" class="w-4 h-4"></i> Convert
+            </button>
         </div>
     </div>
 </div>
@@ -58,62 +104,115 @@
             <h2 style="margin: 0;">Currency Conversions</h2>
             <button onclick="closeConversionModal()" class="modal-close">&times;</button>
         </div>
+        <div style="display: flex; gap: 0.75rem; align-items: center; margin-bottom: 1rem; flex-wrap: wrap;">
+            <label style="font-size: 0.9rem; font-weight: 600; color: var(--color-text-muted);">From:</label>
+            <select id="fromCurrencySelect" onchange="refreshConversion()" style="padding: 0.5rem 0.75rem; border-radius: var(--radius-md); border: 1px solid var(--color-border); background: var(--color-surface); color: var(--color-text); font-size: 0.9rem;">
+                <option value="GHS" selected>GHS - Ghanaian Cedi</option>
+                <option value="USD">USD - US Dollar</option>
+                <option value="EUR">EUR - Euro</option>
+                <option value="GBP">GBP - British Pound</option>
+                <option value="JPY">JPY - Japanese Yen</option>
+                <option value="CNY">CNY - Chinese Yuan</option>
+            </select>
+            <div style="flex: 1;">
+                <input type="number" id="convertAmount" value="{{ net_wallet_balance }}" step="0.01" min="0"
+                       onchange="refreshConversion()" oninput="refreshConversion()"
+                       style="width: 100%; padding: 0.5rem 0.75rem; border-radius: var(--radius-md); border: 1px solid var(--color-border); background: var(--color-surface); color: var(--color-text); font-size: 0.9rem;"
+                       placeholder="Amount">
+            </div>
+        </div>
         <div id="conversionResults">
             <p class="text-muted" style="text-align: center;">Loading exchange rates...</p>
         </div>
     </div>
 </div>
 
-<h2>Recent Expenses</h2>
-{% if recent_expenses %}
-    <table>
-        <thead>
-            <tr>
-                <th>Date</th>
-                <th>Description</th>
-                <th>Category</th>
-                <th class="text-right">Amount (GHS)</th>
-                <th style="width: 120px;">Actions</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for expense in recent_expenses %}
-            <tr>
-                <td>{{ expense.date.strftime('%d %b %Y') }}</td>
-                <td>
-                    <div>{{ expense.description }}</div>
-                    {% if expense.tags %}
-                        <div style="margin-top: 0.25rem;">
-                            {% for tag in expense.tags.split(',') %}
-                                <span class="tag-badge">{{ tag.strip() }}</span>
-                            {% endfor %}
-                        </div>
-                    {% endif %}
-                </td>
-                <td>
-                    <span style="font-size: 1.25rem; margin-right: 0.5rem;">{{ expense.category.icon }}</span>
-                    {{ expense.category.name }}
-                </td>
-                <td class="currency">
-                    {% if expense.receipt_path %}
-                        <span class="receipt-indicator" title="Has receipt">📎</span>
-                    {% endif %}
-                    {{ "%.2f"|format(expense.amount) }}
-                </td>
-                <td>
-                    <a href="{{ url_for('main.edit_expense', id=expense.id) }}" class="btn-sm btn-secondary" style="text-decoration: none; display: inline-block;">Edit</a>
-                </td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-    <div style="margin-top: 1rem;">
-        <a href="{{ url_for('main.all_expenses') }}" style="font-weight: bold;">View all expenses &rarr;</a>
+<!-- Dashboard Charts -->
+{% if chart_categories %}
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+    <div class="bg-surface rounded-2xl p-6 border border-border shadow-sm hover:shadow-md transition-all duration-300">
+        <h3 class="font-heading font-bold text-lg text-text mb-1">Spending by Category</h3>
+        <p class="text-xs text-text-muted mb-6">Current month</p>
+        <div class="relative max-w-[280px] mx-auto">
+            <canvas id="categoryChart"></canvas>
+        </div>
     </div>
-{% else %}
-    <p>No expenses recorded yet.</p>
-    <a href="{{ url_for('main.add_expense') }}" class="button">Add your first expense</a>
+    <div class="bg-surface rounded-2xl p-6 border border-border shadow-sm hover:shadow-md transition-all duration-300">
+        <h3 class="font-heading font-bold text-lg text-text mb-1">Monthly Trend</h3>
+        <p class="text-xs text-text-muted mb-6">Last 6 months</p>
+        <div class="relative w-full">
+            <canvas id="trendChart"></canvas>
+        </div>
+    </div>
+</div>
 {% endif %}
+
+<div class="bg-surface rounded-2xl p-6 border border-border shadow-sm mb-8">
+    <div class="flex justify-between items-center mb-6">
+        <h2 class="font-heading font-bold text-xl text-text m-0">Recent Transactions</h2>
+        <a href="{{ url_for('main.all_expenses') }}" class="inline-flex items-center justify-center px-4 py-2 bg-surface text-text font-medium text-sm rounded-lg border border-border hover:bg-surface-hover transition-colors shadow-sm">View All</a>
+    </div>
+
+    {% if recent_expenses %}
+        <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse">
+                <thead>
+                    <tr class="bg-surface-hover border-b border-border">
+                        <th class="p-4 text-xs font-semibold text-text-muted uppercase tracking-wider rounded-tl-lg">Date</th>
+                        <th class="p-4 text-xs font-semibold text-text-muted uppercase tracking-wider">Description</th>
+                        <th class="p-4 text-xs font-semibold text-text-muted uppercase tracking-wider">Category</th>
+                        <th class="p-4 text-xs font-semibold text-text-muted uppercase tracking-wider text-right">Amount</th>
+                        <th class="p-4 text-xs font-semibold text-text-muted uppercase tracking-wider text-right rounded-tr-lg">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-border">
+                    {% for expense in recent_expenses %}
+                    <tr class="hover:bg-surface-hover transition-colors">
+                        <td class="p-4 text-sm text-text whitespace-nowrap">{{ expense.date.strftime('%d %b %Y') }}</td>
+                        <td class="p-4 text-sm">
+                            <div class="font-medium text-text">{{ expense.description }}</div>
+                            {% if expense.tags %}
+                                <div class="mt-1 flex flex-wrap gap-1">
+                                    {% for tag in expense.tags.split(',') %}
+                                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-surface-active text-text-secondary">{{ tag.strip() }}</span>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </td>
+                        <td class="p-4 text-sm whitespace-nowrap">
+                            <div class="flex items-center gap-2">
+                                <span class="text-xl">{{ expense.category.icon }}</span>
+                                <span class="text-text font-medium">{{ expense.category.name }}</span>
+                            </div>
+                        </td>
+                        <td class="p-4 text-sm text-right whitespace-nowrap">
+                            <div class="font-bold text-text">
+                                {{ "%.2f"|format(expense.amount) }} <span class="text-xs text-text-muted font-normal">GHS</span>
+                                {% if expense.receipt_path %}
+                                    <div class="text-xs text-text-muted mt-1 flex items-center justify-end gap-1"><i data-lucide="paperclip" class="w-3 h-3"></i> Receipt</div>
+                                {% endif %}
+                            </div>
+                        </td>
+                        <td class="p-4 text-sm text-right whitespace-nowrap">
+                            <a href="{{ url_for('main.edit_expense', id=expense.id) }}" class="inline-flex items-center px-3 py-1.5 bg-surface text-text text-xs font-medium rounded-md border border-border hover:bg-surface-hover transition-colors shadow-sm">Edit</a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <div class="text-center py-12 px-4 rounded-xl border border-dashed border-border bg-surface-hover/50">
+            <div class="w-16 h-16 bg-surface rounded-full flex items-center justify-center mx-auto mb-4 shadow-sm">
+                <i data-lucide="receipt" class="w-8 h-8 text-text-muted"></i>
+            </div>
+            <p class="text-text-muted mb-6">No expenses recorded yet.</p>
+            <a href="{{ url_for('main.add_expense') }}" class="inline-flex items-center gap-2 px-5 py-2.5 bg-primary text-white font-medium rounded-lg hover:bg-primary-hover transition-colors shadow-md hover:shadow-lg">
+                <i data-lucide="plus" class="w-4 h-4"></i> Add your first expense
+            </a>
+        </div>
+    {% endif %}
+</div>
 
 <script>
 // Privacy Toggle Feature
@@ -151,34 +250,42 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 
+    let conversionDebounce;
     function convertCurrency() {
         const modal = document.getElementById('conversionModal');
         modal.style.display = 'flex';
-        
-        const amount = {{ net_wallet_balance }};
-        
-        // Fetch conversion data from API
-        fetch('{{ url_for("main.convert_currency") }}', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ amount: amount })
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                displayConversions(data.conversions);
-            } else {
-                document.getElementById('conversionResults').innerHTML = 
-                    '<p class="text-danger">Error: ' + data.error + '</p>';
-            }
-        })
-        .catch(error => {
-            document.getElementById('conversionResults').innerHTML = 
-                '<p class="text-danger">Error fetching exchange rates. Please try again.</p>';
-            console.error('Error:', error);
-        });
+        refreshConversion();
+    }
+
+    function refreshConversion() {
+        clearTimeout(conversionDebounce);
+        conversionDebounce = setTimeout(function() {
+            const fromCurrency = document.getElementById('fromCurrencySelect')?.value || 'GHS';
+            const amount = parseFloat(document.getElementById('convertAmount')?.value) || {{ net_wallet_balance }};
+
+            document.getElementById('conversionResults').innerHTML =
+                '<p class="text-muted" style="text-align: center;">Loading exchange rates...</p>';
+
+            fetch('{{ url_for("main.convert_currency") }}', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ amount: amount, from_currency: fromCurrency })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    displayConversions(data.conversions);
+                } else {
+                    document.getElementById('conversionResults').innerHTML =
+                        '<p class="text-danger">Error: ' + data.error + '</p>';
+                }
+            })
+            .catch(error => {
+                document.getElementById('conversionResults').innerHTML =
+                    '<p class="text-danger">Error fetching exchange rates. Please try again.</p>';
+                console.error('Error:', error);
+            });
+        }, 300);
     }
 
     function displayConversions(conversions) {
@@ -237,5 +344,98 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 </script>
+
+{% if chart_categories %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    var chartColors = [
+        '#6366f1', '#f59e0b', '#10b981', '#ef4444', '#8b5cf6',
+        '#ec4899', '#14b8a6', '#f97316', '#06b6d4', '#84cc16'
+    ];
+
+    var catLabels = {{ chart_categories|tojson }};
+    var catAmounts = {{ chart_amounts|tojson }};
+
+    if (catLabels.length > 0) {
+        var catCtx = document.getElementById('categoryChart');
+        if (catCtx) {
+            new Chart(catCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: catLabels,
+                    datasets: [{
+                        data: catAmounts,
+                        backgroundColor: chartColors.slice(0, catLabels.length),
+                        borderWidth: 2,
+                        borderColor: getComputedStyle(document.documentElement).getPropertyValue('--color-surface').trim() || '#fff'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                padding: 12,
+                                usePointStyle: true,
+                                pointStyle: 'circle',
+                                color: getComputedStyle(document.documentElement).getPropertyValue('--color-text').trim() || '#333'
+                            }
+                        }
+                    },
+                    cutout: '60%'
+                }
+            });
+        }
+    }
+
+    var trendLabels = {{ trend_labels|tojson }};
+    var trendAmounts = {{ trend_amounts|tojson }};
+
+    if (trendLabels.length > 0) {
+        var trendCtx = document.getElementById('trendChart');
+        if (trendCtx) {
+            new Chart(trendCtx, {
+                type: 'bar',
+                data: {
+                    labels: trendLabels,
+                    datasets: [{
+                        label: 'Expenses',
+                        data: trendAmounts,
+                        backgroundColor: '#6366f1',
+                        borderRadius: 6,
+                        borderSkipped: false
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: {
+                                color: 'rgba(128,128,128,0.1)'
+                            },
+                            ticks: {
+                                color: getComputedStyle(document.documentElement).getPropertyValue('--color-text-muted').trim() || '#888'
+                            }
+                        },
+                        x: {
+                            grid: { display: false },
+                            ticks: {
+                                color: getComputedStyle(document.documentElement).getPropertyValue('--color-text-muted').trim() || '#888'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+    }
+});
+</script>
+{% endif %}
 
 {% endblock %}

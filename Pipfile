@@ -22,6 +22,15 @@ werkzeug = "==3.1.3"
 pymysql = "*"
 cryptography = "*"
 requests = "*"
+flask-login = "==0.6.3"
+flask-mail = "==0.10.0"
+pyotp = "==2.9.0"
+qrcode = "==8.2"
+pillow = "==12.0.0"
+openpyxl = "==3.1.5"
+reportlab = "==4.4.10"
+pywebpush = "==2.3.0"
+authlib = "==1.6.8"
 
 [dev-packages]
 

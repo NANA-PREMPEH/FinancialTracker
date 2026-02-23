@@ -1,0 +1,266 @@
+{% extends "base.html" %}
+
+{% block title %}Automation - Financial Tracker{% endblock %}
+{% block header_title %}Automation{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto space-y-8">
+    <div class="bg-surface p-6 rounded-2xl border border-border shadow-sm">
+        <h2 class="text-xl font-bold font-heading text-text m-0 mb-1 flex items-center gap-2">
+            <i data-lucide="zap" class="w-6 h-6 text-primary"></i> Financial Automation
+        </h2>
+        <p class="text-sm font-medium text-text-muted m-0">Create rules and webhooks to automate your financial workflows.</p>
+    </div>
+
+    <!-- AUTOMATION RULES -->
+    <div class="bg-surface rounded-2xl border border-border shadow-sm overflow-hidden">
+        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 p-6 border-b border-border bg-surface-active/30">
+            <div class="flex items-center gap-2">
+                <i data-lucide="git-merge" class="w-5 h-5 text-primary"></i>
+                <h2 class="text-lg font-bold font-heading m-0 text-text">Automation Rules</h2>
+            </div>
+            <button type="button" onclick="document.getElementById('addRuleForm').classList.toggle('hidden')" class="shrink-0 inline-flex items-center justify-center gap-2 px-4 py-2 bg-primary text-primary-content font-bold rounded-xl hover:bg-primary-hover transition-colors focus:outline-none focus:ring-2 focus:ring-primary/50 shadow-sm text-sm">
+                <i data-lucide="plus" class="w-4 h-4"></i> Add Rule
+            </button>
+        </div>
+
+        <!-- Add Rule Form -->
+        <div id="addRuleForm" class="hidden border-b border-border bg-surface-active/10 p-6 animate-in slide-in-from-top-4 fade-in duration-200">
+            <h3 class="text-base font-bold text-text m-0 mb-4">New Automation Rule</h3>
+            <form method="POST" action="{{ url_for('automation.add_rule') }}" class="space-y-5">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                    <div class="md:col-span-2">
+                        <label for="rule_name" class="block text-sm font-semibold text-text mb-1.5">Rule Name</label>
+                        <input type="text" id="rule_name" name="name" placeholder="e.g., Auto-categorize groceries" required class="w-full px-4 py-2.5 bg-surface border border-border rounded-xl focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors text-text placeholder:text-text-muted/50">
+                    </div>
+                    <div>
+                        <label for="trigger_type" class="block text-sm font-semibold text-text mb-1.5">Trigger Type</label>
+                        <select id="trigger_type" name="trigger_type" required class="w-full px-4 py-2.5 bg-surface border border-border rounded-xl focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors text-text appearance-none">
+                            <option value="">Select trigger...</option>
+                            {% for trigger in trigger_types %}
+                            <option value="{{ trigger }}">{{ trigger.replace('_', ' ').title() }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div>
+                        <label for="action_type" class="block text-sm font-semibold text-text mb-1.5">Action Type</label>
+                        <select id="action_type" name="action_type" required class="w-full px-4 py-2.5 bg-surface border border-border rounded-xl focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors text-text appearance-none">
+                            <option value="">Select action...</option>
+                            {% for action in action_types %}
+                            <option value="{{ action }}">{{ action.replace('_', ' ').title() }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="md:col-span-2">
+                        <label for="condition" class="block text-sm font-semibold text-text mb-1.5">Condition</label>
+                        <input type="text" id="condition" name="condition" placeholder='e.g., description contains "grocery"' class="w-full px-4 py-2.5 bg-surface border border-border rounded-xl focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors text-text placeholder:text-text-muted/50">
+                    </div>
+                    <div class="md:col-span-2">
+                        <label for="action_params" class="block text-sm font-semibold text-text mb-1.5">Action Parameters (JSON)</label>
+                        <textarea id="action_params" name="action_params" rows="3" placeholder='e.g., {"category": "Food & Dining"}' class="w-full px-4 py-2.5 bg-surface border border-border rounded-xl focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors text-text placeholder:text-text-muted/50 font-mono text-sm"></textarea>
+                    </div>
+                </div>
+                <div class="flex justify-end gap-3 pt-2">
+                    <button type="button" onclick="document.getElementById('addRuleForm').classList.add('hidden')" class="px-5 py-2.5 bg-surface-active border border-border text-text font-bold rounded-xl hover:bg-surface-hover transition-colors focus:outline-none focus:ring-2 focus:ring-border text-sm">Cancel</button>
+                    <button type="submit" class="px-5 py-2.5 bg-primary text-primary-content font-bold rounded-xl hover:bg-primary-hover transition-colors focus:outline-none focus:ring-2 focus:ring-primary/50 shadow-sm flex items-center gap-2 text-sm">
+                        <i data-lucide="save" class="w-4 h-4"></i> Save Rule
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Rules Table -->
+        <div class="p-0">
+            {% if rules %}
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="border-b border-border bg-surface-active/30 text-sm font-semibold text-text-muted">
+                            <th class="p-4 whitespace-nowrap">Name</th>
+                            <th class="p-4 whitespace-nowrap">Trigger</th>
+                            <th class="p-4 whitespace-nowrap">Action</th>
+                            <th class="p-4 whitespace-nowrap">Status</th>
+                            <th class="p-4 text-right whitespace-nowrap">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-border">
+                        {% for rule in rules %}
+                        <tr class="hover:bg-surface-hover/50 transition-colors group">
+                            <td class="p-4">
+                                <span class="font-bold text-text">{{ rule.name }}</span>
+                            </td>
+                            <td class="p-4">
+                                <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-semibold bg-surface-active text-text border border-border border-b-2">
+                                    {{ rule.trigger_type.replace('_', ' ').title() }}
+                                </span>
+                            </td>
+                            <td class="p-4">
+                                <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-semibold bg-surface-active text-text border border-border border-b-2">
+                                    {{ rule.action_type.replace('_', ' ').title() }}
+                                </span>
+                            </td>
+                            <td class="p-4 text-sm font-medium">
+                                {% if rule.active %}
+                                <span class="inline-flex items-center gap-1.5 text-success">
+                                    <i data-lucide="check-circle-2" class="w-4 h-4"></i> Active
+                                </span>
+                                {% else %}
+                                <span class="inline-flex items-center gap-1.5 text-text-muted">
+                                    <i data-lucide="pause-circle" class="w-4 h-4"></i> Inactive
+                                </span>
+                                {% endif %}
+                            </td>
+                            <td class="p-4 text-right">
+                                <div class="flex items-center justify-end gap-2">
+                                    <form method="POST" action="{{ url_for('automation.toggle_rule', id=rule.id) }}" class="inline-block">
+                                        <button type="submit" class="inline-flex items-center justify-center p-2 bg-surface text-text border border-border rounded-xl hover:bg-surface-hover transition-colors focus:outline-none focus:ring-2 focus:ring-primary/50" title="{{ 'Deactivate' if rule.active else 'Activate' }}">
+                                            <i data-lucide="{{ 'pause' if rule.active else 'play' }}" class="w-4 h-4"></i>
+                                        </button>
+                                    </form>
+                                    <form method="POST" action="{{ url_for('automation.delete_rule', id=rule.id) }}" class="inline-block" onsubmit="return confirm('Are you sure you want to delete this rule?');">
+                                        <button type="submit" class="inline-flex items-center justify-center p-2 bg-danger/10 text-danger border border-danger/20 rounded-xl hover:bg-danger hover:text-white transition-colors focus:outline-none focus:ring-2 focus:ring-danger/50" title="Delete">
+                                            <i data-lucide="trash-2" class="w-4 h-4"></i>
+                                        </button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="p-12 text-center flex flex-col items-center">
+                <div class="w-16 h-16 bg-surface-active rounded-full flex items-center justify-center mb-4">
+                    <i data-lucide="zap-off" class="w-8 h-8 text-text-muted"></i>
+                </div>
+                <h3 class="text-lg font-bold text-text mb-1">No automation rules</h3>
+                <p class="text-sm text-text-muted mb-0">Create rules to automate repetitive tasks.</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+
+    <!-- WEBHOOKS -->
+    <div class="bg-surface rounded-2xl border border-border shadow-sm overflow-hidden">
+        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 p-6 border-b border-border bg-surface-active/30">
+            <div class="flex items-center gap-2">
+                <i data-lucide="webhook" class="w-5 h-5 text-primary"></i>
+                <h2 class="text-lg font-bold font-heading m-0 text-text">Webhooks</h2>
+            </div>
+            <button type="button" onclick="document.getElementById('addWebhookForm').classList.toggle('hidden')" class="shrink-0 inline-flex items-center justify-center gap-2 px-4 py-2 bg-primary text-primary-content font-bold rounded-xl hover:bg-primary-hover transition-colors focus:outline-none focus:ring-2 focus:ring-primary/50 shadow-sm text-sm">
+                <i data-lucide="plus" class="w-4 h-4"></i> Add Webhook
+            </button>
+        </div>
+
+        <!-- Add Webhook Form -->
+        <div id="addWebhookForm" class="hidden border-b border-border bg-surface-active/10 p-6 animate-in slide-in-from-top-4 fade-in duration-200">
+            <h3 class="text-base font-bold text-text m-0 mb-4">New Webhook</h3>
+            <form method="POST" action="{{ url_for('automation.add_webhook') }}" class="space-y-5">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                    <div>
+                        <label for="webhook_name" class="block text-sm font-semibold text-text mb-1.5">Name</label>
+                        <input type="text" id="webhook_name" name="name" placeholder="e.g., Slack notifications" required class="w-full px-4 py-2.5 bg-surface border border-border rounded-xl focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors text-text placeholder:text-text-muted/50">
+                    </div>
+                    <div>
+                        <label for="webhook_url" class="block text-sm font-semibold text-text mb-1.5">URL</label>
+                        <input type="url" id="webhook_url" name="url" placeholder="https://example.com/webhook" required class="w-full px-4 py-2.5 bg-surface border border-border rounded-xl focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors text-text placeholder:text-text-muted/50">
+                    </div>
+                    <div>
+                        <label for="webhook_events" class="block text-sm font-semibold text-text mb-1.5">Events</label>
+                        <input type="text" id="webhook_events" name="events" placeholder="e.g., expense_created, budget_exceeded" class="w-full px-4 py-2.5 bg-surface border border-border rounded-xl focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors text-text placeholder:text-text-muted/50">
+                        <p class="mt-1.5 text-xs text-text-muted">Comma-separated event names</p>
+                    </div>
+                    <div>
+                        <label for="webhook_secret" class="block text-sm font-semibold text-text mb-1.5">Secret (Optional)</label>
+                        <input type="text" id="webhook_secret" name="secret" placeholder="Signing secret for verification" class="w-full px-4 py-2.5 bg-surface border border-border rounded-xl focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors text-text placeholder:text-text-muted/50 font-mono">
+                    </div>
+                </div>
+                <div class="flex justify-end gap-3 pt-2">
+                    <button type="button" onclick="document.getElementById('addWebhookForm').classList.add('hidden')" class="px-5 py-2.5 bg-surface-active border border-border text-text font-bold rounded-xl hover:bg-surface-hover transition-colors focus:outline-none focus:ring-2 focus:ring-border text-sm">Cancel</button>
+                    <button type="submit" class="px-5 py-2.5 bg-primary text-primary-content font-bold rounded-xl hover:bg-primary-hover transition-colors focus:outline-none focus:ring-2 focus:ring-primary/50 shadow-sm flex items-center gap-2 text-sm">
+                        <i data-lucide="save" class="w-4 h-4"></i> Save Webhook
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Webhooks Table -->
+        <div class="p-0">
+            {% if webhooks %}
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="border-b border-border bg-surface-active/30 text-sm font-semibold text-text-muted">
+                            <th class="p-4 whitespace-nowrap">Name</th>
+                            <th class="p-4 whitespace-nowrap">URL</th>
+                            <th class="p-4 whitespace-nowrap">Events</th>
+                            <th class="p-4 whitespace-nowrap">Status</th>
+                            <th class="p-4 text-right whitespace-nowrap">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-border">
+                        {% for webhook in webhooks %}
+                        <tr class="hover:bg-surface-hover/50 transition-colors group">
+                            <td class="p-4">
+                                <span class="font-bold text-text">{{ webhook.name }}</span>
+                            </td>
+                            <td class="p-4">
+                                <div class="inline-flex items-center gap-2 bg-surface-active/50 px-2.5 py-1 rounded-lg border border-border font-mono text-xs text-text max-w-[200px] truncate" title="{{ webhook.url }}">
+                                    <i data-lucide="link" class="w-3.5 h-3.5 text-text-muted shrink-0"></i>
+                                    {{ webhook.url }}
+                                </div>
+                            </td>
+                            <td class="p-4">
+                                <span class="text-sm text-text-muted">{{ webhook.events }}</span>
+                            </td>
+                            <td class="p-4 text-sm font-medium">
+                                {% if webhook.active %}
+                                <span class="inline-flex items-center gap-1.5 text-success">
+                                    <i data-lucide="check-circle-2" class="w-4 h-4"></i> Active
+                                </span>
+                                {% else %}
+                                <span class="inline-flex items-center gap-1.5 text-text-muted">
+                                    <i data-lucide="pause-circle" class="w-4 h-4"></i> Inactive
+                                </span>
+                                {% endif %}
+                            </td>
+                            <td class="p-4 text-right">
+                                <div class="flex items-center justify-end gap-2">
+                                    <form method="POST" action="{{ url_for('automation.toggle_webhook', id=webhook.id) }}" class="inline-block">
+                                        <button type="submit" class="inline-flex items-center justify-center p-2 bg-surface text-text border border-border rounded-xl hover:bg-surface-hover transition-colors focus:outline-none focus:ring-2 focus:ring-primary/50" title="{{ 'Deactivate' if webhook.active else 'Activate' }}">
+                                            <i data-lucide="{{ 'pause' if webhook.active else 'play' }}" class="w-4 h-4"></i>
+                                        </button>
+                                    </form>
+                                    <form method="POST" action="{{ url_for('automation.delete_webhook', id=webhook.id) }}" class="inline-block" onsubmit="return confirm('Are you sure you want to delete this webhook?');">
+                                        <button type="submit" class="inline-flex items-center justify-center p-2 bg-danger/10 text-danger border border-danger/20 rounded-xl hover:bg-danger hover:text-white transition-colors focus:outline-none focus:ring-2 focus:ring-danger/50" title="Delete">
+                                            <i data-lucide="trash-2" class="w-4 h-4"></i>
+                                        </button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="p-12 text-center flex flex-col items-center">
+                <div class="w-16 h-16 bg-surface-active rounded-full flex items-center justify-center mb-4">
+                    <i data-lucide="link" class="w-8 h-8 text-text-muted"></i>
+                </div>
+                <h3 class="text-lg font-bold text-text mb-1">No webhooks configured</h3>
+                <p class="text-sm text-text-muted mb-0">Integrate with other services via webhooks.</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    lucide.createIcons();
+});
+</script>
+{% endblock %}

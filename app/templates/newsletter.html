@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+
+{% block title %}Newsletter - Financial Tracker{% endblock %}
+{% block header_title %}Newsletter{% endblock %}
+
+{% block content %}
+<div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8 bg-surface p-6 rounded-2xl border border-border shadow-sm">
+    <div>
+        <h1 class="text-2xl font-bold font-heading text-text m-0">Newsletter</h1>
+        <p class="text-text-muted mt-1 text-sm">Weekly financial insights and market updates.</p>
+    </div>
+</div>
+
+<div class="bg-surface rounded-2xl border border-border shadow-sm p-8 text-center">
+    <div class="w-16 h-16 bg-surface-active rounded-full flex items-center justify-center mx-auto mb-4 border border-border">
+        <i data-lucide="newspaper" class="w-8 h-8 text-text-muted"></i>
+    </div>
+    <h3 class="text-lg font-bold text-text mb-2">Coming soon!</h3>
+    <p class="text-text-muted max-w-sm mx-auto">Subscribe to our customized market updates tailored to your investment portfolio.</p>
+</div>
+{% endblock %}

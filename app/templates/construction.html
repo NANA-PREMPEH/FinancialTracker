@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+
+{% block title %}Construction Works - Financial Tracker{% endblock %}
+{% block header_title %}Construction Works{% endblock %}
+
+{% block content %}
+<div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8 bg-surface p-6 rounded-2xl border border-border shadow-sm">
+    <div>
+        <h1 class="text-2xl font-bold font-heading text-text m-0">Construction Works</h1>
+        <p class="text-text-muted mt-1 text-sm">Manage construction projects, budgets, and vendors.</p>
+    </div>
+    <div class="flex gap-3 w-full sm:w-auto">
+        <button class="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-primary text-primary-content font-bold rounded-xl hover:bg-primary-hover transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-primary/50 text-sm">
+            <i data-lucide="plus" class="w-4 h-4"></i> New Project
+        </button>
+    </div>
+</div>
+
+<div class="bg-surface rounded-2xl border border-border shadow-sm p-8 text-center">
+    <div class="w-16 h-16 bg-surface-active rounded-full flex items-center justify-center mx-auto mb-4 border border-border">
+        <i data-lucide="hard-hat" class="w-8 h-8 text-text-muted"></i>
+    </div>
+    <h3 class="text-lg font-bold text-text mb-2">No construction works found</h3>
+    <p class="text-text-muted max-w-sm mx-auto">Track large capital expenditures and contractors efficiently from this portal.</p>
+</div>
+{% endblock %}

@@ -1,40 +1,46 @@
 {% extends "base.html" %}
 
 {% block title %}Wishlist - Financial Tracker{% endblock %}
+{% block header_title %}Wishlist{% endblock %}
 
 {% block content %}
-<div class="card">
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
-        <h1>✨ Wishlist (To-Do)</h1>
-        <button onclick="document.getElementById('addModal').style.display='block'" 
-            style="background: var(--color-primary); color: white; border: none; padding: 0.5rem 1rem; border-radius: 6px; cursor: pointer;">
-            + Add Item
+<div class="max-w-7xl mx-auto space-y-8">
+    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-surface p-6 rounded-2xl border border-border shadow-sm">
+        <div>
+            <h2 class="text-xl font-bold font-heading text-text m-0 flex items-center gap-2">
+                <i data-lucide="sparkles" class="w-6 h-6 text-primary"></i> Wishlist (To-Do)
+            </h2>
+            <p class="text-sm font-medium text-text-muted mt-1 mb-0">Track items you plan to purchase in the future.</p>
+        </div>
+        <button onclick="document.getElementById('addModal').classList.remove('hidden')" class="shrink-0 inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-primary text-primary-content font-bold rounded-xl hover:bg-primary-hover transition-colors focus:outline-none focus:ring-2 focus:ring-primary/50 shadow-sm text-sm">
+            <i data-lucide="plus" class="w-4 h-4"></i> Add Item
         </button>
     </div>
 
     <!-- Add/Edit Modal -->
-    <div id="addModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000;">
-        <div style="background: white; width: 90%; max-width: 500px; margin: 50px auto; padding: 2rem; border-radius: 12px; position: relative;">
-            <span onclick="document.getElementById('addModal').style.display='none'" 
-                style="position: absolute; right: 20px; top: 20px; cursor: pointer; font-size: 1.5rem;">&times;</span>
+    <div id="addModal" class="hidden fixed inset-0 bg-background/80 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+        <div class="bg-surface w-full max-w-lg rounded-2xl border border-border shadow-2xl relative overflow-hidden animate-in fade-in zoom-in duration-200">
+            <div class="flex justify-between items-center p-6 border-b border-border bg-surface-active/30">
+                <h2 id="modalTitle" class="text-lg font-bold font-heading m-0 text-text">Add Wishlist Item</h2>
+                <button onclick="document.getElementById('addModal').classList.add('hidden')" class="text-text-muted hover:text-text transition-colors p-1 rounded-lg hover:bg-surface-hover">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
             
-            <h2 id="modalTitle" style="margin-top: 0;">Add Wishlist Item</h2>
-            <form id="wishlistForm" action="{{ url_for('main.add_wishlist_item') }}" method="POST" style="display: flex; flex-direction: column; gap: 1rem;">
+            <form id="wishlistForm" action="{{ url_for('main.add_wishlist_item') }}" method="POST" class="p-6 space-y-5">
                 <div>
-                    <label>Item Name</label>
-                    <input type="text" id="nameInput" name="name" required 
-                        style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px;">
+                    <label class="block text-sm font-semibold text-text mb-1.5">Item Name</label>
+                    <input type="text" id="nameInput" name="name" required class="w-full px-4 py-2.5 bg-surface border border-border rounded-xl focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors text-text placeholder:text-text-muted/50">
                 </div>
 
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
                     <div>
-                        <label>Est. Amount</label>
-                        <input type="number" id="amountInput" name="amount" step="0.01" value="0.00" required
-                            style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px;">
+                        <label class="block text-sm font-semibold text-text mb-1.5">Est. Amount (GHS)</label>
+                        <input type="number" id="amountInput" name="amount" step="0.01" value="0.00" required class="w-full px-4 py-2.5 bg-surface border border-border rounded-xl focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors text-text">
                     </div>
                     <div>
-                        <label>Priority</label>
-                        <select id="priorityInput" name="priority" style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px;">
+                        <label class="block text-sm font-semibold text-text mb-1.5">Priority</label>
+                        <select id="priorityInput" name="priority" class="w-full px-4 py-2.5 bg-surface border border-border rounded-xl focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors text-text appearance-none">
                             <option value="High">High</option>
                             <option value="Medium" selected>Medium</option>
                             <option value="Low">Low</option>
@@ -43,8 +49,8 @@
                 </div>
 
                 <div>
-                    <label>Category (Optional)</label>
-                    <select id="categoryInput" name="category_id" style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px;">
+                    <label class="block text-sm font-semibold text-text mb-1.5">Category (Optional)</label>
+                    <select id="categoryInput" name="category_id" class="w-full px-4 py-2.5 bg-surface border border-border rounded-xl focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors text-text appearance-none">
                         <option value="">-- Select Category --</option>
                         {% for category in categories %}
                         <option value="{{ category.id }}">{{ category.icon }} {{ category.name }}</option>
@@ -53,81 +59,106 @@
                 </div>
 
                 <div>
-                    <label>Notes</label>
-                    <textarea id="notesInput" name="notes" rows="3" style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px;"></textarea>
+                    <label class="block text-sm font-semibold text-text mb-1.5">Notes</label>
+                    <textarea id="notesInput" name="notes" rows="3" class="w-full px-4 py-2.5 bg-surface border border-border rounded-xl focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors text-text placeholder:text-text-muted/50"></textarea>
                 </div>
 
-                <button type="submit" style="background: var(--color-primary); color: white; border: none; padding: 0.75rem; border-radius: 6px; cursor: pointer; font-weight: bold;">
-                    Save Item
-                </button>
+                <div class="pt-4 border-t border-border flex justify-end gap-3">
+                    <button type="button" onclick="document.getElementById('addModal').classList.add('hidden')" class="px-5 py-2.5 bg-surface-active border border-border text-text font-bold rounded-xl hover:bg-surface-hover transition-colors focus:outline-none focus:ring-2 focus:ring-border">
+                        Cancel
+                    </button>
+                    <button type="submit" class="px-5 py-2.5 bg-primary text-primary-content font-bold rounded-xl hover:bg-primary-hover transition-colors focus:outline-none focus:ring-2 focus:ring-primary/50 shadow-sm flex items-center gap-2">
+                        <i data-lucide="save" class="w-4 h-4"></i> Save Item
+                    </button>
+                </div>
             </form>
         </div>
     </div>
 
     {% if items %}
-        <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1.5rem;">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {% for item in items %}
-            <div class="card" id="wishlist-{{ item.id }}" style="margin-bottom: 0; border-left: 5px solid {{ 'var(--color-expense)' if item.priority == 'High' else ('#ffc107' if item.priority == 'Medium' else '#4caf50') }};">
-                <div style="display: flex; justify-content: space-between; align-items: flex-start;">
-                    <div>
-                        <h3 style="margin: 0 0 0.5rem 0;">{{ item.name }}</h3>
-                        <p style="margin: 0; color: var(--color-text-muted); font-size: 0.9rem;">
-                            {{ item.category.icon if item.category else '📦' }} {{ item.category.name if item.category else 'Uncategorized' }}
-                        </p>
+            <div class="bg-surface rounded-2xl border border-border shadow-sm flex flex-col overflow-hidden relative group">
+                <!-- Priority Indicator Banner -->
+                <div class="h-1.5 w-full {% if item.priority == 'High' %}bg-danger{% elif item.priority == 'Medium' %}bg-warning{% else %}bg-success{% endif %}"></div>
+                
+                <div class="p-5 sm:p-6 flex-1 flex flex-col">
+                    <div class="flex justify-between items-start gap-4 mb-4">
+                        <div class="flex-1 min-w-0">
+                            <h3 class="text-lg font-bold text-text m-0 mb-1 truncate" title="{{ item.name }}">{{ item.name }}</h3>
+                            <div class="inline-flex items-center gap-1.5 text-xs font-medium px-2 py-1 rounded-md bg-surface-active/50 text-text-muted border border-border/50">
+                                {% if item.category %}
+                                    <span class="text-sm leading-none">{{ item.category.icon }}</span>
+                                    <span>{{ item.category.name }}</span>
+                                {% else %}
+                                    <i data-lucide="package" class="w-3.5 h-3.5"></i>
+                                    <span>Uncategorized</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="text-right shrink-0">
+                            <div class="text-xl font-black font-heading text-text">GHS {{ "{:,.2f}".format(item.amount) }}</div>
+                            <span class="inline-block mt-1 text-xs font-bold px-2 py-0.5 rounded-full uppercase tracking-wider
+                                {% if item.priority == 'High' %}bg-danger/10 text-danger border border-danger/20
+                                {% elif item.priority == 'Medium' %}bg-warning/10 text-warning border border-warning/20
+                                {% else %}bg-success/10 text-success border border-success/20{% endif %}">
+                                {{ item.priority }} Priority
+                            </span>
+                        </div>
                     </div>
-                    <div style="text-align: right;">
-                        <strong style="font-size: 1.1rem; display: block;">{{ "{:,.2f}".format(item.amount) }}</strong>
-                        <span style="font-size: 0.8rem; padding: 2px 6px; border-radius: 4px; background: #eee; color: #555;">
-                            {{ item.priority }} Priority
-                        </span>
+
+                    {% if item.notes %}
+                        <div class="text-sm text-text-muted bg-surface-active/30 p-3 rounded-xl border border-border/50 mb-4 italic line-clamp-3">
+                            <i data-lucide="align-left" class="w-4 h-4 inline-block mr-1 opacity-50 relative -top-0.5"></i>{{ item.notes }}
+                        </div>
+                    {% else %}
+                        <div class="flex-1 mb-4"></div>
+                    {% endif %}
+
+                    <div class="mt-auto pt-4 border-t border-border flex items-center justify-between gap-2">
+                        <!-- Execute Button -->
+                        <form action="{{ url_for('main.execute_wishlist_item', id=item.id) }}" method="POST" class="flex-1">
+                            <button type="submit" onclick="return confirm('Execute this item? It will be moved to your daily expenses.')"
+                                class="w-full inline-flex items-center justify-center gap-2 px-3 py-2 bg-success text-white font-bold rounded-xl hover:bg-success/90 transition-colors focus:outline-none focus:ring-2 focus:ring-success/50 shadow-sm text-sm">
+                                <i data-lucide="check-circle-2" class="w-4 h-4"></i> Execute
+                            </button>
+                        </form>
+
+                        <div class="flex gap-2">
+                            <!-- Edit Button -->
+                            <button onclick="editItem(this)"
+                                data-id="{{ item.id }}"
+                                data-name="{{ item.name }}"
+                                data-amount="{{ item.amount }}"
+                                data-category="{{ item.category_id or '' }}"
+                                data-priority="{{ item.priority }}"
+                                data-notes="{{ item.notes or '' }}"
+                                class="inline-flex items-center justify-center p-2 bg-surface-active text-text border border-border rounded-xl hover:bg-surface-hover transition-colors focus:outline-none focus:ring-2 focus:ring-primary/50" title="Edit">
+                                <i data-lucide="edit-2" class="w-4 h-4"></i>
+                            </button>
+
+                            <!-- Delete Button -->
+                            <form action="{{ url_for('main.delete_wishlist_item', id=item.id) }}" method="POST">
+                                <button type="submit" onclick="return confirm('Delete this item permanently?')"
+                                    class="inline-flex items-center justify-center p-2 bg-danger/10 text-danger border border-danger/20 rounded-xl hover:bg-danger hover:text-white transition-colors focus:outline-none focus:ring-2 focus:ring-danger/50" title="Delete">
+                                    <i data-lucide="trash-2" class="w-4 h-4"></i>
+                                </button>
+                            </form>
+                        </div>
                     </div>
-                </div>
-
-                {% if item.notes %}
-                    <p style="color: #666; font-size: 0.9rem; margin: 1rem 0; font-style: italic;">{{ item.notes }}</p>
-                {% else %}
-                    <div style="margin-bottom: 1rem;"></div>
-                {% endif %}
-
-                <div style="display: flex; gap: 0.5rem; margin-top: 1rem; border-top: 1px solid #eee; padding-top: 1rem;">
-                    <!-- Execute Button -->
-                    <form action="{{ url_for('main.execute_wishlist_item', id=item.id) }}" method="POST" style="flex: 1;">
-                        <button type="submit" onclick="return confirm('Execute this item? It will be moved to your daily expenses.')"
-                            style="width: 100%; background: #4caf50; color: white; border: none; padding: 0.5rem; border-radius: 4px; cursor: pointer;">
-                            ✅ Execute
-                        </button>
-                    </form>
-
-                    <!-- Edit Button -->
-                    <button onclick="editItem(this)"
-                        data-id="{{ item.id }}"
-                        data-name="{{ item.name }}"
-                        data-amount="{{ item.amount }}"
-                        data-category="{{ item.category_id or '' }}"
-                        data-priority="{{ item.priority }}"
-                        data-notes="{{ item.notes or '' }}"
-                        style="background: #eee; border: none; padding: 0.5rem 0.75rem; border-radius: 4px; cursor: pointer;">
-                        ✏️
-                    </button>
-
-                    <!-- Delete Button -->
-                    <form action="{{ url_for('main.delete_wishlist_item', id=item.id) }}" method="POST">
-                        <button type="submit" onclick="return confirm('Delete this item permanently?')"
-                            style="background: #fee; color: #f44336; border: none; padding: 0.5rem 0.75rem; border-radius: 4px; cursor: pointer;">
-                            🗑️
-                        </button>
-                    </form>
                 </div>
             </div>
             {% endfor %}
         </div>
     {% else %}
-        <div style="text-align: center; padding: 3rem; color: var(--color-text-muted);">
-            <p style="font-size: 1.2rem;">Your wishlist is empty.</p>
-            <p>Add items you plan to buy in the future!</p>
-            <button onclick="document.getElementById('addModal').style.display='block'" 
-                style="margin-top: 1rem; background: var(--color-primary); color: white; border: none; padding: 0.5rem 1rem; border-radius: 6px; cursor: pointer;">
-                Start a Wishlist
+        <div class="bg-surface rounded-2xl border border-border p-12 flex flex-col items-center justify-center text-center shadow-sm">
+            <div class="w-20 h-20 bg-surface-active rounded-full flex items-center justify-center mb-6">
+                <i data-lucide="sparkles" class="w-10 h-10 text-text-muted/50"></i>
+            </div>
+            <h3 class="text-xl font-bold text-text m-0 mb-2">Your wishlist is empty</h3>
+            <p class="text-sm text-text-muted max-w-sm mx-auto mb-6">Add items you plan to buy in the future to keep track of your goals.</p>
+            <button onclick="document.getElementById('addModal').classList.remove('hidden')" class="inline-flex items-center justify-center gap-2 px-6 py-3 bg-primary text-primary-content font-bold rounded-xl hover:bg-primary-hover transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-primary/50">
+                <i data-lucide="plus" class="w-5 h-5"></i> Start a Wishlist
             </button>
         </div>
     {% endif %}
@@ -135,6 +166,10 @@
 </div>
 
 <script>
+    document.addEventListener('DOMContentLoaded', () => {
+        lucide.createIcons();
+    });
+
     function editItem(btn) {
         document.getElementById('modalTitle').innerText = 'Edit Wishlist Item';
         
@@ -150,16 +185,10 @@
         document.getElementById('categoryInput').value = btn.getAttribute('data-category');
         document.getElementById('notesInput').value = btn.getAttribute('data-notes');
         
-        document.getElementById('addModal').style.display = 'block';
+        document.getElementById('addModal').classList.remove('hidden');
     }
 
-    // Reset form when opening via main Add button
-    // (Assuming the main button reloads page or we attach a handler. 
-    // The main button has inline onclick, so we can't easily hook in unless we change it or use event delegation)
-    // Actually, inline onclick just opens modal. Form details remain from last edit if not cleared.
-    // I should fix the main add button to call a function.
-    
-    // Let's add an event listener to the main button to clear form
+    // Add event listener to the main button to clear form
     document.addEventListener('DOMContentLoaded', function() {
         const addBtn = document.querySelector('button[onclick*="addModal"]');
         if(addBtn) {
@@ -173,13 +202,14 @@
         document.getElementById('modalTitle').innerText = 'Add Wishlist Item';
         document.getElementById('wishlistForm').action = "{{ url_for('main.add_wishlist_item') }}";
         document.getElementById('wishlistForm').reset();
-        document.getElementById('addModal').style.display = 'block';
+        document.getElementById('addModal').classList.remove('hidden');
     }
 
     // Close modal when clicking outside
     window.onclick = function(event) {
-        if (event.target == document.getElementById('addModal')) {
-            document.getElementById('addModal').style.display = "none";
+        const modal = document.getElementById('addModal');
+        if (event.target == modal) {
+            modal.classList.add('hidden');
         }
     }
 </script>

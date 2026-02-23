@@ -3,34 +3,54 @@
 {% block title %}Add Budget - Financial Tracker{% endblock %}
 
 {% block content %}
-<div class="card">
-    <h1>Create Budget</h1>
+<div class="bg-surface rounded-2xl p-6 md:p-8 border border-border shadow-sm max-w-xl mx-auto mb-8">
+    <div class="mb-8">
+        <h1 class="text-2xl font-bold font-heading text-text m-0">Create Budget</h1>
+        <p class="text-text-muted mt-1 text-sm">Set spending limits for your categories</p>
+    </div>
 
-    <form method="POST" style="max-width: 30rem;">
-        <div class="form-group">
-            <label for="category">Category</label>
-            <select id="category" name="category" required>
-                {% for category in categories %}
-                    <option value="{{ category.id }}">{{ category.icon }} {{ category.name }}</option>
-                {% endfor %}
-            </select>
+    <form method="POST" class="space-y-6">
+        <div class="space-y-2">
+            <label for="category" class="block text-sm font-medium text-text-muted">Category</label>
+            <div class="relative">
+                <select id="category" name="category" required class="w-full px-4 py-3 bg-surface text-text border border-border rounded-xl focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors appearance-none shadow-sm cursor-pointer">
+                    {% for category in categories %}
+                        <option value="{{ category.id }}">{{ category.icon }} {{ category.name }}</option>
+                    {% endfor %}
+                </select>
+                <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-text-muted">
+                    <i data-lucide="chevron-down" class="w-4 h-4"></i>
+                </div>
+            </div>
         </div>
 
-        <div class="form-group">
-            <label for="amount">Budget Amount (GHS)</label>
-            <input type="number" id="amount" name="amount" step="0.01" required>
+        <div class="space-y-2">
+            <label for="amount" class="block text-sm font-medium text-text-muted">Budget Amount (GHS)</label>
+            <input type="number" id="amount" name="amount" step="0.01" required class="w-full px-4 py-3 bg-surface text-text border border-border rounded-xl focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors shadow-sm text-lg font-bold">
         </div>
 
-        <div class="form-group">
-            <label for="period">Period</label>
-            <select id="period" name="period">
-                <option value="weekly">Weekly</option>
-                <option value="monthly" selected>Monthly</option>
-                <option value="yearly">Yearly</option>
-            </select>
+        <div class="space-y-2">
+            <label for="period" class="block text-sm font-medium text-text-muted">Period</label>
+            <div class="relative">
+                <select id="period" name="period" class="w-full px-4 py-3 bg-surface text-text border border-border rounded-xl focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors appearance-none shadow-sm cursor-pointer">
+                    <option value="weekly">Weekly</option>
+                    <option value="monthly" selected>Monthly</option>
+                    <option value="yearly">Yearly</option>
+                </select>
+                <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-text-muted">
+                    <i data-lucide="chevron-down" class="w-4 h-4"></i>
+                </div>
+            </div>
         </div>
 
-        <button type="submit">Create Budget</button>
+        <div class="flex flex-col sm:flex-row gap-3 pt-4">
+            <button type="submit" class="inline-flex items-center justify-center gap-2 px-6 py-3 bg-primary text-white font-medium rounded-xl hover:bg-primary-hover transition-colors shadow-md w-full sm:w-auto flex-1">
+                <i data-lucide="check-circle" class="w-4 h-4"></i> Create Budget
+            </button>
+            <a href="{{ url_for('main.budgets') }}" class="inline-flex items-center justify-center gap-2 px-6 py-3 bg-surface text-text border border-border font-medium rounded-xl hover:bg-surface-hover transition-colors shadow-sm w-full sm:w-auto">
+                Cancel
+            </a>
+        </div>
     </form>
 </div>
 {% endblock %}

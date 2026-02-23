@@ -1,0 +1,244 @@
+{% extends "base.html" %}
+
+{% block title %}Financial Report - {{ month_name }} - Financial Tracker{% endblock %}
+{% block header_title %}Monthly Financial Report{% endblock %}
+
+{% block content %}
+<style>
+    @media print {
+        .sidebar, .app-header, .sidebar-overlay, .skip-link, .no-print {
+            display: none !important;
+        }
+        .main-content {
+            margin-left: 0 !important;
+            padding: 0 !important;
+        }
+        .report-card {
+            break-inside: avoid;
+            box-shadow: none !important;
+            border: 1px solid #ddd !important;
+        }
+        body {
+            background: white !important;
+            color: black !important;
+        }
+    }
+
+    .report-header {
+        text-align: center;
+        padding: 2rem;
+        background: var(--color-surface);
+        border-radius: var(--radius-lg);
+        border: 1px solid var(--color-border);
+        margin-bottom: 2rem;
+    }
+    .report-header h2 {
+        margin: 0 0 0.25rem 0;
+        font-size: 1.75rem;
+    }
+    .report-header p {
+        color: var(--color-text-muted);
+        margin: 0;
+    }
+    .report-card {
+        background: var(--color-surface);
+        border: 1px solid var(--color-border);
+        border-radius: var(--radius-lg);
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+    }
+    .report-card h3 {
+        margin: 0 0 1rem 0;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    .summary-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+    }
+    .summary-item {
+        background: var(--color-bg);
+        border-radius: var(--radius-md);
+        padding: 1.25rem;
+        text-align: center;
+    }
+    .summary-item .label {
+        font-size: 0.85rem;
+        color: var(--color-text-muted);
+        margin-bottom: 0.5rem;
+    }
+    .summary-item .value {
+        font-size: 1.5rem;
+        font-weight: 700;
+    }
+    .category-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0.75rem 0;
+        border-bottom: 1px solid var(--color-border);
+    }
+    .category-row:last-child {
+        border-bottom: none;
+    }
+    .goal-item {
+        padding: 1rem 0;
+        border-bottom: 1px solid var(--color-border);
+    }
+    .goal-item:last-child {
+        border-bottom: none;
+    }
+    .goal-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 0.5rem;
+    }
+    .progress-bar-track {
+        width: 100%;
+        height: 10px;
+        background: var(--color-bg);
+        border-radius: 5px;
+        overflow: hidden;
+    }
+    .progress-bar-fill {
+        height: 100%;
+        background: var(--color-primary);
+        border-radius: 5px;
+        transition: width 0.3s ease;
+    }
+    .text-positive { color: var(--color-success); }
+    .text-negative { color: var(--color-danger); }
+</style>
+
+<!-- Print Button -->
+<div class="no-print" style="display: flex; justify-content: flex-end; margin-bottom: 1.5rem;">
+    <button onclick="window.print()" class="btn btn-primary" style="display: flex; align-items: center; gap: 0.5rem;">
+        <i data-lucide="printer" style="width: 18px; height: 18px;"></i>
+        Print Report
+    </button>
+</div>
+
+<!-- Report Header -->
+<div class="report-header">
+    <h2>Financial Report</h2>
+    <p>{{ month_name }}{% if user %} &mdash; Prepared for {{ user.name }}{% endif %}</p>
+</div>
+
+<!-- Financial Summary -->
+<div class="report-card">
+    <h3>
+        <i data-lucide="bar-chart-3" style="width: 20px; height: 20px; color: var(--color-primary);"></i>
+        Financial Summary
+    </h3>
+    <div class="summary-grid">
+        <div class="summary-item">
+            <div class="label">Income</div>
+            <div class="value text-positive">GHS {{ "{:,.2f}".format(income) }}</div>
+        </div>
+        <div class="summary-item">
+            <div class="label">Expenses</div>
+            <div class="value text-negative">GHS {{ "{:,.2f}".format(expenses) }}</div>
+        </div>
+        <div class="summary-item">
+            <div class="label">Net</div>
+            <div class="value {{ 'text-positive' if net >= 0 else 'text-negative' }}">
+                GHS {{ "{:,.2f}".format(net) }}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Account Balance -->
+<div class="report-card">
+    <h3>
+        <i data-lucide="wallet" style="width: 20px; height: 20px; color: var(--color-primary);"></i>
+        Account Balance
+    </h3>
+    <div class="summary-grid">
+        <div class="summary-item">
+            <div class="label">Total Balance</div>
+            <div class="value" style="color: var(--color-primary);">GHS {{ "{:,.2f}".format(total_balance) }}</div>
+        </div>
+    </div>
+</div>
+
+<!-- Top Spending Categories -->
+<div class="report-card">
+    <h3>
+        <i data-lucide="pie-chart" style="width: 20px; height: 20px; color: var(--color-primary);"></i>
+        Top Spending Categories
+    </h3>
+    {% if top_cats %}
+        {% for name, amount in top_cats %}
+        <div class="category-row">
+            <span style="font-weight: 500;">{{ name }}</span>
+            <span style="font-weight: 600;">GHS {{ "{:,.2f}".format(amount) }}</span>
+        </div>
+        {% endfor %}
+    {% else %}
+        <p style="color: var(--color-text-muted); text-align: center; padding: 1rem 0;">No spending data available.</p>
+    {% endif %}
+</div>
+
+<!-- Goals Progress -->
+<div class="report-card">
+    <h3>
+        <i data-lucide="target" style="width: 20px; height: 20px; color: var(--color-primary);"></i>
+        Goals Progress
+    </h3>
+    {% if goals %}
+        {% for goal in goals %}
+        <div class="goal-item">
+            <div class="goal-header">
+                <span style="font-weight: 500;">{{ goal.name }}</span>
+                <span style="font-size: 0.85rem; color: var(--color-text-muted);">
+                    GHS {{ "{:,.2f}".format(goal.current_amount) }} / GHS {{ "{:,.2f}".format(goal.target_amount) }}
+                </span>
+            </div>
+            {% set progress = (goal.current_amount / goal.target_amount * 100) if goal.target_amount > 0 else 0 %}
+            <div class="progress-bar-track">
+                <div class="progress-bar-fill" style="width: {{ [progress, 100]|min }}%;"></div>
+            </div>
+            <div style="text-align: right; font-size: 0.8rem; color: var(--color-text-muted); margin-top: 0.25rem;">
+                {{ "{:.1f}".format(progress) }}%
+            </div>
+        </div>
+        {% endfor %}
+    {% else %}
+        <p style="color: var(--color-text-muted); text-align: center; padding: 1rem 0;">No goals set.</p>
+    {% endif %}
+</div>
+
+<!-- Debt Summary -->
+<div class="report-card">
+    <h3>
+        <i data-lucide="credit-card" style="width: 20px; height: 20px; color: var(--color-danger);"></i>
+        Debt Summary
+    </h3>
+    <div class="summary-grid">
+        <div class="summary-item">
+            <div class="label">Total Debt</div>
+            <div class="value text-negative">GHS {{ "{:,.2f}".format(total_debt) }}</div>
+        </div>
+    </div>
+</div>
+
+<!-- Investment Summary -->
+<div class="report-card">
+    <h3>
+        <i data-lucide="trending-up" style="width: 20px; height: 20px; color: var(--color-success);"></i>
+        Investment Summary
+    </h3>
+    <div class="summary-grid">
+        <div class="summary-item">
+            <div class="label">Total Invested</div>
+            <div class="value text-positive">GHS {{ "{:,.2f}".format(total_invested) }}</div>
+        </div>
+    </div>
+</div>
+
+<script>lucide.createIcons();</script>
+{% endblock %}

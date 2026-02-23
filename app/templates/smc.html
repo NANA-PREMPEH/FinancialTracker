@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+
+{% block title %}SMC Contracts - Financial Tracker{% endblock %}
+{% block header_title %}SMC Contracts{% endblock %}
+
+{% block content %}
+<div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8 bg-surface p-6 rounded-2xl border border-border shadow-sm">
+    <div>
+        <h1 class="text-2xl font-bold font-heading text-text m-0">SMC Contracts</h1>
+        <p class="text-text-muted mt-1 text-sm">Manage construction and service management contracts.</p>
+    </div>
+    <div class="flex gap-3 w-full sm:w-auto">
+        <button class="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-primary text-primary-content font-bold rounded-xl hover:bg-primary-hover transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-primary/50 text-sm">
+            <i data-lucide="plus" class="w-4 h-4"></i> New Contract
+        </button>
+    </div>
+</div>
+
+<div class="bg-surface rounded-2xl border border-border shadow-sm p-8 text-center">
+    <div class="w-16 h-16 bg-surface-active rounded-full flex items-center justify-center mx-auto mb-4 border border-border">
+        <i data-lucide="file-signature" class="w-8 h-8 text-text-muted"></i>
+    </div>
+    <h3 class="text-lg font-bold text-text mb-2">No SMC contracts found</h3>
+    <p class="text-text-muted max-w-sm mx-auto">Track large service contracts and payments efficiently from this portal.</p>
+</div>
+{% endblock %}

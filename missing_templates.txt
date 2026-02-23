@@ -1,0 +1,10 @@
+[/budget-planning] 200 OK
+[/investments/] 200 OK
+[/net-worth] 200 OK
+[/fixed-assets] 200 OK
+[/banking] 200 OK
+[/accounting] 200 OK
+[/smc] 200 OK
+[/construction-works] 200 OK
+[/global-finance] 200 OK
+[/newsletter] 200 OK

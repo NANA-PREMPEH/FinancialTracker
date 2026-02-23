@@ -1,0 +1,586 @@
+{% extends "base.html" %}
+
+{% block title %}Admin Panel - Financial Tracker{% endblock %}
+{% block header_title %}Admin Panel{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto space-y-6">
+    <!-- Header -->
+    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div>
+            <h1 class="text-3xl font-black font-heading text-text m-0 tracking-tight">Admin Panel</h1>
+            <p class="text-sm font-medium text-text-muted m-0 mt-1">Manage users, permissions, backup/recovery, and system settings</p>
+        </div>
+        <button class="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-surface border border-border text-text font-bold rounded-xl hover:bg-surface-hover transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-primary/50 text-sm">
+            <i data-lucide="download" class="w-4 h-4"></i> Reports
+        </button>
+    </div>
+
+    <!-- Role Banner -->
+    <div class="bg-surface rounded-xl border border-border p-4 flex items-center gap-3">
+        <i data-lucide="shield" class="w-5 h-5 text-text"></i>
+        <div class="text-sm">
+            <span class="font-bold text-text">Current Role:</span> <span class="font-bold uppercase">ADMIN</span> - <span class="text-text-muted">You have administrative access to manage the system.</span>
+        </div>
+    </div>
+
+    <!-- Status Cards -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <!-- Card 1 -->
+        <div class="bg-surface rounded-2xl border border-border shadow-sm p-4 flex items-center gap-4">
+            <div class="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center text-primary shrink-0">
+                <i data-lucide="users" class="w-6 h-6"></i>
+            </div>
+            <div>
+                <div class="text-sm font-medium text-text-muted mb-0.5">System Access</div>
+                <div class="text-xl font-bold font-heading text-text">Active</div>
+            </div>
+        </div>
+        <!-- Card 2 -->
+        <div class="bg-surface rounded-2xl border border-border shadow-sm p-4 flex items-center gap-4">
+            <div class="w-12 h-12 rounded-xl bg-success/10 flex items-center justify-center text-success shrink-0">
+                <i data-lucide="database" class="w-6 h-6"></i>
+            </div>
+            <div>
+                <div class="text-sm font-medium text-text-muted mb-0.5">Data Backup</div>
+                <div class="text-xl font-bold font-heading text-text">Protected</div>
+            </div>
+        </div>
+        <!-- Card 3 -->
+        <div class="bg-surface rounded-2xl border border-border shadow-sm p-4 flex items-center gap-4">
+            <div class="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center text-primary shrink-0">
+                <i data-lucide="shield-check" class="w-6 h-6"></i>
+            </div>
+            <div>
+                <div class="text-sm font-medium text-text-muted mb-0.5">Security Status</div>
+                <div class="text-xl font-bold font-heading text-text">Secure</div>
+            </div>
+        </div>
+        <!-- Card 4 -->
+        <div class="bg-surface rounded-2xl border border-border shadow-sm p-4 flex items-center gap-4">
+            <div class="w-12 h-12 rounded-xl bg-warning/10 flex items-center justify-center text-warning shrink-0">
+                <i data-lucide="settings" class="w-6 h-6"></i>
+            </div>
+            <div>
+                <div class="text-sm font-medium text-text-muted mb-0.5">Export System</div>
+                <div class="text-xl font-bold font-heading text-text">Ready</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Tabs Container -->
+    <div class="bg-surface-active/50 rounded-2xl p-1.5 flex flex-col sm:flex-row gap-1">
+        <button onclick="switchTab('user-management')" id="tab-btn-user-management" class="flex-1 py-2.5 px-4 text-sm font-bold bg-surface text-text rounded-xl shadow-sm border border-border transition-colors">User Management</button>
+        <button onclick="switchTab('backup-recovery')" id="tab-btn-backup-recovery" class="flex-1 py-2.5 px-4 text-sm font-medium text-text-muted hover:text-text hover:bg-surface/50 rounded-xl transition-colors">Backup & Recovery</button>
+        <button onclick="switchTab('export-management')" id="tab-btn-export-management" class="flex-1 py-2.5 px-4 text-sm font-medium text-text-muted hover:text-text hover:bg-surface/50 rounded-xl transition-colors">Export Management</button>
+    </div>
+
+    <!-- Content: User Management -->
+    <div id="tab-content-user-management" class="bg-surface rounded-2xl border border-border shadow-sm z-10 relative block">
+        <div class="p-6">
+            <div class="flex items-center gap-2 mb-1">
+                <i data-lucide="shield" class="w-6 h-6 text-text"></i>
+                <h2 class="text-2xl font-bold font-heading m-0 text-text tracking-tight">User Management</h2>
+            </div>
+            <p class="text-sm font-medium text-text-muted m-0 mb-6">Manage user accounts, roles, and permissions</p>
+            
+            <div class="flex flex-col sm:flex-row gap-4 mb-6">
+                <div class="relative flex-1">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <i data-lucide="search" class="w-4 h-4 text-text-muted"></i>
+                    </div>
+                    <input type="text" placeholder="Search by name or email..." class="w-full pl-10 pr-4 py-2 bg-surface-active/30 border border-border/50 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/50 text-sm font-medium placeholder-text-muted/70 transition-colors">
+                </div>
+                <div class="relative w-full sm:w-48 shrink-0">
+                    <select class="w-full pl-4 pr-10 py-2 bg-surface-active/30 border border-border/50 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/50 text-sm font-medium appearance-none cursor-pointer transition-colors">
+                        <option>All Roles</option>
+                        <option>Admin</option>
+                        <option>User</option>
+                    </select>
+                    <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                        <i data-lucide="chevron-down" class="w-4 h-4 text-text-muted"></i>
+                    </div>
+                </div>
+            </div>
+
+            <div class="overflow-x-auto -mx-6 px-6 sm:mx-0 sm:px-0">
+                <table class="w-full text-left border-collapse min-w-[800px]">
+                    <thead>
+                        <tr class="border-b border-border/50 text-sm font-medium text-text-muted">
+                            <th class="py-4 pr-4 font-medium transition-colors">Name</th>
+                            <th class="py-4 px-4 font-medium transition-colors">Email</th>
+                            <th class="py-4 px-4 font-medium transition-colors">Role</th>
+                            <th class="py-4 px-4 font-medium transition-colors">Status</th>
+                            <th class="py-4 px-4 font-medium transition-colors">Created</th>
+                            <th class="py-4 pl-4 text-left font-medium transition-colors">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-border/30">
+                        {% for user in users %}
+                        <tr class="hover:bg-surface-hover/30 transition-colors group">
+                            <td class="py-4 pr-4">
+                                <div class="font-medium text-text text-sm">
+                                    {{ user.name or 'Unnamed User' }}
+                                </div>
+                            </td>
+                            <td class="py-4 px-4">
+                                <div class="text-sm font-medium text-text">{{ user.email }}</div>
+                            </td>
+                            <td class="py-4 px-4">
+                                <div class="flex items-center gap-2">
+                                    {% if user.role == 'admin' %}
+                                    <span class="inline-flex items-center px-3 py-1 rounded-full text-[11px] font-bold tracking-wide bg-surface-active text-text-muted border border-border">
+                                        viewer
+                                    </span>
+                                    <span class="inline-flex items-center px-3 py-1 rounded-full text-[11px] font-bold tracking-wide bg-primary/10 text-primary border border-primary/20">
+                                        admin
+                                    </span>
+                                    {% else %}
+                                    <span class="inline-flex items-center px-3 py-1 rounded-full text-[11px] font-bold tracking-wide bg-primary/10 text-primary border border-primary/20">
+                                        user
+                                    </span>
+                                    {% endif %}
+                                </div>
+                            </td>
+                            <td class="py-4 px-4">
+                                <div class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-success/10 text-success border border-success/20 text-xs font-semibold cursor-pointer hover:bg-success/20 transition-colors">
+                                    <i data-lucide="user-check" class="w-3.5 h-3.5"></i>
+                                    Active
+                                    <i data-lucide="chevron-down" class="w-3.5 h-3.5 ml-1 opacity-70"></i>
+                                </div>
+                            </td>
+                            <td class="py-4 px-4">
+                                <div class="text-sm font-medium text-text">
+                                    {{ user.created_at.strftime('%d/%m/%Y') if user.created_at else 'N/A' }}
+                                </div>
+                            </td>
+                            <td class="py-4 pl-4">
+                                <div class="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    {% if user.id != current_user.id %}
+                                    <form action="{{ url_for('admin.change_role', id=user.id) }}" method="POST" class="inline-block m-0">
+                                        <select name="role" class="px-2 py-1 bg-surface-active/50 border border-border rounded-lg focus:outline-none focus:border-primary text-xs cursor-pointer hover:bg-surface-hover" onchange="this.form.submit()">
+                                            <option value="" disabled selected>Role...</option>
+                                            <option value="user" {{ 'selected' if user.role == 'user' }}>User</option>
+                                            <option value="admin" {{ 'selected' if user.role == 'admin' }}>Admin</option>
+                                        </select>
+                                    </form>
+                                    <form action="{{ url_for('admin.delete_user', id=user.id) }}" method="POST" class="inline-block m-0" onsubmit="return confirm('Delete this user?')">
+                                        <button type="submit" class="p-1.5 text-text-muted hover:text-danger hover:bg-danger/10 rounded-lg transition-colors" title="Delete User">
+                                            <i data-lucide="trash-2" class="w-4 h-4"></i>
+                                        </button>
+                                    </form>
+                                    {% else %}
+                                    <span class="text-xs font-medium text-primary bg-primary/5 px-2 py-1 rounded-lg">Current</span>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            
+        </div>
+    </div>
+
+    <!-- Content: Backup & Recovery -->
+    <div id="tab-content-backup-recovery" class="hidden">
+        <div class="mb-6">
+            <h2 class="text-3xl font-black font-heading m-0 text-text tracking-tight">Backup & Recovery</h2>
+            <p class="text-sm font-medium text-text-muted m-0 mt-1">Manage data backups, recovery, and bulk operations</p>
+        </div>
+
+        <!-- Sub Tabs Container -->
+        <div class="bg-surface-active/30 rounded-2xl p-1.5 flex flex-col sm:flex-row gap-1 mb-6 border border-border/50">
+            <button onclick="switchSubTab('create-backup')" id="subtab-btn-create-backup" class="flex-1 py-2 px-4 text-sm font-bold bg-surface text-text rounded-xl shadow-sm border border-border transition-colors">Create Backup</button>
+            <button onclick="switchSubTab('restore-data')" id="subtab-btn-restore-data" class="flex-1 py-2 px-4 text-sm font-medium text-text-muted hover:text-text transition-colors">Restore Data</button>
+            <button onclick="switchSubTab('bulk-upload')" id="subtab-btn-bulk-upload" class="flex-1 py-2 px-4 text-sm font-medium text-text-muted hover:text-text transition-colors">Bulk Upload</button>
+        </div>
+
+        <!-- Sub Content: Create Backup -->
+        <div id="subtab-content-create-backup" class="bg-surface rounded-2xl border border-border shadow-sm p-6 block">
+            <div class="flex items-center gap-2 mb-6">
+                <i data-lucide="database" class="w-6 h-6 text-text"></i>
+                <h2 class="text-2xl font-bold font-heading m-0 text-text tracking-tight">Create Data Backup</h2>
+            </div>
+        
+            <div class="mb-6">
+                <h3 class="text-sm font-medium text-text mb-4">Select Tables to Backup</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <!-- Table options -->
+                    <label class="flex items-start gap-3 p-4 rounded-xl border border-border cursor-pointer hover:border-primary/50 transition-colors bg-surface-active/10 group">
+                        <input type="checkbox" class="mt-1 w-4 h-4 rounded-full appearance-none border border-border checked:bg-primary checked:border-primary hover:border-primary/50 focus:outline-none transition-colors relative
+                                                    after:content-[''] after:absolute after:inset-0 after:m-auto after:w-2 after:h-2 after:bg-white after:rounded-full after:opacity-0 checked:after:opacity-100">
+                        <div>
+                            <div class="text-sm font-bold text-text mb-0.5">Transactions</div>
+                            <div class="text-xs text-text-muted">Financial transactions</div>
+                        </div>
+                    </label>
+                    <label class="flex items-start gap-3 p-4 rounded-xl border border-border cursor-pointer hover:border-primary/50 transition-colors bg-surface-active/10 group">
+                        <input type="checkbox" class="mt-1 w-4 h-4 rounded-full appearance-none border border-border checked:bg-primary checked:border-primary hover:border-primary/50 focus:outline-none transition-colors relative
+                                                    after:content-[''] after:absolute after:inset-0 after:m-auto after:w-2 after:h-2 after:bg-white after:rounded-full after:opacity-0 checked:after:opacity-100">
+                        <div>
+                            <div class="text-sm font-bold text-text mb-0.5">Goals</div>
+                            <div class="text-xs text-text-muted">Financial goals and targets</div>
+                        </div>
+                    </label>
+                    <label class="flex items-start gap-3 p-4 rounded-xl border border-border cursor-pointer hover:border-primary/50 transition-colors bg-surface-active/10 group">
+                        <input type="checkbox" class="mt-1 w-4 h-4 rounded-full appearance-none border border-border checked:bg-primary checked:border-primary hover:border-primary/50 focus:outline-none transition-colors relative
+                                                    after:content-[''] after:absolute after:inset-0 after:m-auto after:w-2 after:h-2 after:bg-white after:rounded-full after:opacity-0 checked:after:opacity-100">
+                        <div>
+                            <div class="text-sm font-bold text-text mb-0.5">Debts</div>
+                            <div class="text-xs text-text-muted">Debt tracking and payments</div>
+                        </div>
+                    </label>
+                    <label class="flex items-start gap-3 p-4 rounded-xl border border-border cursor-pointer hover:border-primary/50 transition-colors bg-surface-active/10 group">
+                        <input type="checkbox" class="mt-1 w-4 h-4 rounded-full appearance-none border border-border checked:bg-primary checked:border-primary hover:border-primary/50 focus:outline-none transition-colors relative
+                                                    after:content-[''] after:absolute after:inset-0 after:m-auto after:w-2 after:h-2 after:bg-white after:rounded-full after:opacity-0 checked:after:opacity-100">
+                        <div>
+                            <div class="text-sm font-bold text-text mb-0.5">Budget Categories</div>
+                            <div class="text-xs text-text-muted">Budget allocations</div>
+                        </div>
+                    </label>
+                    <label class="flex items-start gap-3 p-4 rounded-xl border border-border cursor-pointer hover:border-primary/50 transition-colors bg-surface-active/10 group">
+                        <input type="checkbox" class="mt-1 w-4 h-4 rounded-full appearance-none border border-border checked:bg-primary checked:border-primary hover:border-primary/50 focus:outline-none transition-colors relative
+                                                    after:content-[''] after:absolute after:inset-0 after:m-auto after:w-2 after:h-2 after:bg-white after:rounded-full after:opacity-0 checked:after:opacity-100">
+                        <div>
+                            <div class="text-sm font-bold text-text mb-0.5">Recurring Transactions</div>
+                            <div class="text-xs text-text-muted">Automated transactions</div>
+                        </div>
+                    </label>
+                    <label class="flex items-start gap-3 p-4 rounded-xl border border-border cursor-pointer hover:border-primary/50 transition-colors bg-surface-active/10 group">
+                        <input type="checkbox" class="mt-1 w-4 h-4 rounded-full appearance-none border border-border checked:bg-primary checked:border-primary hover:border-primary/50 focus:outline-none transition-colors relative
+                                                    after:content-[''] after:absolute after:inset-0 after:m-auto after:w-2 after:h-2 after:bg-white after:rounded-full after:opacity-0 checked:after:opacity-100">
+                        <div>
+                            <div class="text-sm font-bold text-text mb-0.5">Investments</div>
+                            <div class="text-xs text-text-muted">Investment portfolio</div>
+                        </div>
+                    </label>
+                    <label class="flex items-start gap-3 p-4 rounded-xl border border-border cursor-pointer hover:border-primary/50 transition-colors bg-surface-active/10 group">
+                        <input type="checkbox" class="mt-1 w-4 h-4 rounded-full appearance-none border border-border checked:bg-primary checked:border-primary hover:border-primary/50 focus:outline-none transition-colors relative
+                                                    after:content-[''] after:absolute after:inset-0 after:m-auto after:w-2 after:h-2 after:bg-white after:rounded-full after:opacity-0 checked:after:opacity-100">
+                        <div>
+                            <div class="text-sm font-bold text-text mb-0.5">Financial Reports</div>
+                            <div class="text-xs text-text-muted">Generated reports</div>
+                        </div>
+                    </label>
+                    <label class="flex items-start gap-3 p-4 rounded-xl border border-border cursor-pointer hover:border-primary/50 transition-colors bg-surface-active/10 group">
+                        <input type="checkbox" class="mt-1 w-4 h-4 rounded-full appearance-none border border-border checked:bg-primary checked:border-primary hover:border-primary/50 focus:outline-none transition-colors relative
+                                                    after:content-[''] after:absolute after:inset-0 after:m-auto after:w-2 after:h-2 after:bg-white after:rounded-full after:opacity-0 checked:after:opacity-100">
+                        <div>
+                            <div class="text-sm font-bold text-text mb-0.5">Cash Flow</div>
+                            <div class="text-xs text-text-muted">Cash flow data</div>
+                        </div>
+                    </label>
+                    <label class="flex items-start gap-3 p-4 rounded-xl border border-border cursor-pointer hover:border-primary/50 transition-colors bg-surface-active/10 group">
+                        <input type="checkbox" class="mt-1 w-4 h-4 rounded-full appearance-none border border-border checked:bg-primary checked:border-primary hover:border-primary/50 focus:outline-none transition-colors relative
+                                                    after:content-[''] after:absolute after:inset-0 after:m-auto after:w-2 after:h-2 after:bg-white after:rounded-full after:opacity-0 checked:after:opacity-100">
+                        <div>
+                            <div class="text-sm font-bold text-text mb-0.5">Net Worth</div>
+                            <div class="text-xs text-text-muted">Net worth tracking</div>
+                        </div>
+                    </label>
+                </div>
+            </div>
+        
+            <div class="mb-6 max-w-xs">
+                <label class="block text-sm font-medium text-text mb-2">Backup Format</label>
+                <div class="relative">
+                    <select class="w-full pl-4 pr-10 py-2.5 bg-surface-active/30 border border-border/50 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/50 text-sm font-medium appearance-none cursor-pointer transition-colors">
+                        <option>JSON</option>
+                        <option>CSV</option>
+                        <option>SQL</option>
+                    </select>
+                    <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                        <i data-lucide="chevron-down" class="w-4 h-4 text-text-muted"></i>
+                    </div>
+                </div>
+            </div>
+        
+            <button class="inline-flex items-center justify-center gap-2 px-6 py-2.5 bg-[#8da2b5] text-white font-medium rounded-xl hover:bg-[#7a8f9f] transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-[#8da2b5]/50 text-sm">
+                <i data-lucide="download" class="w-4 h-4"></i> Create Backup
+            </button>
+        </div>
+
+        <!-- Sub Content: Restore Data -->
+        <div id="subtab-content-restore-data" class="bg-surface rounded-2xl border border-border shadow-sm p-6 hidden">
+            <div class="flex items-center gap-2 mb-6">
+                <i data-lucide="refresh-cw" class="w-6 h-6 text-text"></i>
+                <h2 class="text-2xl font-bold font-heading m-0 text-text tracking-tight">Restore from Backup</h2>
+            </div>
+            
+            <div class="bg-warning/10 border border-warning/20 rounded-xl p-4 flex items-start gap-3 mb-6">
+                <i data-lucide="alert-triangle" class="w-5 h-5 text-warning shrink-0 mt-0.5"></i>
+                <div class="text-sm text-text">
+                    <span class="font-bold">Warning:</span> Restoring data may overwrite existing records. Always create a backup before restoring.
+                </div>
+            </div>
+
+            <div class="space-y-6">
+                <div>
+                    <label class="block text-sm font-medium text-text mb-2">Select Backup File</label>
+                    <div class="flex items-center">
+                        <label class="flex-1 flex items-center px-4 py-2.5 bg-surface border border-border rounded-xl cursor-pointer hover:bg-surface-hover hover:border-border/80 transition-all group">
+                            <span class="text-sm font-medium text-text group-hover:text-primary transition-colors">Browse...</span>
+                            <span class="ml-3 text-sm text-text-muted">No file selected.</span>
+                            <input type="file" class="hidden">
+                        </label>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-text mb-2">Restore Mode</label>
+                    <div class="relative">
+                        <select class="w-full pl-4 pr-10 py-2.5 bg-surface border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/50 text-sm font-medium appearance-none cursor-pointer transition-colors hover:border-border/80">
+                            <option>Append (Add new records)</option>
+                            <option>Overwrite (Replace existing)</option>
+                            <option>Merge (Update and add)</option>
+                        </select>
+                        <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                            <i data-lucide="chevron-down" class="w-4 h-4 text-text-muted"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <div>
+                    <h3 class="text-sm font-medium text-text mb-4">Select Tables to Restore</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        <!-- Same table options as Create Backup -->
+                        <label class="flex items-start gap-3 p-4 rounded-xl border border-border cursor-pointer hover:border-primary/50 transition-colors bg-surface-active/10 group">
+                            <input type="checkbox" class="mt-1 w-4 h-4 rounded-full appearance-none border border-border checked:bg-primary checked:border-primary hover:border-primary/50 focus:outline-none transition-colors relative
+                                                        after:content-[''] after:absolute after:inset-0 after:m-auto after:w-2 after:h-2 after:bg-white after:rounded-full after:opacity-0 checked:after:opacity-100">
+                            <div>
+                                <div class="text-sm font-bold text-text mb-0.5">Transactions</div>
+                                <div class="text-xs text-text-muted">Financial transactions</div>
+                            </div>
+                        </label>
+                        <label class="flex items-start gap-3 p-4 rounded-xl border border-border cursor-pointer hover:border-primary/50 transition-colors bg-surface-active/10 group">
+                            <input type="checkbox" class="mt-1 w-4 h-4 rounded-full appearance-none border border-border checked:bg-primary checked:border-primary hover:border-primary/50 focus:outline-none transition-colors relative
+                                                        after:content-[''] after:absolute after:inset-0 after:m-auto after:w-2 after:h-2 after:bg-white after:rounded-full after:opacity-0 checked:after:opacity-100">
+                            <div>
+                                <div class="text-sm font-bold text-text mb-0.5">Goals</div>
+                                <div class="text-xs text-text-muted">Financial goals and targets</div>
+                            </div>
+                        </label>
+                        <label class="flex items-start gap-3 p-4 rounded-xl border border-border cursor-pointer hover:border-primary/50 transition-colors bg-surface-active/10 group">
+                            <input type="checkbox" class="mt-1 w-4 h-4 rounded-full appearance-none border border-border checked:bg-primary checked:border-primary hover:border-primary/50 focus:outline-none transition-colors relative
+                                                        after:content-[''] after:absolute after:inset-0 after:m-auto after:w-2 after:h-2 after:bg-white after:rounded-full after:opacity-0 checked:after:opacity-100">
+                            <div>
+                                <div class="text-sm font-bold text-text mb-0.5">Debts</div>
+                                <div class="text-xs text-text-muted">Debt tracking and payments</div>
+                            </div>
+                        </label>
+                        <label class="flex items-start gap-3 p-4 rounded-xl border border-border cursor-pointer hover:border-primary/50 transition-colors bg-surface-active/10 group">
+                            <input type="checkbox" class="mt-1 w-4 h-4 rounded-full appearance-none border border-border checked:bg-primary checked:border-primary hover:border-primary/50 focus:outline-none transition-colors relative
+                                                        after:content-[''] after:absolute after:inset-0 after:m-auto after:w-2 after:h-2 after:bg-white after:rounded-full after:opacity-0 checked:after:opacity-100">
+                            <div>
+                                <div class="text-sm font-bold text-text mb-0.5">Budget Categories</div>
+                                <div class="text-xs text-text-muted">Budget allocations</div>
+                            </div>
+                        </label>
+                        <label class="flex items-start gap-3 p-4 rounded-xl border border-border cursor-pointer hover:border-primary/50 transition-colors bg-surface-active/10 group">
+                            <input type="checkbox" class="mt-1 w-4 h-4 rounded-full appearance-none border border-border checked:bg-primary checked:border-primary hover:border-primary/50 focus:outline-none transition-colors relative
+                                                        after:content-[''] after:absolute after:inset-0 after:m-auto after:w-2 after:h-2 after:bg-white after:rounded-full after:opacity-0 checked:after:opacity-100">
+                            <div>
+                                <div class="text-sm font-bold text-text mb-0.5">Recurring Transactions</div>
+                                <div class="text-xs text-text-muted">Automated transactions</div>
+                            </div>
+                        </label>
+                        <label class="flex items-start gap-3 p-4 rounded-xl border border-border cursor-pointer hover:border-primary/50 transition-colors bg-surface-active/10 group">
+                            <input type="checkbox" class="mt-1 w-4 h-4 rounded-full appearance-none border border-border checked:bg-primary checked:border-primary hover:border-primary/50 focus:outline-none transition-colors relative
+                                                        after:content-[''] after:absolute after:inset-0 after:m-auto after:w-2 after:h-2 after:bg-white after:rounded-full after:opacity-0 checked:after:opacity-100">
+                            <div>
+                                <div class="text-sm font-bold text-text mb-0.5">Investments</div>
+                                <div class="text-xs text-text-muted">Investment portfolio</div>
+                            </div>
+                        </label>
+                        <label class="flex items-start gap-3 p-4 rounded-xl border border-border cursor-pointer hover:border-primary/50 transition-colors bg-surface-active/10 group">
+                            <input type="checkbox" class="mt-1 w-4 h-4 rounded-full appearance-none border border-border checked:bg-primary checked:border-primary hover:border-primary/50 focus:outline-none transition-colors relative
+                                                        after:content-[''] after:absolute after:inset-0 after:m-auto after:w-2 after:h-2 after:bg-white after:rounded-full after:opacity-0 checked:after:opacity-100">
+                            <div>
+                                <div class="text-sm font-bold text-text mb-0.5">Financial Reports</div>
+                                <div class="text-xs text-text-muted">Generated reports</div>
+                            </div>
+                        </label>
+                        <label class="flex items-start gap-3 p-4 rounded-xl border border-border cursor-pointer hover:border-primary/50 transition-colors bg-surface-active/10 group">
+                            <input type="checkbox" class="mt-1 w-4 h-4 rounded-full appearance-none border border-border checked:bg-primary checked:border-primary hover:border-primary/50 focus:outline-none transition-colors relative
+                                                        after:content-[''] after:absolute after:inset-0 after:m-auto after:w-2 after:h-2 after:bg-white after:rounded-full after:opacity-0 checked:after:opacity-100">
+                            <div>
+                                <div class="text-sm font-bold text-text mb-0.5">Cash Flow</div>
+                                <div class="text-xs text-text-muted">Cash flow data</div>
+                            </div>
+                        </label>
+                        <label class="flex items-start gap-3 p-4 rounded-xl border border-border cursor-pointer hover:border-primary/50 transition-colors bg-surface-active/10 group">
+                            <input type="checkbox" class="mt-1 w-4 h-4 rounded-full appearance-none border border-border checked:bg-primary checked:border-primary hover:border-primary/50 focus:outline-none transition-colors relative
+                                                        after:content-[''] after:absolute after:inset-0 after:m-auto after:w-2 after:h-2 after:bg-white after:rounded-full after:opacity-0 checked:after:opacity-100">
+                            <div>
+                                <div class="text-sm font-bold text-text mb-0.5">Net Worth</div>
+                                <div class="text-xs text-text-muted">Net worth tracking</div>
+                            </div>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="pt-4">
+                    <button class="inline-flex items-center justify-center gap-2 px-6 py-2.5 bg-[#8da2b5] text-white font-medium rounded-xl hover:bg-[#7a8f9f] transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-[#8da2b5]/50 text-sm">
+                        <i data-lucide="upload" class="w-4 h-4"></i> Restore Data
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sub Content: Bulk Upload -->
+        <div id="subtab-content-bulk-upload" class="bg-surface rounded-2xl border border-border shadow-sm p-6 hidden">
+            <div class="flex items-center gap-2 mb-6">
+                <i data-lucide="upload-cloud" class="w-6 h-6 text-text"></i>
+                <h2 class="text-2xl font-bold font-heading m-0 text-text tracking-tight">Bulk Data Upload</h2>
+            </div>
+            
+            <div class="space-y-6 max-w-2xl">
+                <div>
+                    <label class="block text-sm font-medium text-text mb-2">Select Table</label>
+                    <div class="relative">
+                        <select class="w-full pl-4 pr-10 py-2.5 bg-surface border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/50 text-sm font-medium appearance-none cursor-pointer transition-colors hover:border-border/80">
+                            <option value="" disabled selected>Choose a table...</option>
+                            <option>Transactions</option>
+                            <option>Goals</option>
+                            <option>Debts</option>
+                            <option>Budget Categories</option>
+                            <option>Recurring Transactions</option>
+                            <option>Investments</option>
+                        </select>
+                        <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                            <i data-lucide="chevron-down" class="w-4 h-4 text-text-muted"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-text mb-2">Upload CSV File</label>
+                    <div class="flex items-center">
+                        <label class="flex-1 flex items-center px-4 py-2.5 bg-surface border border-border rounded-xl cursor-pointer hover:bg-surface-hover hover:border-border/80 transition-all group">
+                            <span class="text-sm font-medium text-text group-hover:text-primary transition-colors">Browse...</span>
+                            <span class="ml-3 text-sm text-text-muted">No file selected.</span>
+                            <input type="file" class="hidden" accept=".csv">
+                        </label>
+                    </div>
+                </div>
+
+                <div class="pt-2">
+                    <button class="inline-flex items-center justify-center gap-2 px-6 py-2.5 bg-[#8da2b5] text-white font-medium rounded-xl hover:bg-[#7a8f9f] transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-[#8da2b5]/50 text-sm">
+                        <i data-lucide="upload" class="w-4 h-4"></i> Upload Data
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Content: Export Management -->
+    <div id="tab-content-export-management" class="hidden">
+        <div class="bg-surface rounded-2xl border border-border shadow-sm p-6">
+            <div class="mb-6">
+                <h2 class="text-2xl font-bold font-heading m-0 text-text tracking-tight">Export System Management</h2>
+                <p class="text-sm font-medium text-text-muted m-0 mt-1">Manage system-wide export capabilities and templates</p>
+            </div>
+        
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                <!-- Export Button 1 -->
+                <button class="flex flex-col items-center justify-center p-6 bg-surface-active/10 border border-border rounded-2xl hover:bg-surface-hover hover:border-border/80 transition-all gap-3">
+                    <i data-lucide="download" class="w-5 h-5 text-text"></i>
+                    <span class="text-sm font-medium text-text">Financial Reports Export</span>
+                </button>
+                <!-- Export Button 2 -->
+                <button class="flex flex-col items-center justify-center p-6 bg-surface-active/10 border border-border rounded-2xl hover:bg-surface-hover hover:border-border/80 transition-all gap-3">
+                    <i data-lucide="database" class="w-5 h-5 text-text"></i>
+                    <span class="text-sm font-medium text-text">Data Backup & Bulk Import</span>
+                </button>
+            </div>
+        
+            <div class="bg-surface-active/20 rounded-xl border border-border p-4 flex items-start gap-3">
+                <i data-lucide="info" class="w-5 h-5 text-text shrink-0 mt-0.5"></i>
+                <div class="text-sm font-medium text-text">
+                    Export features include PDF, Excel, CSV, and image formats with real-time data processing and preview capabilities.
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        lucide.createIcons();
+    });
+
+    function switchTab(tabId) {
+        // Hide all tab contents
+        document.getElementById('tab-content-user-management').classList.remove('block');
+        document.getElementById('tab-content-user-management').classList.add('hidden');
+        document.getElementById('tab-content-backup-recovery').classList.remove('block');
+        document.getElementById('tab-content-backup-recovery').classList.add('hidden');
+        document.getElementById('tab-content-export-management').classList.remove('block');
+        document.getElementById('tab-content-export-management').classList.add('hidden');
+
+        // Reset all tab buttons
+        const btnClassesActive = ['font-bold', 'bg-surface', 'text-text', 'shadow-sm', 'border', 'border-border'];
+        const btnClassesInactive = ['font-medium', 'text-text-muted', 'hover:text-text', 'hover:bg-surface/50'];
+        
+        const btnUser = document.getElementById('tab-btn-user-management');
+        const btnBackup = document.getElementById('tab-btn-backup-recovery');
+        const btnExport = document.getElementById('tab-btn-export-management');
+
+        btnUser.classList.remove(...btnClassesActive);
+        btnUser.classList.add(...btnClassesInactive);
+        
+        btnBackup.classList.remove(...btnClassesActive);
+        btnBackup.classList.add(...btnClassesInactive);
+        
+        btnExport.classList.remove(...btnClassesActive);
+        btnExport.classList.add(...btnClassesInactive);
+
+        // Show selected tab content
+        document.getElementById('tab-content-' + tabId).classList.remove('hidden');
+        document.getElementById('tab-content-' + tabId).classList.add('block');
+
+        // Activate selected tab button
+        const activeBtn = document.getElementById('tab-btn-' + tabId);
+        activeBtn.classList.remove(...btnClassesInactive);
+        activeBtn.classList.add(...btnClassesActive);
+    }
+
+    function switchSubTab(tabId) {
+        // Hide all sub-tab contents
+        document.getElementById('subtab-content-create-backup').classList.remove('block');
+        document.getElementById('subtab-content-create-backup').classList.add('hidden');
+        document.getElementById('subtab-content-restore-data').classList.remove('block');
+        document.getElementById('subtab-content-restore-data').classList.add('hidden');
+        document.getElementById('subtab-content-bulk-upload').classList.remove('block');
+        document.getElementById('subtab-content-bulk-upload').classList.add('hidden');
+
+        // Reset all sub-tab buttons
+        const subBtnClassesActive = ['font-bold', 'bg-surface', 'text-text', 'shadow-sm', 'border', 'border-border'];
+        const subBtnClassesInactive = ['font-medium', 'text-text-muted', 'hover:text-text'];
+
+        const btnCreate = document.getElementById('subtab-btn-create-backup');
+        const btnRestore = document.getElementById('subtab-btn-restore-data');
+        const btnBulk = document.getElementById('subtab-btn-bulk-upload');
+
+        btnCreate.classList.remove(...subBtnClassesActive);
+        btnCreate.classList.add(...subBtnClassesInactive);
+
+        btnRestore.classList.remove(...subBtnClassesActive);
+        btnRestore.classList.add(...subBtnClassesInactive);
+
+        btnBulk.classList.remove(...subBtnClassesActive);
+        btnBulk.classList.add(...subBtnClassesInactive);
+
+        // Show selected sub-tab content
+        document.getElementById('subtab-content-' + tabId).classList.remove('hidden');
+        document.getElementById('subtab-content-' + tabId).classList.add('block');
+
+        // Activate selected sub-tab button
+        const activeSubBtn = document.getElementById('subtab-btn-' + tabId);
+        activeSubBtn.classList.remove(...subBtnClassesInactive);
+        activeSubBtn.classList.add(...subBtnClassesActive);
+    }
+</script>
+{% endblock %}

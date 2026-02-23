@@ -1,0 +1,108 @@
+{% extends "base.html" %}
+
+{% block title %}Notifications - Financial Tracker{% endblock %}
+{% block header_title %}Notifications{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto space-y-6">
+    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-surface p-6 rounded-2xl border border-border shadow-sm">
+        <div>
+            <h2 class="text-xl font-bold font-heading text-text m-0 mb-1 flex items-center gap-2">
+                <i data-lucide="bell" class="w-6 h-6 text-primary"></i> Notifications
+                {% if unread_count > 0 %}
+                    <span class="inline-flex items-center justify-center px-2 py-0.5 text-xs font-bold leading-none text-white bg-primary rounded-full">{{ unread_count }} new</span>
+                {% endif %}
+            </h2>
+            <p class="text-sm font-medium text-text-muted m-0">Stay updated on your financial activity and alerts.</p>
+        </div>
+        
+        <div class="flex items-center gap-3 shrink-0">
+            {% if unread_count > 0 %}
+            <form method="POST" action="{{ url_for('notifications.mark_all_read') }}" class="m-0">
+                <button type="submit" class="inline-flex items-center justify-center gap-2 px-4 py-2 bg-surface-active border border-border text-text font-bold rounded-xl hover:bg-surface-hover transition-colors focus:outline-none focus:ring-2 focus:ring-border shadow-sm text-sm h-10">
+                    <i data-lucide="check-check" class="w-4 h-4 text-success"></i> Mark All Read
+                </button>
+            </form>
+            {% endif %}
+            <a href="{{ url_for('notifications.preferences') }}" class="inline-flex items-center justify-center gap-2 px-4 py-2 bg-surface border border-border text-text font-bold rounded-xl hover:bg-surface-hover transition-colors focus:outline-none focus:ring-2 focus:ring-primary/50 shadow-sm text-sm h-10">
+                <i data-lucide="settings" class="w-4 h-4"></i> Preferences
+            </a>
+        </div>
+    </div>
+
+    {% if notifications %}
+    <div class="space-y-3">
+        {% for n in notifications %}
+        <div class="bg-surface rounded-2xl border {{ 'border-primary/50 shadow-md ring-1 ring-primary/20 bg-primary/5' if not n.is_read else 'border-border shadow-sm hover:border-border-hover' }} p-5 transition-all overflow-hidden relative group">
+            
+            {% if not n.is_read %}
+            <!-- Unread indicator stripe -->
+            <div class="absolute left-0 top-0 bottom-0 w-1 bg-primary"></div>
+            {% endif %}
+
+            <div class="flex items-start gap-4 {{ 'pl-2' if not n.is_read else '' }}">
+                <!-- Icon -->
+                <div class="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 shadow-sm
+                    {% if not n.is_read %}
+                        bg-primary text-primary-content
+                    {% else %}
+                        bg-surface-active/50 text-text-muted border border-border
+                    {% endif %}">
+                    <i data-lucide="{{ n.icon or 'bell' }}" class="w-5 h-5"></i>
+                </div>
+
+                <!-- Content -->
+                <div class="flex-1 min-w-0 pt-0.5">
+                    <div class="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-1 sm:gap-4 mb-1">
+                        <h3 class="{{ 'text-base font-bold text-text' if not n.is_read else 'text-base font-semibold text-text/90' }} m-0 line-clamp-1">
+                            {{ n.title }}
+                        </h3>
+                        <span class="text-xs font-medium text-text-muted/80 whitespace-nowrap shrink-0">
+                            {{ n.created_at.strftime('%b %d, %I:%M %p') }}
+                        </span>
+                    </div>
+                    <p class="{{ 'text-sm text-text/80' if not n.is_read else 'text-sm text-text-muted' }} m-0 mb-3 leading-relaxed">
+                        {{ n.message }}
+                    </p>
+                    
+                    <!-- Quick Actions -->
+                    <div class="flex items-center gap-3">
+                        {% if not n.is_read %}
+                        <form method="POST" action="{{ url_for('notifications.mark_read', id=n.id) }}" class="m-0">
+                            <button type="submit" class="inline-flex items-center gap-1.5 text-xs font-bold text-primary hover:text-primary-hover transition-colors focus:outline-none">
+                                <i data-lucide="check" class="w-3.5 h-3.5"></i> Mark as read
+                            </button>
+                        </form>
+                        {% endif %}
+                        
+                        <form method="POST" action="{{ url_for('notifications.delete_notification', id=n.id) }}" class="m-0" onsubmit="return confirm('Delete this notification?');">
+                            <button type="submit" class="inline-flex items-center gap-1.5 text-xs font-bold text-text-muted hover:text-danger transition-colors focus:outline-none">
+                                <i data-lucide="trash-2" class="w-3.5 h-3.5"></i> Delete
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="bg-surface rounded-2xl border border-border p-12 flex flex-col items-center justify-center text-center shadow-sm">
+        <div class="w-20 h-20 bg-surface-active rounded-full flex items-center justify-center mb-6 relative">
+            <i data-lucide="bell-off" class="w-10 h-10 text-text-muted/50"></i>
+            <div class="absolute -right-1 -top-1 w-6 h-6 bg-surface-active rounded-full border-2 border-surface flex items-center justify-center">
+                <div class="w-2 h-2 bg-success rounded-full"></div>
+            </div>
+        </div>
+        <h3 class="text-xl font-bold text-text m-0 mb-2">No notifications</h3>
+        <p class="text-sm text-text-muted max-w-sm mx-auto m-0">You are all caught up! Check back later for important alerts and updates.</p>
+    </div>
+    {% endif %}
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    lucide.createIcons();
+});
+</script>
+{% endblock %}
