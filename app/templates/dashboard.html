@@ -41,7 +41,7 @@
             <div class="flex justify-between items-start mb-4">
                 <div>
                     <h3 class="font-heading font-bold text-text mb-1">Net Worth</h3>
-                    <p class="text-xs text-text-muted">Total assets - liabilities</p>
+                    <p class="text-xs text-text-muted">Total assets - liabilities • <span class="font-medium">As at {{ current_date.strftime('%d %b %Y') }}</span></p>
                 </div>
                 <div class="p-2 bg-primary/10 rounded-lg text-primary">
                     <i data-lucide="wallet"></i>
@@ -55,7 +55,7 @@
             <div class="flex justify-between items-start mb-4">
                 <div>
                     <h3 class="font-heading font-bold text-text mb-1">Total Income</h3>
-                    <p class="text-xs text-text-muted">All time earnings</p>
+                    <p class="text-xs text-text-muted">All time earnings {% if oldest_date %}• <span class="font-medium">Since {{ oldest_date.strftime('%d %b %Y') }}</span>{% endif %}</p>
                 </div>
                 <div class="p-2 bg-success-bg rounded-lg text-success-text">
                     <i data-lucide="trending-up"></i>
@@ -69,7 +69,7 @@
             <div class="flex justify-between items-start mb-4">
                 <div>
                     <h3 class="font-heading font-bold text-text mb-1">Total Expenses</h3>
-                    <p class="text-xs text-text-muted">All time spending</p>
+                    <p class="text-xs text-text-muted">All time spending {% if oldest_date %}• <span class="font-medium">Since {{ oldest_date.strftime('%d %b %Y') }}</span>{% endif %}</p>
                 </div>
                 <div class="p-2 bg-danger-bg rounded-lg text-danger-text">
                     <i data-lucide="trending-down"></i>
@@ -83,7 +83,7 @@
             <div class="flex justify-between items-start mb-4">
                 <div>
                     <h3 class="font-heading font-bold mb-1 text-white/90">Net Income</h3>
-                    <p class="text-xs text-white/70">Income - Expenses</p>
+                    <p class="text-xs text-white/70 font-medium">Income - Expenses {% if oldest_date %}• <span class="text-white/90">Since {{ oldest_date.strftime('%d %b %Y') }}</span>{% endif %}</p>
                 </div>
                 <div class="p-2 bg-white/20 rounded-lg text-white">
                     <i data-lucide="pie-chart"></i>
