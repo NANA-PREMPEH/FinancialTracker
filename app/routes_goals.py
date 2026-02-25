@@ -2,7 +2,7 @@ from flask import Blueprint, render_template, request, redirect, url_for, flash
 from flask_login import login_required, current_user
 from . import db
 from .models import Goal, Wallet, GoalTask, GoalMilestone
-from datetime import datetime
+from datetime import datetime, timedelta
 
 goals_bp = Blueprint('goals', __name__)
 
@@ -10,9 +10,79 @@ goals_bp = Blueprint('goals', __name__)
 @goals_bp.route('/goals')
 @login_required
 def goals():
-    all_goals = Goal.query.filter_by(user_id=current_user.id).order_by(Goal.created_at.desc()).all()
+    all_goals = Goal.query.filter_by(user_id=current_user.id).order_by(Goal.priority.desc(), Goal.created_at.desc()).all()
     active_goals = [g for g in all_goals if not g.is_completed]
     completed_goals = [g for g in all_goals if g.is_completed]
+    wallets = Wallet.query.filter_by(user_id=current_user.id).order_by(Wallet.name.asc()).all()
+
+    now = datetime.utcnow()
+    goal_insights = {
+        'on_track': 0,
+        'at_risk': 0,
+        'overdue': 0,
+        'avg_progress': 0.0,
+        'avg_monthly_required': 0.0
+    }
+    goal_forecasts = {}
+    total_progress = 0.0
+    total_monthly_required = 0.0
+
+    for goal in active_goals:
+        remaining = max(goal.target_amount - goal.current_amount, 0.0)
+        progress = goal.progress if hasattr(goal, 'progress') else 0.0
+        total_progress += progress
+
+        created_at = goal.created_at or now
+        elapsed_days = max((now - created_at).days, 1)
+        elapsed_months = max(elapsed_days / 30.0, 0.1)
+        historical_monthly = goal.current_amount / elapsed_months if goal.current_amount > 0 else 0.0
+
+        forecast = {
+            'status': 'At Risk',
+            'required_monthly': 0.0,
+            'historical_monthly': historical_monthly,
+            'projected_days': None,
+            'projected_date': None
+        }
+
+        if goal.deadline:
+            days_left = (goal.deadline - now).days
+            months_left = max(days_left / 30.0, 0.1)
+            required_monthly = remaining / months_left if remaining > 0 else 0.0
+            total_monthly_required += required_monthly
+            forecast['required_monthly'] = required_monthly
+
+            if remaining <= 0:
+                forecast['status'] = 'On Track'
+                goal_insights['on_track'] += 1
+            elif days_left < 0:
+                forecast['status'] = 'Overdue'
+                goal_insights['overdue'] += 1
+            elif historical_monthly >= required_monthly * 0.9:
+                forecast['status'] = 'On Track'
+                goal_insights['on_track'] += 1
+            else:
+                forecast['status'] = 'At Risk'
+                goal_insights['at_risk'] += 1
+        else:
+            if progress >= 40:
+                forecast['status'] = 'On Track'
+                goal_insights['on_track'] += 1
+            else:
+                forecast['status'] = 'At Risk'
+                goal_insights['at_risk'] += 1
+
+        if remaining > 0 and historical_monthly > 0:
+            projected_months = remaining / historical_monthly
+            projected_days = int(projected_months * 30)
+            forecast['projected_days'] = projected_days
+            forecast['projected_date'] = now + timedelta(days=projected_days)
+
+        goal_forecasts[goal.id] = forecast
+
+    if active_goals:
+        goal_insights['avg_progress'] = round(total_progress / len(active_goals), 1)
+        goal_insights['avg_monthly_required'] = round(total_monthly_required / len(active_goals), 2)
     
     # Smart Recommendations Logic
     recommendations = [
@@ -41,7 +111,16 @@ def goals():
             'color': '#10b981' # green
         }
     ]
-    return render_template('goals.html', active_goals=active_goals, completed_goals=completed_goals, recommendations=recommendations, datetime=datetime)
+    return render_template(
+        'goals.html',
+        active_goals=active_goals,
+        completed_goals=completed_goals,
+        recommendations=recommendations,
+        goal_insights=goal_insights,
+        goal_forecasts=goal_forecasts,
+        wallets=wallets,
+        datetime=datetime
+    )
 
 
 @goals_bp.route('/goals/add', methods=['GET', 'POST'])

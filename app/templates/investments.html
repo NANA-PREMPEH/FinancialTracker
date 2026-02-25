@@ -118,70 +118,269 @@
 
 <!-- Investments Tab -->
 <div id="content-investments" class="tab-content hidden">
+    {% set inv_metrics = namespace(cost=0, value=0, income=0) %}
+    {% for inv in investments %}
+        {% set inv_metrics.cost = inv_metrics.cost + inv.amount_invested %}
+        {% set inv_metrics.value = inv_metrics.value + inv.current_value %}
+    {% endfor %}
+    {% set inv_metrics.income = inv_metrics.value - inv_metrics.cost %}
+    {% set inv_avg_roi = ((inv_metrics.income / inv_metrics.cost) * 100) if inv_metrics.cost > 0 else 0 %}
+
     <div class="flex justify-between items-center mb-6">
-        <h2 class="text-xl font-bold text-text m-0">Classic Investments</h2>
+        <h2 class="text-xl font-bold text-text m-0">Investment Ledger</h2>
     </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
+        <div class="bg-surface rounded-2xl border border-border p-4">
+            <p class="text-xs uppercase tracking-wide text-text-muted mb-1">Book Cost</p>
+            <p class="text-lg font-bold text-text">GH&#8373;{{ "{:,.2f}".format(inv_metrics.cost) }}</p>
+        </div>
+        <div class="bg-surface rounded-2xl border border-border p-4">
+            <p class="text-xs uppercase tracking-wide text-text-muted mb-1">Fair Value</p>
+            <p class="text-lg font-bold text-text">GH&#8373;{{ "{:,.2f}".format(inv_metrics.value) }}</p>
+        </div>
+        <div class="bg-surface rounded-2xl border border-border p-4">
+            <p class="text-xs uppercase tracking-wide text-text-muted mb-1">Unrealized P/L</p>
+            <p class="text-lg font-bold {{ 'text-success' if inv_metrics.income >= 0 else 'text-danger' }}">
+                {{ '+' if inv_metrics.income >= 0 else '' }}GH&#8373;{{ "{:,.2f}".format(inv_metrics.income) }}
+            </p>
+        </div>
+        <div class="bg-surface rounded-2xl border border-border p-4">
+            <p class="text-xs uppercase tracking-wide text-text-muted mb-1">Portfolio ROI</p>
+            <p class="text-lg font-bold {{ 'text-success' if inv_avg_roi >= 0 else 'text-danger' }}">{{ "{:+.2f}".format(inv_avg_roi) }}%</p>
+        </div>
+    </div>
+
+    <div class="bg-surface rounded-3xl border border-border p-6 mb-6">
+        <h3 class="text-base font-bold text-text mb-3">Bookkeeping Controls For Investments</h3>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
+            <div class="bg-background rounded-xl border border-border p-3 text-text-muted">Capture broker statement reference and trade date for each entry.</div>
+            <div class="bg-background rounded-xl border border-border p-3 text-text-muted">Separate principal movements from dividend and interest income.</div>
+            <div class="bg-background rounded-xl border border-border p-3 text-text-muted">Reconcile market value monthly and post variance as unrealized gain/loss.</div>
+        </div>
+    </div>
+
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {% for inv in investments %}
         {{ render_investment_card(inv) }}
         {% else %}
-        <p class="text-text-muted col-span-full">No classic investments found.</p>
+        <div class="col-span-full bg-surface rounded-2xl border border-dashed border-border p-6 text-text-muted">
+            No investment records yet. Start with assets that have clear statement values.
+        </div>
         {% endfor %}
     </div>
 </div>
 
 <!-- Businesses Tab -->
 <div id="content-businesses" class="tab-content hidden">
+    {% set biz_metrics = namespace(value=0, own=0, attributable=0) %}
+    {% for entity in businesses %}
+        {% set biz_metrics.value = biz_metrics.value + entity.value %}
+        {% set biz_metrics.own = biz_metrics.own + entity.ownership_percent %}
+        {% set biz_metrics.attributable = biz_metrics.attributable + (entity.value * entity.ownership_percent / 100) %}
+    {% endfor %}
+    {% set biz_avg_ownership = (biz_metrics.own / (businesses|length)) if businesses else 0 %}
+
     <div class="flex justify-between items-center mb-6">
-        <h2 class="text-xl font-bold text-text m-0">Businesses</h2>
+        <h2 class="text-xl font-bold text-text m-0">Business Ownership Register</h2>
     </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
+        <div class="bg-surface rounded-2xl border border-border p-4">
+            <p class="text-xs uppercase tracking-wide text-text-muted mb-1">Entities</p>
+            <p class="text-lg font-bold text-text">{{ businesses|length }}</p>
+        </div>
+        <div class="bg-surface rounded-2xl border border-border p-4">
+            <p class="text-xs uppercase tracking-wide text-text-muted mb-1">Gross Value</p>
+            <p class="text-lg font-bold text-text">GH&#8373;{{ "{:,.2f}".format(biz_metrics.value) }}</p>
+        </div>
+        <div class="bg-surface rounded-2xl border border-border p-4">
+            <p class="text-xs uppercase tracking-wide text-text-muted mb-1">Attributable Value</p>
+            <p class="text-lg font-bold text-text">GH&#8373;{{ "{:,.2f}".format(biz_metrics.attributable) }}</p>
+        </div>
+        <div class="bg-surface rounded-2xl border border-border p-4">
+            <p class="text-xs uppercase tracking-wide text-text-muted mb-1">Average Stake</p>
+            <p class="text-lg font-bold text-text">{{ "{:.1f}".format(biz_avg_ownership) }}%</p>
+        </div>
+    </div>
+
+    <div class="bg-surface rounded-3xl border border-border p-6 mb-6">
+        <h3 class="text-base font-bold text-text mb-3">Business Close Checklist</h3>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
+            <div class="bg-background rounded-xl border border-border p-3 text-text-muted">Record capital injections and owner drawings separately.</div>
+            <div class="bg-background rounded-xl border border-border p-3 text-text-muted">Post management fees/dividends with supporting board resolution note.</div>
+            <div class="bg-background rounded-xl border border-border p-3 text-text-muted">Review valuation basis quarterly: earnings multiple, NAV, or market comp.</div>
+        </div>
+    </div>
+
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {% for entity in businesses %}
         {{ render_entity_card(entity) }}
         {% else %}
-        <p class="text-text-muted col-span-full">No businesses found.</p>
+        <div class="col-span-full bg-surface rounded-2xl border border-dashed border-border p-6 text-text-muted">
+            No businesses recorded. Add entities where you have active ownership and financial exposure.
+        </div>
         {% endfor %}
     </div>
 </div>
 
 <!-- Partnerships Tab -->
 <div id="content-partnerships" class="tab-content hidden">
+    {% set partner_metrics = namespace(value=0, own=0, attributable=0) %}
+    {% for entity in partnerships %}
+        {% set partner_metrics.value = partner_metrics.value + entity.value %}
+        {% set partner_metrics.own = partner_metrics.own + entity.ownership_percent %}
+        {% set partner_metrics.attributable = partner_metrics.attributable + (entity.value * entity.ownership_percent / 100) %}
+    {% endfor %}
+    {% set partner_avg_ownership = (partner_metrics.own / (partnerships|length)) if partnerships else 0 %}
+
     <div class="flex justify-between items-center mb-6">
-        <h2 class="text-xl font-bold text-text m-0">Partnerships</h2>
+        <h2 class="text-xl font-bold text-text m-0">Partnership Capital Accounts</h2>
     </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
+        <div class="bg-surface rounded-2xl border border-border p-4">
+            <p class="text-xs uppercase tracking-wide text-text-muted mb-1">Partnerships</p>
+            <p class="text-lg font-bold text-text">{{ partnerships|length }}</p>
+        </div>
+        <div class="bg-surface rounded-2xl border border-border p-4">
+            <p class="text-xs uppercase tracking-wide text-text-muted mb-1">Aggregate Value</p>
+            <p class="text-lg font-bold text-text">GH&#8373;{{ "{:,.2f}".format(partner_metrics.value) }}</p>
+        </div>
+        <div class="bg-surface rounded-2xl border border-border p-4">
+            <p class="text-xs uppercase tracking-wide text-text-muted mb-1">Your Capital Share</p>
+            <p class="text-lg font-bold text-text">GH&#8373;{{ "{:,.2f}".format(partner_metrics.attributable) }}</p>
+        </div>
+        <div class="bg-surface rounded-2xl border border-border p-4">
+            <p class="text-xs uppercase tracking-wide text-text-muted mb-1">Average Ownership</p>
+            <p class="text-lg font-bold text-text">{{ "{:.1f}".format(partner_avg_ownership) }}%</p>
+        </div>
+    </div>
+
+    <div class="bg-surface rounded-3xl border border-border p-6 mb-6">
+        <h3 class="text-base font-bold text-text mb-3">Partnership Governance Records</h3>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
+            <div class="bg-background rounded-xl border border-border p-3 text-text-muted">Track profit-sharing ratio separately from legal ownership where applicable.</div>
+            <div class="bg-background rounded-xl border border-border p-3 text-text-muted">Document partner loan balances and interest terms.</div>
+            <div class="bg-background rounded-xl border border-border p-3 text-text-muted">Attach annual partner statement reference in notes for audit trail.</div>
+        </div>
+    </div>
+
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {% for entity in partnerships %}
         {{ render_entity_card(entity) }}
         {% else %}
-        <p class="text-text-muted col-span-full">No partnerships found.</p>
+        <div class="col-span-full bg-surface rounded-2xl border border-dashed border-border p-6 text-text-muted">
+            No partnership records yet. Add each agreement as a separate capital account record.
+        </div>
         {% endfor %}
     </div>
 </div>
 
 <!-- Shareholding Tab -->
 <div id="content-shareholding" class="tab-content hidden">
+    {% set share_metrics = namespace(value=0, own=0, attributable=0, highest=0) %}
+    {% for entity in shareholding %}
+        {% set share_metrics.value = share_metrics.value + entity.value %}
+        {% set share_metrics.own = share_metrics.own + entity.ownership_percent %}
+        {% set share_metrics.attributable = share_metrics.attributable + (entity.value * entity.ownership_percent / 100) %}
+        {% if entity.ownership_percent > share_metrics.highest %}
+            {% set share_metrics.highest = entity.ownership_percent %}
+        {% endif %}
+    {% endfor %}
+
     <div class="flex justify-between items-center mb-6">
-        <h2 class="text-xl font-bold text-text m-0">Shareholding</h2>
+        <h2 class="text-xl font-bold text-text m-0">Shareholding Register</h2>
     </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
+        <div class="bg-surface rounded-2xl border border-border p-4">
+            <p class="text-xs uppercase tracking-wide text-text-muted mb-1">Holdings</p>
+            <p class="text-lg font-bold text-text">{{ shareholding|length }}</p>
+        </div>
+        <div class="bg-surface rounded-2xl border border-border p-4">
+            <p class="text-xs uppercase tracking-wide text-text-muted mb-1">Market/Book Value</p>
+            <p class="text-lg font-bold text-text">GH&#8373;{{ "{:,.2f}".format(share_metrics.value) }}</p>
+        </div>
+        <div class="bg-surface rounded-2xl border border-border p-4">
+            <p class="text-xs uppercase tracking-wide text-text-muted mb-1">Attributable Value</p>
+            <p class="text-lg font-bold text-text">GH&#8373;{{ "{:,.2f}".format(share_metrics.attributable) }}</p>
+        </div>
+        <div class="bg-surface rounded-2xl border border-border p-4">
+            <p class="text-xs uppercase tracking-wide text-text-muted mb-1">Largest Stake</p>
+            <p class="text-lg font-bold text-text">{{ "{:.1f}".format(share_metrics.highest) }}%</p>
+        </div>
+    </div>
+
+    <div class="bg-surface rounded-3xl border border-border p-6 mb-6">
+        <h3 class="text-base font-bold text-text mb-3">Equity Record-Keeping Notes</h3>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
+            <div class="bg-background rounded-xl border border-border p-3 text-text-muted">Capture certificate/CSCS account reference and acquisition date.</div>
+            <div class="bg-background rounded-xl border border-border p-3 text-text-muted">Post bonus shares, splits, and rights issues as quantity adjustments.</div>
+            <div class="bg-background rounded-xl border border-border p-3 text-text-muted">Treat dividends separately from fair value movement for clean P/L reporting.</div>
+        </div>
+    </div>
+
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {% for entity in shareholding %}
         {{ render_entity_card(entity) }}
         {% else %}
-        <p class="text-text-muted col-span-full">No shareholdings found.</p>
+        <div class="col-span-full bg-surface rounded-2xl border border-dashed border-border p-6 text-text-muted">
+            No shareholding records yet. Add holdings with ownership percentages for accurate attributable valuation.
+        </div>
         {% endfor %}
     </div>
 </div>
 
 <!-- Jobs Tab -->
 <div id="content-jobs" class="tab-content hidden">
+    {% set job_metrics = namespace(value=0, own=0, attributable=0) %}
+    {% for entity in jobs %}
+        {% set job_metrics.value = job_metrics.value + entity.value %}
+        {% set job_metrics.own = job_metrics.own + entity.ownership_percent %}
+        {% set job_metrics.attributable = job_metrics.attributable + (entity.value * entity.ownership_percent / 100) %}
+    {% endfor %}
+    {% set job_avg_ownership = (job_metrics.own / (jobs|length)) if jobs else 0 %}
+
     <div class="flex justify-between items-center mb-6">
-        <h2 class="text-xl font-bold text-text m-0">Jobs</h2>
+        <h2 class="text-xl font-bold text-text m-0">Employment & Contract Income Register</h2>
     </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
+        <div class="bg-surface rounded-2xl border border-border p-4">
+            <p class="text-xs uppercase tracking-wide text-text-muted mb-1">Active Jobs</p>
+            <p class="text-lg font-bold text-text">{{ jobs|length }}</p>
+        </div>
+        <div class="bg-surface rounded-2xl border border-border p-4">
+            <p class="text-xs uppercase tracking-wide text-text-muted mb-1">Estimated Value</p>
+            <p class="text-lg font-bold text-text">GH&#8373;{{ "{:,.2f}".format(job_metrics.value) }}</p>
+        </div>
+        <div class="bg-surface rounded-2xl border border-border p-4">
+            <p class="text-xs uppercase tracking-wide text-text-muted mb-1">Recognizable Portion</p>
+            <p class="text-lg font-bold text-text">GH&#8373;{{ "{:,.2f}".format(job_metrics.attributable) }}</p>
+        </div>
+        <div class="bg-surface rounded-2xl border border-border p-4">
+            <p class="text-xs uppercase tracking-wide text-text-muted mb-1">Average Allocation</p>
+            <p class="text-lg font-bold text-text">{{ "{:.1f}".format(job_avg_ownership) }}%</p>
+        </div>
+    </div>
+
+    <div class="bg-surface rounded-3xl border border-border p-6 mb-6">
+        <h3 class="text-base font-bold text-text mb-3">Income Compliance Reminders</h3>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
+            <div class="bg-background rounded-xl border border-border p-3 text-text-muted">Separate gross pay, deductions, and net cash receipts in your journal entries.</div>
+            <div class="bg-background rounded-xl border border-border p-3 text-text-muted">Track receivables for unpaid invoices or salary arrears by period.</div>
+            <div class="bg-background rounded-xl border border-border p-3 text-text-muted">Use notes for contract ID, employer, tax class, and pay frequency.</div>
+        </div>
+    </div>
+
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {% for entity in jobs %}
         {{ render_entity_card(entity) }}
         {% else %}
-        <p class="text-text-muted col-span-full">No jobs found.</p>
+        <div class="col-span-full bg-surface rounded-2xl border border-dashed border-border p-6 text-text-muted">
+            No job or contract entries yet. Add each income source to improve cash-flow forecasting.
+        </div>
         {% endfor %}
     </div>
 </div>

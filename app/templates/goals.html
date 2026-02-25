@@ -63,6 +63,32 @@
     </div>
 </div>
 
+<!-- Goal Health Insights -->
+{% if goal_insights %}
+<div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-4 mb-10">
+    <div class="bg-surface p-4 rounded-xl border border-border shadow-sm">
+        <div class="text-xs uppercase tracking-wider font-semibold text-text-muted mb-1">On Track</div>
+        <div class="text-xl font-bold text-success">{{ goal_insights.on_track }}</div>
+    </div>
+    <div class="bg-surface p-4 rounded-xl border border-border shadow-sm">
+        <div class="text-xs uppercase tracking-wider font-semibold text-text-muted mb-1">At Risk</div>
+        <div class="text-xl font-bold text-warning">{{ goal_insights.at_risk }}</div>
+    </div>
+    <div class="bg-surface p-4 rounded-xl border border-border shadow-sm">
+        <div class="text-xs uppercase tracking-wider font-semibold text-text-muted mb-1">Overdue</div>
+        <div class="text-xl font-bold text-danger">{{ goal_insights.overdue }}</div>
+    </div>
+    <div class="bg-surface p-4 rounded-xl border border-border shadow-sm">
+        <div class="text-xs uppercase tracking-wider font-semibold text-text-muted mb-1">Average Progress</div>
+        <div class="text-xl font-bold text-text">{{ '{:.1f}'.format(goal_insights.avg_progress) }}%</div>
+    </div>
+    <div class="bg-surface p-4 rounded-xl border border-border shadow-sm">
+        <div class="text-xs uppercase tracking-wider font-semibold text-text-muted mb-1">Avg Required / Month</div>
+        <div class="text-xl font-bold text-text">GHâ‚µ{{ '{:,.2f}'.format(goal_insights.avg_monthly_required) }}</div>
+    </div>
+</div>
+{% endif %}
+
 <!-- Smart Recommendations -->
 {% if recommendations %}
 <div class="mb-10">
@@ -133,10 +159,60 @@
     <h2 class="text-xl font-bold text-text">Your Goals</h2>
 </div>
 
+<div class="bg-surface border border-border rounded-2xl p-4 mb-6">
+    <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-3">
+        <div>
+            <label for="goalFilterStatus" class="block text-xs font-semibold text-text-muted mb-1">Status</label>
+            <select id="goalFilterStatus" class="w-full px-3 py-2 bg-surface-active text-text border border-border rounded-xl focus:outline-none focus:border-primary">
+                <option value="all">All Status</option>
+                <option value="on_track">On Track</option>
+                <option value="at_risk">At Risk</option>
+                <option value="overdue">Overdue</option>
+                <option value="completed">Completed</option>
+            </select>
+        </div>
+        <div>
+            <label for="goalFilterCategory" class="block text-xs font-semibold text-text-muted mb-1">Category</label>
+            <select id="goalFilterCategory" class="w-full px-3 py-2 bg-surface-active text-text border border-border rounded-xl focus:outline-none focus:border-primary">
+                <option value="all">All Categories</option>
+            </select>
+        </div>
+        <div>
+            <label for="goalFilterPriority" class="block text-xs font-semibold text-text-muted mb-1">Priority</label>
+            <select id="goalFilterPriority" class="w-full px-3 py-2 bg-surface-active text-text border border-border rounded-xl focus:outline-none focus:border-primary">
+                <option value="all">All Priority</option>
+                <option value="5">Priority 1</option>
+                <option value="4">Priority 2</option>
+                <option value="3">Priority 3</option>
+                <option value="2">Priority 4</option>
+                <option value="1">Priority 5</option>
+            </select>
+        </div>
+        <div>
+            <label for="goalFilterScope" class="block text-xs font-semibold text-text-muted mb-1">Scope</label>
+            <select id="goalFilterScope" class="w-full px-3 py-2 bg-surface-active text-text border border-border rounded-xl focus:outline-none focus:border-primary">
+                <option value="all">Active + Completed</option>
+                <option value="active">Active Only</option>
+                <option value="completed">Completed Only</option>
+            </select>
+        </div>
+        <div class="flex items-end">
+            <button id="goalFilterReset" type="button" class="w-full inline-flex items-center justify-center gap-2 px-4 py-2 bg-surface-active text-text border border-border rounded-xl hover:bg-surface-hover transition-colors">
+                <i data-lucide="rotate-ccw" class="w-4 h-4"></i> Reset Filters
+            </button>
+        </div>
+    </div>
+</div>
+
 {% if active_goals %}
-<div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-10">
+<div id="activeGoalsGrid" class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-10">
     {% for g in active_goals %}
-    <div class="bg-surface rounded-2xl p-6 border border-border shadow-sm hover:shadow-md transition-all relative overflow-hidden group flex flex-col">
+    {% set forecast = goal_forecasts.get(g.id, {}) %}
+    <div class="goal-card goal-card-active bg-surface rounded-2xl p-6 border border-border shadow-sm hover:shadow-md transition-all relative overflow-hidden group flex flex-col"
+         data-goal-status="{{ (forecast.status or 'At Risk')|lower|replace(' ', '_') }}"
+         data-goal-category="{{ (g.goal_type or 'uncategorized')|lower }}"
+         data-goal-priority="{{ g.priority }}"
+         data-goal-scope="active">
         <!-- Colored Top Border -->
         <div class="absolute top-0 left-0 w-full h-1.5" style="background-color: {{ g.color or 'var(--color-primary)' }};"></div>
         
@@ -157,6 +233,13 @@
                             <span class="px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider bg-orange-500/10 text-orange-500">Priority 2</span>
                         {% else %}
                             <span class="px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider bg-blue-500/10 text-blue-500">Priority 3</span>
+                        {% endif %}
+                        {% if forecast.status == 'On Track' %}
+                            <span class="px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider bg-success/10 text-success">On Track</span>
+                        {% elif forecast.status == 'Overdue' %}
+                            <span class="px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider bg-danger/10 text-danger">Overdue</span>
+                        {% else %}
+                            <span class="px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider bg-warning/10 text-warning">At Risk</span>
                         {% endif %}
                     </div>
                 </div>
@@ -187,7 +270,23 @@
                 <span>{{ '{:.1f}'.format(pct) }}%</span>
                 <span>Remaining: GH₵{{ '{:,.2f}'.format(g.target_amount - g.current_amount) }}</span>
             </div>
-            
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6">
+                <div class="bg-surface-active p-2.5 rounded-lg border border-border">
+                    <div class="text-[10px] uppercase tracking-wider font-semibold text-text-muted mb-0.5">Required / Month</div>
+                    <div class="text-sm font-bold text-text">GHâ‚µ{{ '{:,.2f}'.format(forecast.required_monthly or 0) }}</div>
+                </div>
+                <div class="bg-surface-active p-2.5 rounded-lg border border-border">
+                    <div class="text-[10px] uppercase tracking-wider font-semibold text-text-muted mb-0.5">Projected Completion</div>
+                    <div class="text-sm font-bold text-text">
+                        {% if forecast.projected_date %}
+                            {{ forecast.projected_date.strftime('%b %d, %Y') }}
+                        {% else %}
+                            N/A
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
             {% if g.notes %}
             <p class="text-sm text-text-muted bg-surface-active p-3 rounded-lg border border-border italic mb-6">"{{ g.notes }}"</p>
             {% endif %}
@@ -244,6 +343,47 @@
     </button>
 </div>
 {% endif %}
+
+{% if completed_goals %}
+<div class="mb-4 flex justify-between items-end">
+    <h2 class="text-xl font-bold text-text">Completed Goals</h2>
+</div>
+<div id="completedGoalsGrid" class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-10">
+    {% for g in completed_goals %}
+    <div class="goal-card goal-card-completed bg-surface rounded-2xl p-5 border border-border shadow-sm relative overflow-hidden"
+         data-goal-status="completed"
+         data-goal-category="{{ (g.goal_type or 'uncategorized')|lower }}"
+         data-goal-priority="{{ g.priority }}"
+         data-goal-scope="completed">
+        <div class="absolute top-0 left-0 w-full h-1.5 bg-success"></div>
+        <div class="flex justify-between items-start mb-4 mt-1">
+            <div class="flex items-center gap-3">
+                <div class="w-12 h-12 rounded-xl flex items-center justify-center bg-success/10 text-success">
+                    <i data-lucide="check-circle-2" class="w-6 h-6"></i>
+                </div>
+                <div>
+                    <h3 class="text-base font-bold text-text m-0">{{ g.name }}</h3>
+                    <p class="text-xs text-text-muted mt-0.5">{{ g.goal_type }}</p>
+                </div>
+            </div>
+            <span class="px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider bg-success/10 text-success">Completed</span>
+        </div>
+        <div class="flex justify-between text-sm">
+            <span class="text-text-muted">Target</span>
+            <span class="font-semibold text-text">GHâ‚µ{{ '{:,.2f}'.format(g.target_amount) }}</span>
+        </div>
+        <div class="flex justify-between text-sm mt-1">
+            <span class="text-text-muted">Reached</span>
+            <span class="font-semibold text-success">GHâ‚µ{{ '{:,.2f}'.format(g.current_amount) }}</span>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+
+<div id="goalFilterEmpty" class="hidden text-center py-10 px-4 bg-surface rounded-2xl border border-dashed border-border shadow-sm mb-10">
+    <p class="text-text-muted">No goals match your current filters.</p>
+</div>
 
 
 <!-- MODALS SECTION -->
@@ -605,8 +745,169 @@
         lucide.createIcons();
     }
 
-    // Initialize formatting scripts and tooltips inside DOMContentLoaded if needed.
+    function normalizeFilterValue(value) {
+        return (value || '').toString().trim().toLowerCase();
+    }
+
+    const GOAL_FILTER_DEFAULTS = {
+        status: 'all',
+        category: 'all',
+        priority: 'all',
+        scope: 'all'
+    };
+
+    const GOAL_FILTER_IDS = {
+        status: 'goalFilterStatus',
+        category: 'goalFilterCategory',
+        priority: 'goalFilterPriority',
+        scope: 'goalFilterScope'
+    };
+    const GOAL_FILTER_QUERY_KEYS = {
+        status: 's',
+        category: 'c',
+        priority: 'p',
+        scope: 'sc'
+    };
+
+    function readGoalFiltersFromUI() {
+        return {
+            status: normalizeFilterValue(document.getElementById(GOAL_FILTER_IDS.status)?.value || GOAL_FILTER_DEFAULTS.status),
+            category: normalizeFilterValue(document.getElementById(GOAL_FILTER_IDS.category)?.value || GOAL_FILTER_DEFAULTS.category),
+            priority: normalizeFilterValue(document.getElementById(GOAL_FILTER_IDS.priority)?.value || GOAL_FILTER_DEFAULTS.priority),
+            scope: normalizeFilterValue(document.getElementById(GOAL_FILTER_IDS.scope)?.value || GOAL_FILTER_DEFAULTS.scope)
+        };
+    }
+
+    function readGoalFiltersFromUrl() {
+        const params = new URLSearchParams(window.location.search);
+        return {
+            status: normalizeFilterValue(params.get(GOAL_FILTER_QUERY_KEYS.status) || params.get('status') || GOAL_FILTER_DEFAULTS.status),
+            category: normalizeFilterValue(params.get(GOAL_FILTER_QUERY_KEYS.category) || params.get('category') || GOAL_FILTER_DEFAULTS.category),
+            priority: normalizeFilterValue(params.get(GOAL_FILTER_QUERY_KEYS.priority) || params.get('priority') || GOAL_FILTER_DEFAULTS.priority),
+            scope: normalizeFilterValue(params.get(GOAL_FILTER_QUERY_KEYS.scope) || params.get('scope') || GOAL_FILTER_DEFAULTS.scope)
+        };
+    }
+
+    function setGoalFiltersInUI(filters) {
+        Object.keys(GOAL_FILTER_IDS).forEach(key => {
+            const id = GOAL_FILTER_IDS[key];
+            const el = document.getElementById(id);
+            if (!el) return;
+            const value = normalizeFilterValue(filters[key] || GOAL_FILTER_DEFAULTS[key]);
+            const hasValue = Array.from(el.options).some(opt => normalizeFilterValue(opt.value) === value);
+            el.value = hasValue ? value : GOAL_FILTER_DEFAULTS[key];
+        });
+    }
+
+    function syncGoalFilterUrl(filters, mode = 'replace') {
+        const params = new URLSearchParams(window.location.search);
+
+        Object.keys(GOAL_FILTER_DEFAULTS).forEach(key => {
+            const val = normalizeFilterValue(filters[key] || GOAL_FILTER_DEFAULTS[key]);
+            const shortKey = GOAL_FILTER_QUERY_KEYS[key];
+            const longKey = key;
+
+            if (!val || val === GOAL_FILTER_DEFAULTS[key]) {
+                params.delete(shortKey);
+                params.delete(longKey);
+            } else {
+                params.set(shortKey, val);
+                // remove legacy long key once short alias is present
+                params.delete(longKey);
+            }
+        });
+
+        const query = params.toString();
+        const nextUrl = `${window.location.pathname}${query ? `?${query}` : ''}${window.location.hash || ''}`;
+        const method = mode === 'push' ? 'pushState' : 'replaceState';
+        window.history[method](null, '', nextUrl);
+    }
+
+    function populateGoalCategoryFilter() {
+        const categorySelect = document.getElementById('goalFilterCategory');
+        if (!categorySelect) return;
+
+        const values = new Set();
+        document.querySelectorAll('.goal-card').forEach(card => {
+            const category = normalizeFilterValue(card.dataset.goalCategory);
+            if (category) values.add(category);
+        });
+
+        Array.from(values).sort().forEach(category => {
+            const option = document.createElement('option');
+            option.value = category;
+            option.textContent = category.replace(/\b\w/g, ch => ch.toUpperCase());
+            categorySelect.appendChild(option);
+        });
+    }
+
+    function applyGoalFilters(options = {}) {
+        const syncUrl = options.syncUrl !== false;
+        const urlMode = options.urlMode || 'replace';
+        const { status: statusFilter, category: categoryFilter, priority: priorityFilter, scope: scopeFilter } = readGoalFiltersFromUI();
+
+        const cards = document.querySelectorAll('.goal-card');
+        let visibleCount = 0;
+
+        cards.forEach(card => {
+            const cardStatus = normalizeFilterValue(card.dataset.goalStatus);
+            const cardCategory = normalizeFilterValue(card.dataset.goalCategory);
+            const cardPriority = normalizeFilterValue(card.dataset.goalPriority);
+            const cardScope = normalizeFilterValue(card.dataset.goalScope);
+
+            const statusMatch = statusFilter === 'all' || cardStatus === statusFilter;
+            const categoryMatch = categoryFilter === 'all' || cardCategory === categoryFilter;
+            const priorityMatch = priorityFilter === 'all' || cardPriority === priorityFilter;
+            const scopeMatch = scopeFilter === 'all' || cardScope === scopeFilter;
+
+            const visible = statusMatch && categoryMatch && priorityMatch && scopeMatch;
+            card.classList.toggle('hidden', !visible);
+            if (visible) visibleCount += 1;
+        });
+
+        const activeGrid = document.getElementById('activeGoalsGrid');
+        if (activeGrid) {
+            const activeVisible = activeGrid.querySelectorAll('.goal-card:not(.hidden)').length;
+            activeGrid.classList.toggle('hidden', activeVisible === 0);
+        }
+
+        const completedGrid = document.getElementById('completedGoalsGrid');
+        if (completedGrid) {
+            const completedVisible = completedGrid.querySelectorAll('.goal-card:not(.hidden)').length;
+            completedGrid.classList.toggle('hidden', completedVisible === 0);
+        }
+
+        const emptyState = document.getElementById('goalFilterEmpty');
+        if (emptyState) {
+            emptyState.classList.toggle('hidden', visibleCount > 0);
+        }
+
+        if (syncUrl) {
+            syncGoalFilterUrl({ status: statusFilter, category: categoryFilter, priority: priorityFilter, scope: scopeFilter }, urlMode);
+        }
+    }
+
+    function resetGoalFilters() {
+        setGoalFiltersInUI(GOAL_FILTER_DEFAULTS);
+        applyGoalFilters({ syncUrl: true, urlMode: 'push' });
+    }
+
     document.addEventListener("DOMContentLoaded", () => {
+        populateGoalCategoryFilter();
+        setGoalFiltersInUI(readGoalFiltersFromUrl());
+        ['goalFilterStatus', 'goalFilterCategory', 'goalFilterPriority', 'goalFilterScope'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) {
+                el.addEventListener('change', () => applyGoalFilters({ syncUrl: true, urlMode: 'push' }));
+            }
+        });
+        const resetButton = document.getElementById('goalFilterReset');
+        if (resetButton) resetButton.addEventListener('click', resetGoalFilters);
+        window.addEventListener('popstate', () => {
+            setGoalFiltersInUI(readGoalFiltersFromUrl());
+            applyGoalFilters({ syncUrl: false });
+        });
+        applyGoalFilters({ syncUrl: false });
         lucide.createIcons();
     });
 </script>
