@@ -4,165 +4,249 @@
 {% block header_title %}Financial Goals{% endblock %}
 
 {% block content %}
-<div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8 bg-surface p-6 rounded-2xl border border-border shadow-sm">
+<!-- KPI Calculations -->
+{% set total_active_amount = namespace(value=0) %}
+{% set total_target_amount = namespace(value=0) %}
+{% for g in active_goals %}
+    {% set total_active_amount.value = total_active_amount.value + g.current_amount %}
+    {% set total_target_amount.value = total_target_amount.value + g.target_amount %}
+{% endfor %}
+{% set remaining_amount = total_target_amount.value - total_active_amount.value %}
+{% set total_progress = ((total_active_amount.value / total_target_amount.value) * 100) if total_target_amount.value > 0 else 0 %}
+
+<!-- Header & Quick Actions -->
+<div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
     <div>
-        <h1 class="text-2xl font-bold font-heading text-text m-0">Financial Goals</h1>
-        <p class="text-text-muted mt-1 text-sm">Track your progress towards financial milestones</p>
+        <h1 class="text-3xl font-bold font-heading text-text m-0">Financial Goals</h1>
+        <p class="text-text-muted mt-1 text-sm">Set and track your financial objectives</p>
     </div>
     <div class="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
-        <button onclick="document.getElementById('addGoalModal').classList.remove('hidden')" class="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-surface text-text border border-border font-medium rounded-xl hover:bg-surface-hover transition-colors shadow-sm w-full sm:w-auto">
-            <i data-lucide="zap" class="w-4 h-4"></i> Quick Add
-        </button>
-        <a href="{{ url_for('goals.add_goal') }}" class="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-primary text-white font-medium rounded-xl hover:bg-primary-hover transition-colors shadow-md w-full sm:w-auto">
+        <button onclick="document.getElementById('addGoalModal').classList.remove('hidden')" class="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-primary text-white font-medium rounded-xl hover:bg-primary-hover transition-colors shadow-md w-full sm:w-auto">
             <i data-lucide="plus" class="w-4 h-4"></i> Add Goal
-        </a>
+        </button>
     </div>
 </div>
 
+<!-- KPIs Row -->
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
+    <div class="bg-surface p-6 rounded-2xl border border-border shadow-sm flex flex-col relative overflow-hidden group">
+        <div class="flex justify-between items-start mb-2">
+            <span class="text-sm font-semibold text-text-muted">Total Goals</span>
+            <i data-lucide="target" class="w-5 h-5 text-primary opacity-70"></i>
+        </div>
+        <div class="text-2xl font-bold text-text mb-1">{{ active_goals|length }}</div>
+        <div class="text-xs text-text-muted">{{ completed_goals|length }} completed</div>
+    </div>
+    <div class="bg-surface p-6 rounded-2xl border border-border shadow-sm flex flex-col relative overflow-hidden group">
+        <div class="flex justify-between items-start mb-2">
+            <span class="text-sm font-semibold text-text-muted">Target Amount</span>
+            <i data-lucide="trending-up" class="w-5 h-5 text-primary opacity-70"></i>
+        </div>
+        <div class="text-2xl font-bold text-text mb-1">GH₵{{ '{:,.2f}'.format(total_target_amount.value) }}</div>
+        <div class="text-xs text-text-muted">Total goal amount</div>
+    </div>
+    <div class="bg-surface p-6 rounded-2xl border border-border shadow-sm flex flex-col relative overflow-hidden group">
+        <div class="flex justify-between items-start mb-2">
+            <span class="text-sm font-semibold text-text-muted">Current Progress</span>
+            <i data-lucide="activity" class="w-5 h-5 text-primary opacity-70"></i>
+        </div>
+        <div class="text-2xl font-bold text-text mb-1">GH₵{{ '{:,.2f}'.format(total_active_amount.value) }}</div>
+        <div class="text-xs text-text-muted">{{ '{:.1f}'.format(total_progress) }}% of target</div>
+    </div>
+    <div class="bg-surface p-6 rounded-2xl border border-border shadow-sm flex flex-col relative overflow-hidden group">
+        <div class="flex justify-between items-start mb-2">
+            <span class="text-sm font-semibold text-text-muted">Remaining</span>
+            <i data-lucide="pie-chart" class="w-5 h-5 text-primary opacity-70"></i>
+        </div>
+        <div class="text-2xl font-bold text-text mb-1">GH₵{{ '{:,.2f}'.format(remaining_amount if remaining_amount > 0 else 0) }}</div>
+        <div class="text-xs text-text-muted">Amount left to reach goals</div>
+    </div>
+</div>
+
+<!-- Smart Recommendations -->
+{% if recommendations %}
+<div class="mb-10">
+    <div class="flex items-center gap-2 mb-4">
+        <i data-lucide="lightbulb" class="w-5 h-5 text-yellow-500"></i>
+        <h2 class="text-xl font-bold text-text">Smart Goal Recommendations</h2>
+    </div>
+    <p class="text-sm text-text-muted mb-6">AI-powered suggestions based on your financial profile</p>
+    <div class="bg-surface border border-border rounded-2xl shadow-sm overflow-hidden">
+        {% for rec in recommendations %}
+        <div class="p-6 border-b border-border last:border-b-0 hover:bg-surface-hover/50 transition-colors">
+            <div class="flex flex-col lg:flex-row justify-between lg:items-center gap-6">
+                <div class="flex items-start gap-4 flex-1">
+                    <div class="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0" style="background-color: {{ rec.color }}15; color: {{ rec.color }};">
+                        <span class="text-2xl">{{ rec.icon }}</span>
+                    </div>
+                    <div>
+                        <div class="flex items-center gap-3 mb-1">
+                            <h3 class="text-lg font-bold text-text">{{ rec.name }}</h3>
+                            <span class="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide bg-danger/10 text-danger">High Priority</span>
+                        </div>
+                        <p class="text-sm text-text-muted">{{ rec.desc }}</p>
+                    </div>
+                </div>
+                
+                <div class="flex flex-wrap lg:flex-nowrap items-center gap-6 lg:gap-10 text-sm">
+                    <div>
+                        <div class="text-text-muted mb-1 text-xs uppercase tracking-wider font-semibold">Target Amount</div>
+                        <div class="font-bold text-text">GH₵{{ '{:,.2f}'.format(rec.target_amount) }}</div>
+                    </div>
+                    <div>
+                        <div class="text-text-muted mb-1 text-xs uppercase tracking-wider font-semibold">Timeframe</div>
+                        <div class="font-bold text-text">{{ rec.timeframe }}</div>
+                    </div>
+                    <div>
+                        <div class="text-text-muted mb-1 text-xs uppercase tracking-wider font-semibold">Monthly Target</div>
+                        <div class="font-bold text-text">GH₵{{ '{:,.2f}'.format(rec.monthly_target) }}</div>
+                    </div>
+                    <div>
+                        <div class="text-text-muted mb-1 text-xs uppercase tracking-wider font-semibold">Category</div>
+                        <div class="font-bold text-text">{{ rec.category }}</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="mt-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-background px-4 py-3 rounded-xl border border-border/50">
+                <div class="text-sm"><span class="font-semibold text-text">Why this goal?</span> <span class="text-text-muted">{{ rec.why }}</span></div>
+                <form method="POST" action="{{ url_for('goals.add_goal') }}" class="w-full sm:w-auto">
+                    <input type="hidden" name="name" value="{{ rec.name }}">
+                    <input type="hidden" name="target_amount" value="{{ rec.target_amount }}">
+                    <input type="hidden" name="goal_type" value="{{ rec.category }}">
+                    <input type="hidden" name="icon" value="{{ rec.icon }}">
+                    <input type="hidden" name="color" value="{{ rec.color }}">
+                    <input type="hidden" name="priority" value="{{ rec.priority }}">
+                    <button type="submit" class="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-2 bg-text text-surface font-medium rounded-lg hover:bg-text/90 transition-colors shadow-sm">
+                        <i data-lucide="target" class="w-4 h-4"></i> Create This Goal
+                    </button>
+                </form>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
 <!-- Active Goals -->
+<div class="mb-4 flex justify-between items-end">
+    <h2 class="text-xl font-bold text-text">Your Goals</h2>
+</div>
+
 {% if active_goals %}
-<h2 class="text-xl font-bold text-text mb-4 flex items-center gap-2">
-    <i data-lucide="target" class="w-5 h-5 text-primary"></i> Active Goals
-</h2>
-<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-10">
     {% for g in active_goals %}
-    <div class="bg-surface rounded-2xl p-6 border border-border shadow-sm hover:shadow-md transition-shadow relative overflow-hidden group">
-        <div class="absolute top-0 left-0 w-full h-1" style="background-color: {{ g.color or 'var(--color-primary)' }};"></div>
-        <div class="flex justify-between items-start mb-4 mt-2">
-            <div class="flex items-center gap-3">
-                <div class="w-12 h-12 rounded-full flex items-center justify-center shadow-inner" style="background-color: {{ g.color or 'var(--color-primary)' }}15;">
+    <div class="bg-surface rounded-2xl p-6 border border-border shadow-sm hover:shadow-md transition-all relative overflow-hidden group flex flex-col">
+        <!-- Colored Top Border -->
+        <div class="absolute top-0 left-0 w-full h-1.5" style="background-color: {{ g.color or 'var(--color-primary)' }};"></div>
+        
+        <div class="flex justify-between items-start mb-6 mt-1">
+            <div class="flex items-center gap-4">
+                <div class="w-14 h-14 rounded-2xl flex items-center justify-center shadow-inner" style="background-color: {{ g.color or 'var(--color-primary)' }}15;">
                     <span class="text-2xl">{{ g.icon or '🎯' }}</span>
                 </div>
                 <div>
-                    <h3 class="text-lg font-bold text-text m-0">{{ g.name }}</h3>
-                    <span class="text-xs font-medium text-text-muted uppercase tracking-wider">{{ g.goal_type }}</span>
+                    <h3 class="text-lg font-bold text-text m-0 mb-1 flex items-center gap-2">
+                        {{ g.name }}
+                    </h3>
+                    <div class="flex gap-2 items-center">
+                        <span class="px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider border" style="color: {{ g.color }}; border-color: {{ g.color }}40; background-color: {{ g.color }}10;">{{ g.goal_type }}</span>
+                        {% if g.priority == 5 %}
+                            <span class="px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider bg-danger/10 text-danger">Priority 1</span>
+                        {% elif g.priority == 4 %}
+                            <span class="px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider bg-orange-500/10 text-orange-500">Priority 2</span>
+                        {% else %}
+                            <span class="px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider bg-blue-500/10 text-blue-500">Priority 3</span>
+                        {% endif %}
+                    </div>
                 </div>
             </div>
-            <div class="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                <a href="{{ url_for('goals.edit_goal', id=g.id) }}" class="p-2 text-text-muted hover:text-primary transition-colors rounded-lg hover:bg-surface-hover" title="Edit">
+            {% set now = datetime.utcnow() %}
+            {% if g.deadline %}
+                {% set days_remaining = (g.deadline - now).days %}
+                <div class="text-right flex flex-col items-end">
+                    <span class="text-2xl font-bold text-text leading-none">{{ [days_remaining, 0]|max }}</span>
+                    <span class="text-[10px] uppercase font-semibold text-text-muted tracking-wider mt-1">Days Remaining</span>
+                </div>
+            {% endif %}
+        </div>
+
+        <div class="flex-1">
+            <div class="flex justify-between items-baseline mb-3">
+                <span class="text-sm font-medium text-text-muted">Progress</span>
+                <span class="text-sm font-bold text-text">GH₵{{ '{:,.2f}'.format(g.current_amount) }} <span class="text-text-muted font-normal">of GH₵{{ '{:,.2f}'.format(g.target_amount) }}</span></span>
+            </div>
+
+            {% set pct = ((g.current_amount / g.target_amount) * 100) if g.target_amount > 0 else 0 %}
+            <div class="relative w-full h-3 bg-surface-active rounded-full overflow-hidden mb-3">
+                <div class="absolute top-0 left-0 h-full rounded-full transition-all duration-700 ease-out" 
+                     style="background: linear-gradient(90deg, {{ g.color or '#6366f1' }}cc 0%, {{ g.color or '#6366f1' }} 100%); width: {{ [pct, 100]|min }}%;">
+                </div>
+            </div>
+            <div class="flex justify-between items-center text-xs font-medium text-text-muted mb-6">
+                <span>{{ '{:.1f}'.format(pct) }}%</span>
+                <span>Remaining: GH₵{{ '{:,.2f}'.format(g.target_amount - g.current_amount) }}</span>
+            </div>
+            
+            {% if g.notes %}
+            <p class="text-sm text-text-muted bg-surface-active p-3 rounded-lg border border-border italic mb-6">"{{ g.notes }}"</p>
+            {% endif %}
+        </div>
+
+        <!-- Quick Actions Footer -->
+        <div class="mt-auto pt-4 border-t border-border flex items-center justify-between">
+            <div class="flex items-center gap-1.5">
+                <button onclick="openContributeModal({{ g.id }}, '{{ g.name|escape }}')" class="flex items-center justify-center p-2 rounded-lg bg-primary/10 text-primary hover:bg-primary hover:text-white transition-colors tooltip" aria-label="Add Progress">
+                    <i data-lucide="plus" class="w-4 h-4"></i>
+                </button>
+                <button onclick="openMilestonesModal({{ g.id }}, '{{ g.name|escape }}')" class="flex items-center justify-center p-2 rounded-lg bg-surface-active text-text-muted hover:text-text hover:bg-surface-hover transition-colors tooltip relative" aria-label="Milestones">
+                    <i data-lucide="ribbon" class="w-4 h-4"></i>
+                    {% if g.milestones|length > 0 %}
+                    <span class="absolute top-1 right-1 w-1.5 h-1.5 bg-primary rounded-full"></span>
+                    {% endif %}
+                </button>
+                <button onclick="openTasksModal({{ g.id }}, '{{ g.name|escape }}')" class="flex items-center justify-center p-2 rounded-lg bg-surface-active text-text-muted hover:text-text hover:bg-surface-hover transition-colors tooltip relative" aria-label="Tasks">
+                    <i data-lucide="check-square" class="w-4 h-4"></i>
+                    {% set completed_tasks = g.tasks|selectattr("is_completed", "equalto", true)|list|length %}
+                    {% if g.tasks|length > 0 %}
+                        {% if completed_tasks == g.tasks|length %}
+                        <span class="absolute top-1 right-1 w-1.5 h-1.5 bg-success rounded-full"></span>
+                        {% else %}
+                        <span class="absolute top-1 right-1 w-1.5 h-1.5 bg-warning rounded-full"></span>
+                        {% endif %}
+                    {% endif %}
+                </button>
+            </div>
+            
+            <div class="flex gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                <a href="{{ url_for('goals.edit_goal', id=g.id) }}" class="p-2 text-text-muted hover:text-primary transition-colors rounded-lg hover:bg-primary/10" aria-label="Edit Goal">
                     <i data-lucide="pencil" class="w-4 h-4"></i>
                 </a>
-                <form method="POST" action="{{ url_for('goals.delete_goal', id=g.id) }}" class="inline" onsubmit="return confirm('Delete this goal?');">
-                    <button type="submit" class="p-2 text-text-muted hover:text-danger transition-colors rounded-lg hover:bg-danger/10" title="Delete">
+                <form method="POST" action="{{ url_for('goals.delete_goal', id=g.id) }}" class="inline" onsubmit="return confirm('Delete this goal permanently?');">
+                    <button type="submit" class="p-2 text-text-muted hover:text-danger transition-colors rounded-lg hover:bg-danger/10" aria-label="Delete Goal">
                         <i data-lucide="trash-2" class="w-4 h-4"></i>
                     </button>
                 </form>
             </div>
         </div>
-
-        <div class="flex justify-between items-baseline mb-2">
-            <span class="text-2xl font-bold text-text">GHS {{ '{:,.2f}'.format(g.current_amount) }}</span>
-            <span class="text-sm font-medium text-text-muted">of GHS {{ '{:,.2f}'.format(g.target_amount) }}</span>
-        </div>
-
-        {% set pct = ((g.current_amount / g.target_amount) * 100) if g.target_amount > 0 else 0 %}
-        <div class="bg-surface-active rounded-full h-2.5 overflow-hidden mb-2">
-            <div class="h-full rounded-full transition-all duration-500" style="background-color: {{ g.color or 'var(--color-primary)' }}; width: {{ [pct, 100]|min }}%;"></div>
-        </div>
-        <div class="flex justify-between text-xs font-medium text-text-muted mb-6">
-            <span>{{ '{:.1f}'.format(pct) }}% complete</span>
-            {% if g.deadline %}
-            <span>Due: {{ g.deadline.strftime('%b %d, %Y') }}</span>
-            {% endif %}
-        </div>
-
-        {% if g.notes %}
-        <p class="text-sm text-text-muted mb-6 line-clamp-2">{{ g.notes }}</p>
-        {% endif %}
-
-        <button onclick="openContributeModal({{ g.id }}, '{{ g.name|escape }}')" class="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-primary/10 text-primary font-medium rounded-xl hover:bg-primary hover:text-white transition-colors">
-            <i data-lucide="plus-circle" class="w-4 h-4"></i> Contribute
-        </button>
     </div>
     {% endfor %}
 </div>
 {% else %}
-<div class="text-center py-16 px-4 bg-surface rounded-2xl border border-dashed border-border shadow-sm mb-8">
-    <div class="w-16 h-16 bg-surface-active rounded-full flex items-center justify-center mx-auto mb-4 border border-border">
-        <i data-lucide="target" class="w-8 h-8 text-text-muted"></i>
+<div class="text-center py-20 px-4 bg-surface rounded-2xl border border-dashed border-border shadow-sm mb-10">
+    <div class="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-5">
+        <i data-lucide="target" class="w-10 h-10 text-primary"></i>
     </div>
-    <h3 class="text-lg font-bold text-text mb-2">No active goals yet</h3>
-    <p class="text-text-muted mb-6">Set your first financial goal to start tracking progress.</p>
-    <a href="{{ url_for('goals.add_goal') }}" class="inline-flex items-center gap-2 px-6 py-2.5 bg-primary text-white font-medium rounded-xl hover:bg-primary-hover transition-colors shadow-md">
-        <i data-lucide="plus" class="w-4 h-4"></i> Create Your First Goal
-    </a>
+    <h3 class="text-xl font-bold text-text mb-2">No Active Goals</h3>
+    <p class="text-text-muted mb-8 max-w-sm mx-auto">You haven't set any active goals yet. Create one to start tracking your financial journey!</p>
+    <button onclick="document.getElementById('addGoalModal').classList.remove('hidden')" class="inline-flex items-center gap-2 px-6 py-3 bg-primary text-white font-medium rounded-xl hover:bg-primary-hover transition-all shadow-md hover:shadow-lg transform hover:-translate-y-0.5">
+        <i data-lucide="plus" class="w-5 h-5"></i> Create Your First Goal
+    </button>
 </div>
 {% endif %}
 
-<!-- Completed Goals -->
-{% if completed_goals %}
-<h2 class="text-xl font-bold text-text mb-4 flex items-center gap-2">
-    <i data-lucide="check-circle" class="w-5 h-5 text-success"></i> Completed Goals
-</h2>
-<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8 opacity-85">
-    {% for g in completed_goals %}
-    <div class="bg-surface rounded-2xl p-6 border border-success/30 shadow-sm relative overflow-hidden">
-        <div class="absolute top-0 right-0 w-16 h-16 transform translate-x-8 -translate-y-8 bg-success/10 rounded-full"></div>
-        <div class="absolute flex items-center justify-center top-0 right-0 w-8 h-8 bg-success text-white rounded-bl-xl rounded-tr-xl">
-            <i data-lucide="check" class="w-4 h-4"></i>
-        </div>
-        <div class="flex items-center gap-3 mb-4">
-            <div class="w-10 h-10 rounded-full bg-success/10 flex items-center justify-center text-xl">
-                {{ g.icon or '✅' }}
-            </div>
-            <div>
-                <h3 class="text-lg font-bold text-text m-0">{{ g.name }}</h3>
-                <span class="text-xs font-semibold text-success uppercase tracking-wider">Completed</span>
-            </div>
-        </div>
-        <div class="text-xl font-bold text-text">GHS {{ '{:,.2f}'.format(g.target_amount) }}</div>
-        <div class="bg-success/20 rounded-full h-1.5 overflow-hidden mt-3">
-            <div class="h-full rounded-full bg-success w-full"></div>
-        </div>
-    </div>
-    {% endfor %}
-</div>
-{% endif %}
 
-<!-- Contribute Modal -->
-<div id="contributeModal" class="hidden fixed inset-0 z-50 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
-    <div class="flex items-end justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
-        <div class="fixed inset-0 transition-opacity bg-background/80 backdrop-blur-sm" aria-hidden="true" onclick="document.getElementById('contributeModal').classList.add('hidden')"></div>
-        <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
-        <div class="inline-block px-4 pt-5 pb-4 overflow-hidden text-left align-bottom transition-all transform bg-surface border border-border rounded-2xl shadow-xl sm:my-8 sm:align-middle sm:max-w-lg sm:w-full sm:p-6">
-            <div class="flex justify-between items-center mb-5">
-                <h3 class="text-xl font-bold text-text m-0">Contribute to Goal</h3>
-                <button type="button" onclick="document.getElementById('contributeModal').classList.add('hidden')" class="text-text-muted hover:text-text hover:bg-surface-hover rounded-lg p-1 transition-colors">
-                    <i data-lucide="x" class="w-5 h-5"></i>
-                </button>
-            </div>
-            <p id="contributeGoalName" class="text-sm font-medium text-primary bg-primary/10 px-3 py-2 rounded-lg mb-6 inline-block"></p>
-            
-            <form id="contributeForm" method="POST" class="space-y-5">
-                <div class="space-y-2">
-                    <label for="contribute_wallet" class="block text-sm font-medium text-text-muted">From Wallet</label>
-                    <div class="relative">
-                        <select id="contribute_wallet" name="wallet_id" class="w-full px-4 py-3 bg-surface text-text border border-border rounded-xl focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors appearance-none shadow-sm cursor-pointer">
-                            {% for w in wallets %}
-                            <option value="{{ w.id }}">{{ w.name }} ({{ w.currency }} {{ '{:,.2f}'.format(w.balance) }})</option>
-                            {% endfor %}
-                        </select>
-                        <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-text-muted">
-                            <i data-lucide="chevron-down" class="w-4 h-4"></i>
-                        </div>
-                    </div>
-                </div>
-                <div class="space-y-2">
-                    <label for="contribute_amount" class="block text-sm font-medium text-text-muted">Amount</label>
-                    <input type="number" id="contribute_amount" name="amount" step="0.01" min="0.01" required class="w-full px-4 py-3 bg-surface text-text border border-border rounded-xl focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors shadow-sm text-lg font-bold">
-                </div>
-                <div class="flex flex-col sm:flex-row gap-3 pt-4 border-t border-border mt-6">
-                    <button type="submit" class="inline-flex items-center justify-center gap-2 px-6 py-2.5 bg-primary text-white font-medium rounded-xl hover:bg-primary-hover transition-colors shadow-md flex-1">
-                        Add Funds
-                    </button>
-                    <button type="button" onclick="document.getElementById('contributeModal').classList.add('hidden')" class="inline-flex items-center justify-center gap-2 px-6 py-2.5 bg-surface text-text border border-border font-medium rounded-xl hover:bg-surface-hover transition-colors shadow-sm sm:w-auto w-full">
-                        Cancel
-                    </button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
+<!-- MODALS SECTION -->
 
 <!-- Add Goal Quick Modal -->
 <div id="addGoalModal" class="hidden fixed inset-0 z-50 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
@@ -173,11 +257,9 @@
             <div class="flex justify-between items-center mb-5 border-b border-border pb-4">
                 <div class="flex items-center gap-3">
                     <div class="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center text-primary">
-                        <i data-lucide="zap" class="w-5 h-5"></i>
+                        <i data-lucide="target" class="w-5 h-5"></i>
                     </div>
-                    <div>
-                        <h3 class="text-xl font-bold text-text m-0">Quick Add Goal</h3>
-                    </div>
+                    <h3 class="text-xl font-bold text-text m-0">Add Financial Goal</h3>
                 </div>
                 <button type="button" onclick="document.getElementById('addGoalModal').classList.add('hidden')" class="text-text-muted hover:text-text hover:bg-surface-hover rounded-lg p-1 transition-colors">
                     <i data-lucide="x" class="w-5 h-5"></i>
@@ -186,63 +268,74 @@
             
             <form method="POST" action="{{ url_for('goals.add_goal') }}" class="space-y-5">
                 <div class="space-y-2">
-                    <label for="modal_name" class="block text-sm font-medium text-text-muted">Goal Name</label>
-                    <input type="text" id="modal_name" name="name" required class="w-full px-4 py-2.5 bg-surface text-text border border-border rounded-xl focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors shadow-sm">
+                    <label for="modal_name" class="block text-sm font-medium text-text-muted">Goal Title</label>
+                    <input type="text" id="modal_name" name="name" required placeholder="e.g. Dream House Downpayment" class="w-full px-4 py-2.5 bg-surface-active text-text border border-border rounded-xl focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors">
                 </div>
+                
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
                     <div class="space-y-2">
-                        <label for="modal_target" class="block text-sm font-medium text-text-muted">Target Amount</label>
-                        <input type="number" id="modal_target" name="target_amount" step="0.01" min="0.01" required class="w-full px-4 py-2.5 bg-surface text-text border border-border rounded-xl focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors shadow-sm font-bold">
+                        <label for="modal_category" class="block text-sm font-medium text-text-muted">Category</label>
+                        <select id="modal_category" name="goal_type" class="w-full px-4 py-2.5 bg-surface-active text-text border border-border rounded-xl focus:outline-none focus:border-primary transition-colors appearance-none">
+                            <option value="Emergency Fund">Emergency Fund</option>
+                            <option value="Vacation">Vacation</option>
+                            <option value="Home Purchase">Home Purchase</option>
+                            <option value="Car Purchase">Car Purchase</option>
+                            <option value="Education">Education</option>
+                            <option value="Retirement">Retirement</option>
+                            <option value="Investment">Investment</option>
+                            <option value="Debt Payoff">Debt Payoff</option>
+                            <option value="Business">Business</option>
+                            <option value="Other">Other</option>
+                        </select>
                     </div>
                     <div class="space-y-2">
-                        <label for="modal_current" class="block text-sm font-medium text-text-muted">Current Amount</label>
-                        <input type="number" id="modal_current" name="current_amount" step="0.01" value="0" class="w-full px-4 py-2.5 bg-surface text-text border border-border rounded-xl focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors shadow-sm">
+                        <label for="modal_priority" class="block text-sm font-medium text-text-muted">Priority</label>
+                        <select id="modal_priority" name="priority" class="w-full px-4 py-2.5 bg-surface-active text-text border border-border rounded-xl focus:outline-none focus:border-primary transition-colors appearance-none">
+                            <option value="5">1 - Highest Priority</option>
+                            <option value="4">2 - High Priority</option>
+                            <option value="3" selected>3 - Medium Priority</option>
+                            <option value="2">4 - Low Priority</option>
+                            <option value="1">5 - Lowest Priority</option>
+                        </select>
                     </div>
                 </div>
+
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
                     <div class="space-y-2">
-                        <label for="modal_type" class="block text-sm font-medium text-text-muted">Goal Type</label>
-                        <div class="relative">
-                            <select id="modal_type" name="goal_type" class="w-full px-4 py-2.5 bg-surface text-text border border-border rounded-xl focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors appearance-none shadow-sm cursor-pointer">
-                                <option value="Emergency Fund">Emergency Fund</option>
-                                <option value="Vacation">Vacation</option>
-                                <option value="House Down Payment">House Down Payment</option>
-                                <option value="Retirement">Retirement</option>
-                                <option value="Education">Education</option>
-                                <option value="Car Purchase">Car Purchase</option>
-                                <option value="Debt Payoff">Debt Payoff</option>
-                                <option value="Custom">Custom</option>
-                            </select>
-                            <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-text-muted">
-                                <i data-lucide="chevron-down" class="w-4 h-4"></i>
-                            </div>
+                        <label for="modal_target" class="block text-sm font-medium text-text-muted">Target Amount (GH₵)</label>
+                        <input type="number" id="modal_target" name="target_amount" step="0.01" min="0.01" required value="0" class="w-full px-4 py-2.5 bg-surface-active text-text border border-border rounded-xl focus:outline-none focus:border-primary transition-colors font-bold">
+                    </div>
+                    <div class="space-y-2">
+                        <label for="modal_current" class="block text-sm font-medium text-text-muted">Current Saved (GH₵)</label>
+                        <input type="number" id="modal_current" name="current_amount" step="0.01" min="0" value="0" class="w-full px-4 py-2.5 bg-surface-active text-text border border-border rounded-xl focus:outline-none focus:border-primary transition-colors">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                    <div class="space-y-2">
+                        <label for="modal_deadline" class="block text-sm font-medium text-text-muted">Target Date</label>
+                        <input type="date" id="modal_deadline" name="deadline" class="w-full px-4 py-2.5 bg-surface-active text-text border border-border rounded-xl focus:outline-none focus:border-primary transition-colors">
+                    </div>
+                    <div class="flex gap-4">
+                        <div class="space-y-2 w-1/3">
+                            <label for="modal_icon" class="block text-sm font-medium text-text-muted">Icon</label>
+                            <input type="text" id="modal_icon" name="icon" placeholder="🎯" maxlength="4" class="w-full px-4 py-2.5 bg-surface-active text-text border border-border rounded-xl text-center">
+                        </div>
+                        <div class="space-y-2 w-2/3">
+                            <label for="modal_color" class="block text-sm font-medium text-text-muted">Theme</label>
+                            <input type="color" id="modal_color" name="color" value="#6366f1" class="w-full h-[46px] p-1 bg-surface-active border border-border rounded-xl cursor-pointer">
                         </div>
                     </div>
-                    <div class="space-y-2">
-                        <label for="modal_deadline" class="block text-sm font-medium text-text-muted">Deadline</label>
-                        <input type="date" id="modal_deadline" name="deadline" class="w-full px-4 py-2.5 bg-surface text-text border border-border rounded-xl focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors shadow-sm cursor-pointer">
-                    </div>
                 </div>
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                    <div class="space-y-2">
-                        <label for="modal_icon" class="block text-sm font-medium text-text-muted">Icon</label>
-                        <input type="text" id="modal_icon" name="icon" placeholder="🎯" maxlength="4" class="w-full px-4 py-2.5 bg-surface text-text border border-border rounded-xl focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors shadow-sm text-center">
-                    </div>
-                    <div class="space-y-2">
-                        <label for="modal_color" class="block text-sm font-medium text-text-muted">Color</label>
-                        <input type="color" id="modal_color" name="color" value="#6366f1" class="w-full h-11 p-1 bg-surface border border-border rounded-xl cursor-pointer">
-                    </div>
-                </div>
+
                 <div class="space-y-2">
-                    <label for="modal_notes" class="block text-sm font-medium text-text-muted">Notes</label>
-                    <textarea id="modal_notes" name="notes" rows="2" class="w-full px-4 py-2 bg-surface text-text border border-border rounded-xl focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors shadow-sm resize-y"></textarea>
+                    <label for="modal_notes" class="block text-sm font-medium text-text-muted">Description (Optional)</label>
+                    <textarea id="modal_notes" name="notes" rows="2" class="w-full px-4 py-2 bg-surface-active text-text border border-border rounded-xl focus:outline-none focus:border-primary transition-colors resize-y"></textarea>
                 </div>
-                <div class="flex flex-col sm:flex-row gap-3 pt-4 border-t border-border mt-4">
-                    <button type="submit" class="inline-flex items-center justify-center gap-2 px-6 py-2.5 bg-primary text-white font-medium rounded-xl hover:bg-primary-hover transition-colors shadow-md flex-1">
-                        Create Goal
-                    </button>
-                    <button type="button" onclick="document.getElementById('addGoalModal').classList.add('hidden')" class="inline-flex items-center justify-center gap-2 px-6 py-2.5 bg-surface text-text border border-border font-medium rounded-xl hover:bg-surface-hover transition-colors shadow-sm sm:w-auto w-full">
-                        Cancel
+
+                <div class="flex gap-3 pt-4 border-t border-border mt-4">
+                    <button type="submit" class="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-8 py-2.5 bg-primary text-white font-medium rounded-xl hover:bg-primary-hover transition-colors shadow-md ml-auto">
+                        Save Goal
                     </button>
                 </div>
             </form>
@@ -250,12 +343,271 @@
     </div>
 </div>
 
+<!-- Contribute Modal -->
+<div id="contributeModal" class="hidden fixed inset-0 z-50 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+    <div class="flex items-end justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
+        <div class="fixed inset-0 transition-opacity bg-background/80 backdrop-blur-sm" aria-hidden="true" onclick="document.getElementById('contributeModal').classList.add('hidden')"></div>
+        <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+        <div class="inline-block px-4 pt-5 pb-4 overflow-hidden text-left align-bottom transition-all transform bg-surface border border-border rounded-2xl shadow-xl sm:my-8 sm:align-middle sm:max-w-lg sm:w-full sm:p-6">
+            <div class="flex justify-between items-center mb-5">
+                <h3 class="text-xl font-bold text-text m-0">Add Progress</h3>
+                <button type="button" onclick="document.getElementById('contributeModal').classList.add('hidden')" class="text-text-muted hover:text-text hover:bg-surface-hover rounded-lg p-1 transition-colors">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+            <p id="contributeGoalName" class="text-sm font-medium text-primary bg-primary/10 px-3 py-2 rounded-lg mb-6 inline-block"></p>
+            
+            <form id="contributeForm" method="POST" class="space-y-5">
+                <div class="space-y-2">
+                    <label for="contribute_wallet" class="block text-sm font-medium text-text-muted">Source Wallet (Optional)</label>
+                    <div class="relative">
+                        <select id="contribute_wallet" name="wallet_id" class="w-full px-4 py-3 bg-surface-active text-text border border-border rounded-xl focus:outline-none focus:border-primary appearance-none cursor-pointer">
+                            <option value="">-- No specific wallet --</option>
+                            {% for w in wallets %}
+                            <option value="{{ w.id }}">{{ w.name }} ({{ w.currency }} {{ '{:,.2f}'.format(w.balance) }})</option>
+                            {% endfor %}
+                        </select>
+                        <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-text-muted">
+                            <i data-lucide="chevron-down" class="w-4 h-4"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="space-y-2">
+                    <label for="contribute_amount" class="block text-sm font-medium text-text-muted">Amount to Add (GH₵)</label>
+                    <input type="number" id="contribute_amount" name="amount" step="0.01" min="0.01" required class="w-full px-4 py-3 bg-surface-active text-text border border-border rounded-xl focus:outline-none focus:border-primary text-xl font-bold">
+                </div>
+                <div class="flex gap-3 pt-4 border-t border-border mt-6">
+                    <button type="submit" class="w-full inline-flex items-center justify-center gap-2 px-6 py-3 bg-primary text-white font-medium rounded-xl hover:bg-primary-hover transition-colors shadow-md">
+                        <i data-lucide="plus-circle" class="w-5 h-5"></i> Add Funds
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Tasks Modal -->
+<div id="tasksModal" class="hidden fixed inset-0 z-50 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+    <div class="flex items-end justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
+        <div class="fixed inset-0 transition-opacity bg-background/80 backdrop-blur-sm" aria-hidden="true" onclick="document.getElementById('tasksModal').classList.add('hidden')"></div>
+        <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+        <div class="inline-block px-4 pt-5 pb-4 overflow-hidden text-left align-bottom transition-all transform bg-surface border border-border rounded-2xl shadow-xl sm:my-8 sm:align-middle sm:max-w-xl sm:w-full sm:p-6">
+            <div class="flex justify-between items-center mb-5 border-b border-border pb-4">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center text-primary">
+                        <i data-lucide="check-square" class="w-5 h-5"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-xl font-bold text-text m-0">Goal Tasks</h3>
+                        <p id="tasksGoalName" class="text-xs text-text-muted mt-0.5">Manage sub-tasks</p>
+                    </div>
+                </div>
+                <button type="button" onclick="document.getElementById('tasksModal').classList.add('hidden')" class="text-text-muted hover:text-text hover:bg-surface-hover rounded-lg p-1 transition-colors">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+            
+            <!-- Tasks List -->
+            <div id="tasksList" class="space-y-3 mb-6 max-h-[40vh] overflow-y-auto pr-2 custom-scrollbar">
+                <!-- Javascript will populate this -->
+            </div>
+
+            <div class="border-t border-border pt-5">
+                <h4 class="text-sm font-semibold text-text mb-3">Add New Task</h4>
+                <form id="addTaskForm" method="POST" class="flex gap-2 items-center">
+                    <input type="text" id="newTaskTitle" name="title" required placeholder="Task title..." class="flex-1 px-4 py-2 text-sm bg-surface-active text-text border border-border rounded-xl focus:outline-none focus:border-primary transition-colors">
+                    <button type="submit" class="inline-flex items-center justify-center p-2.5 bg-text text-surface rounded-xl hover:bg-text/90 transition-colors tooltip" aria-label="Add Task">
+                        <i data-lucide="plus" class="w-4 h-4"></i>
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Milestones Modal -->
+<div id="milestonesModal" class="hidden fixed inset-0 z-50 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+    <div class="flex items-end justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
+        <div class="fixed inset-0 transition-opacity bg-background/80 backdrop-blur-sm" aria-hidden="true" onclick="document.getElementById('milestonesModal').classList.add('hidden')"></div>
+        <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+        <div class="inline-block px-4 pt-5 pb-4 overflow-hidden text-left align-bottom transition-all transform bg-surface border border-border rounded-2xl shadow-xl sm:my-8 sm:align-middle sm:max-w-xl sm:w-full sm:p-6">
+            <div class="flex justify-between items-center mb-5 border-b border-border pb-4">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center text-primary">
+                        <i data-lucide="ribbon" class="w-5 h-5"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-xl font-bold text-text m-0">Goal Milestones</h3>
+                        <p id="milestonesGoalName" class="text-xs text-text-muted mt-0.5">Track major achievement steps</p>
+                    </div>
+                </div>
+                <button type="button" onclick="document.getElementById('milestonesModal').classList.add('hidden')" class="text-text-muted hover:text-text hover:bg-surface-hover rounded-lg p-1 transition-colors">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+            
+            <!-- Milestones List -->
+            <div class="relative pl-6 mb-8 border-l-2 border-border" id="milestonesList">
+                <!-- Javascript will populate this -->
+            </div>
+
+            <div class="border-t border-border pt-5">
+                <h4 class="text-sm font-semibold text-text mb-3">Add Milestone</h4>
+                <form id="addMilestoneForm" method="POST" class="grid grid-cols-1 sm:grid-cols-2 gap-3 items-end">
+                    <div class="space-y-1">
+                        <label class="text-xs text-text-muted">Title</label>
+                        <input type="text" name="title" required placeholder="e.g. Save first GH₵100" class="w-full px-3 py-2 text-sm bg-surface-active text-text border border-border rounded-xl focus:outline-none focus:border-primary">
+                    </div>
+                    <div class="flex gap-2 space-y-0">
+                        <div class="space-y-1 flex-1">
+                            <label class="text-xs text-text-muted">Target Amount</label>
+                            <input type="number" name="target_amount" step="0.01" required placeholder="0.00" class="w-full px-3 py-2 text-sm bg-surface-active text-text border border-border rounded-xl focus:outline-none focus:border-primary font-bold">
+                        </div>
+                        <button type="submit" class="mt-[18px] inline-flex items-center justify-center px-4 bg-text text-surface rounded-xl hover:bg-text/90 transition-colors">
+                            Add
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script>
+    // Data populated securely from DB via Jinja2
+    const goalsData = {
+        {% for g in active_goals %}
+        "{{ g.id }}": {
+            current_amount: {{ g.current_amount }},
+            tasks: [
+                {% for t in g.tasks %}
+                { 
+                    id: {{ t.id }}, 
+                    title: "{{ t.title|replace('"', '\\"')|replace('\n', '\\n') }}", 
+                    is_completed: {{ 'true' if t.is_completed else 'false' }},
+                    priority: {{ t.priority }},
+                    due_date: "{{ t.due_date.strftime('%Y-%m-%d') if t.due_date else '' }}"
+                }{% if not loop.last %},{% endif %}
+                {% endfor %}
+            ],
+            milestones: [
+                {% for m in g.milestones|sort(attribute='target_amount') %}
+                { 
+                    id: {{ m.id }}, 
+                    title: "{{ m.title|replace('"', '\\"')|replace('\n', '\\n') }}", 
+                    target_amount: {{ m.target_amount }}, 
+                    is_completed: {{ 'true' if g.current_amount >= m.target_amount else 'false' }} 
+                }{% if not loop.last %},{% endif %}
+                {% endfor %}
+            ]
+        }{% if not loop.last %},{% endif %}
+        {% endfor %}
+    };
+
     function openContributeModal(goalId, goalName) {
         document.getElementById('contributeGoalName').textContent = 'Contributing to: ' + goalName;
-        document.getElementById('contributeForm').action = '{{ url_for("goals.goals") }}' + '/' + goalId + '/contribute';
+        document.getElementById('contributeForm').action = '/goals/contribute/' + goalId;
         document.getElementById('contributeModal').classList.remove('hidden');
     }
-    lucide.createIcons();
+
+    function openTasksModal(goalId, goalName) {
+        document.getElementById('tasksGoalName').textContent = goalName;
+        document.getElementById('addTaskForm').action = `/goals/${goalId}/tasks`;
+        
+        const tasksList = document.getElementById('tasksList');
+        tasksList.innerHTML = '';
+        
+        const tasks = goalsData[goalId] ? goalsData[goalId].tasks : [];
+        
+        if (tasks.length === 0) {
+            tasksList.innerHTML = '<div class="text-center py-4 text-sm text-text-muted italic">No tasks yet.</div>';
+        } else {
+            tasks.forEach(task => {
+                const checked = task.is_completed ? 'checked' : '';
+                const lineThrough = task.is_completed ? 'line-through text-text-muted' : 'text-text';
+                
+                tasksList.innerHTML += `
+                    <div class="flex items-center gap-3 p-3 bg-surface-active rounded-xl border border-border group transition-all" id="task-container-${task.id}">
+                        <div class="relative flex items-center">
+                            <input type="checkbox" ${checked} onchange="toggleTask(${task.id})" class="w-5 h-5 rounded border-border text-primary focus:ring-primary focus:ring-offset-surface-active cursor-pointer">
+                        </div>
+                        <div class="flex-1 ${lineThrough} text-sm font-medium transition-all" id="task-title-${task.id}">
+                            ${task.title}
+                        </div>
+                        <form method="POST" action="/goals/tasks/${task.id}/delete" class="inline opacity-0 group-hover:opacity-100 transition-opacity">
+                            <button type="submit" class="text-text-muted hover:text-danger p-1 rounded hover:bg-danger/10"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+                        </form>
+                    </div>
+                `;
+            });
+        }
+        
+        document.getElementById('tasksModal').classList.remove('hidden');
+        lucide.createIcons();
+    }
+
+    function toggleTask(taskId) {
+        fetch(`/goals/tasks/${taskId}/toggle`, {
+            method: 'POST',
+            headers: { 'Accept': 'application/json' }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                const titleNode = document.getElementById(`task-title-${taskId}`);
+                if (data.is_completed) {
+                    titleNode.classList.add('line-through', 'text-text-muted');
+                    titleNode.classList.remove('text-text');
+                } else {
+                    titleNode.classList.remove('line-through', 'text-text-muted');
+                    titleNode.classList.add('text-text');
+                }
+            }
+        });
+    }
+
+    function openMilestonesModal(goalId, goalName) {
+        document.getElementById('milestonesGoalName').textContent = goalName;
+        document.getElementById('addMilestoneForm').action = `/goals/${goalId}/milestones`;
+        
+        const list = document.getElementById('milestonesList');
+        list.innerHTML = '';
+        
+        const milestones = goalsData[goalId] ? goalsData[goalId].milestones : [];
+        const currentGoalAmount = goalsData[goalId] ? goalsData[goalId].current_amount : 0;
+        
+        if (milestones.length === 0) {
+            list.innerHTML = '<div class="text-sm text-text-muted italic -ml-4 py-2">No milestones set.</div>';
+        } else {
+            milestones.forEach((m, idx) => {
+                const isReached = currentGoalAmount >= m.target_amount;
+                const dotColor = isReached ? 'bg-success' : 'bg-surface-active border-2 border-border';
+                const textColor = isReached ? 'text-text' : 'text-text-muted';
+                
+                list.innerHTML += `
+                    <div class="relative mb-6 last:mb-0 group">
+                        <div class="absolute -left-[31px] w-4 h-4 rounded-full ${dotColor} top-1 z-10"></div>
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <h5 class="text-sm font-bold ${textColor}">${m.title}</h5>
+                                <p class="text-xs ${isReached ? 'text-success font-semibold' : 'text-text-muted'}">Target: GH₵${m.target_amount.toLocaleString(undefined, {minimumFractionDigits: 2})}</p>
+                            </div>
+                            <form method="POST" action="/goals/milestones/${m.id}/delete" class="inline opacity-0 group-hover:opacity-100 transition-opacity">
+                                <button type="submit" class="text-text-muted hover:text-danger p-1 rounded hover:bg-danger/10"><i data-lucide="x" class="w-4 h-4"></i></button>
+                            </form>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+        
+        document.getElementById('milestonesModal').classList.remove('hidden');
+        lucide.createIcons();
+    }
+
+    // Initialize formatting scripts and tooltips inside DOMContentLoaded if needed.
+    document.addEventListener("DOMContentLoaded", () => {
+        lucide.createIcons();
+    });
 </script>
 {% endblock %}

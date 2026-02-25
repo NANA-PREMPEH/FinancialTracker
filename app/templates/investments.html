@@ -4,264 +4,289 @@
 {% block header_title %}Investment Portfolio{% endblock %}
 
 {% block content %}
-<div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8 bg-surface p-6 rounded-2xl border border-border shadow-sm">
-    <div>
-        <h1 class="text-2xl font-bold font-heading text-text m-0">Investment Portfolio</h1>
-        <p class="text-text-muted mt-1 text-sm">Monitor your assets, insurance, pensions, and SSNIT contributions</p>
-    </div>
-</div>
-
-<!-- Summary Cards -->
-<div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-    <div class="bg-surface rounded-2xl p-6 border border-border shadow-sm">
-        <div class="flex items-center gap-2 mb-2 text-text-muted">
-            <i data-lucide="trending-up" class="w-5 h-5 text-primary"></i>
-            <span class="text-sm font-medium">Total Invested</span>
-        </div>
-        <div class="text-3xl font-bold text-text">GHS {{ '{:,.2f}'.format(total_invested) }}</div>
-    </div>
-    <div class="bg-surface rounded-2xl p-6 border border-border shadow-sm">
-        <div class="flex items-center gap-2 mb-2 text-text-muted">
-            <i data-lucide="bar-chart-2" class="w-5 h-5 text-success"></i>
-            <span class="text-sm font-medium">Total ROI</span>
-        </div>
-        <div class="text-3xl font-bold {{ 'text-success' if total_roi >= 0 else 'text-danger' }}">
-            {{ '{:+,.2f}'.format(total_roi) }}%
-        </div>
-    </div>
+<div class="mb-8">
+    <h1 class="text-3xl font-bold font-heading text-text m-0 tracking-tight">Investments & Ownership</h1>
+    <p class="text-text-muted mt-2 text-base">Track investments, businesses, partnerships, shareholding and jobs</p>
 </div>
 
 <!-- Tab Navigation -->
-<div class="flex gap-2 mb-8 border-b border-border overflow-x-auto no-scrollbar">
-    <button onclick="showTab('investments')" id="tab-investments" class="tab-btn active transition-colors px-6 py-3 font-semibold text-primary border-b-2 border-primary focus:outline-none whitespace-nowrap flex items-center gap-2">
-        <i data-lucide="line-chart" class="w-4 h-4"></i> Investments
+<div class="bg-surface rounded-2xl p-1.5 flex gap-1 mb-6 overflow-x-auto no-scrollbar shadow-sm border border-border">
+    <button onclick="showTab('all')" id="tab-all" class="tab-btn active transition-all px-6 py-2.5 font-medium rounded-xl whitespace-nowrap bg-background text-text shadow-sm ring-1 ring-border">
+        All
     </button>
-    <button onclick="showTab('insurance')" id="tab-insurance" class="tab-btn transition-colors px-6 py-3 font-medium text-text-muted border-b-2 border-transparent hover:text-text hover:border-text-muted focus:outline-none whitespace-nowrap flex items-center gap-2">
-        <i data-lucide="shield" class="w-4 h-4"></i> Insurance
+    <button onclick="showTab('investments')" id="tab-investments" class="tab-btn transition-all px-6 py-2.5 font-medium text-text-muted rounded-xl hover:text-text hover:bg-surface-hover whitespace-nowrap">
+        Investments
     </button>
-    <button onclick="showTab('pensions')" id="tab-pensions" class="tab-btn transition-colors px-6 py-3 font-medium text-text-muted border-b-2 border-transparent hover:text-text hover:border-text-muted focus:outline-none whitespace-nowrap flex items-center gap-2">
-        <i data-lucide="landmark" class="w-4 h-4"></i> Pensions
+    <button onclick="showTab('businesses')" id="tab-businesses" class="tab-btn transition-all px-6 py-2.5 font-medium text-text-muted rounded-xl hover:text-text hover:bg-surface-hover whitespace-nowrap">
+        Businesses
     </button>
-    <button onclick="showTab('ssnit')" id="tab-ssnit" class="tab-btn transition-colors px-6 py-3 font-medium text-text-muted border-b-2 border-transparent hover:text-text hover:border-text-muted focus:outline-none whitespace-nowrap flex items-center gap-2">
-        <i data-lucide="building" class="w-4 h-4"></i> SSNIT
+    <button onclick="showTab('partnerships')" id="tab-partnerships" class="tab-btn transition-all px-6 py-2.5 font-medium text-text-muted rounded-xl hover:text-text hover:bg-surface-hover whitespace-nowrap">
+        Partnerships
     </button>
+    <button onclick="showTab('shareholding')" id="tab-shareholding" class="tab-btn transition-all px-6 py-2.5 font-medium text-text-muted rounded-xl hover:text-text hover:bg-surface-hover whitespace-nowrap">
+        Shareholding
+    </button>
+    <button onclick="showTab('jobs')" id="tab-jobs" class="tab-btn transition-all px-6 py-2.5 font-medium text-text-muted rounded-xl hover:text-text hover:bg-surface-hover whitespace-nowrap">
+        Jobs
+    </button>
+</div>
+
+<!-- Summary Cards -->
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+    <div class="bg-surface rounded-3xl p-6 border border-border shadow-sm hover:shadow-md transition-shadow">
+        <div class="text-sm font-medium text-text-muted mb-3">Total Portfolio Value</div>
+        <div class="text-3xl font-bold text-text mb-2 tracking-tight">GH&#8373;{{ '{:,.2f}'.format(total_portfolio_value) }}</div>
+        <div class="text-xs text-text-muted flex items-center gap-1">
+            <span class="text-text">+GH&#8373;0.00</span> from last month
+        </div>
+    </div>
+    <div class="bg-surface rounded-3xl p-6 border border-border shadow-sm hover:shadow-md transition-shadow">
+        <div class="text-sm font-medium text-text-muted mb-3">Total Gain/Loss</div>
+        <div class="text-3xl font-bold {{ 'text-success' if total_gain_loss >= 0 else 'text-danger' }} mb-2 tracking-tight">
+            {{ '+' if total_gain_loss >= 0 else '' }}GH&#8373;{{ '{:,.2f}'.format(total_gain_loss) }}
+        </div>
+        <div class="text-xs {{ 'text-success' if total_roi >= 0 else 'text-danger' }} flex items-center gap-1 font-medium">
+            <i data-lucide="{{ 'trending-up' if total_roi >= 0 else 'trending-down' }}" class="w-3 h-3"></i>
+            {{ '{:+.2f}'.format(total_roi) }}%
+        </div>
+    </div>
+    <div class="bg-surface rounded-3xl p-6 border border-border shadow-sm hover:shadow-md transition-shadow">
+        <div class="text-sm font-medium text-text-muted mb-3">Total Investments</div>
+        <div class="text-3xl font-bold text-text mb-2 tracking-tight">{{ total_investments_count }}</div>
+        <div class="text-xs text-text-muted">Across {{ asset_classes_count }} asset classes</div>
+    </div>
+    <div class="bg-surface rounded-3xl p-6 border border-border shadow-sm hover:shadow-md transition-shadow">
+        <div class="text-sm font-medium text-text-muted mb-3">Best Performer</div>
+        <div class="text-3xl font-bold text-text mb-2 tracking-tight truncate" title="{{ best_performer_name }}">{{ best_performer_name }}</div>
+        <div class="text-xs {{ 'text-success' if best_performer_roi >= 0 else 'text-danger' }} flex items-center gap-1 font-medium">
+            {{ '{:+.0f}'.format(best_performer_roi) }}% gain
+        </div>
+    </div>
+</div>
+
+<!-- Charts Section -->
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+    <div class="bg-surface rounded-3xl p-6 border border-border shadow-sm">
+        <h3 class="text-xl font-bold text-text mb-1">Portfolio Allocation</h3>
+        <p class="text-sm text-text-muted mb-6">Distribution of your investments by asset type</p>
+        <div id="allocationChart" class="min-h-[300px] flex items-center justify-center"></div>
+    </div>
+    <div class="bg-surface rounded-3xl p-6 border border-border shadow-sm">
+        <h3 class="text-xl font-bold text-text mb-1">Portfolio Performance</h3>
+        <p class="text-sm text-text-muted mb-6">6-month portfolio value trend</p>
+        <div id="performanceChart" class="min-h-[300px]"></div>
+    </div>
+</div>
+
+<!-- All Tab -->
+<div id="content-all" class="tab-content block">
+    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+        <h2 class="text-xl font-bold text-text m-0">All Assets</h2>
+        <div class="flex gap-3 w-full sm:w-auto">
+            <a href="{{ url_for('domain.global_finance') }}" class="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-surface text-text border border-border font-medium rounded-xl hover:bg-surface-hover transition-colors shadow-sm w-full sm:w-auto">
+                <i data-lucide="globe" class="w-4 h-4"></i> Global Finance
+            </a>
+            <button onclick="document.getElementById('addInvestmentModal').classList.remove('hidden')" class="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-primary text-white font-medium rounded-xl hover:bg-primary-hover transition-colors shadow-md w-full sm:w-auto">
+                <i data-lucide="plus" class="w-4 h-4"></i> Add Investment
+            </button>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <!-- Render Investments -->
+        {% for inv in investments %}
+        {{ render_investment_card(inv) }}
+        {% endfor %}
+        <!-- Render Entities -->
+        {% for entity in businesses + partnerships + shareholding + jobs %}
+        {{ render_entity_card(entity) }}
+        {% endfor %}
+    </div>
+    {% if not investments and not businesses and not partnerships and not shareholding and not jobs %}
+    <div class="text-center py-16 px-4 bg-surface rounded-3xl border border-dashed border-border shadow-sm">
+        <div class="w-16 h-16 bg-surface-active rounded-full flex items-center justify-center mx-auto mb-4 border border-border">
+            <i data-lucide="briefcase" class="w-8 h-8 text-text-muted"></i>
+        </div>
+        <h3 class="text-lg font-bold text-text mb-2">No assets tracked yet</h3>
+        <p class="text-text-muted mb-6">Start building your portfolio to track your wealth.</p>
+        <button onclick="document.getElementById('addInvestmentModal').classList.remove('hidden')" class="inline-flex items-center gap-2 px-6 py-2.5 bg-primary text-white font-medium rounded-xl hover:bg-primary-hover transition-colors shadow-md">
+            <i data-lucide="plus" class="w-4 h-4"></i> Add Your First Asset
+        </button>
+    </div>
+    {% endif %}
 </div>
 
 <!-- Investments Tab -->
-<div id="content-investments" class="tab-content block">
-    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
-        <h2 class="text-xl font-bold text-text m-0">Your Investments</h2>
-        <div class="flex gap-3 w-full sm:w-auto">
-            <button onclick="document.getElementById('addInvestmentModal').classList.remove('hidden')" class="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-surface text-text border border-border font-medium rounded-xl hover:bg-surface-hover transition-colors shadow-sm w-full sm:w-auto">
-                <i data-lucide="zap" class="w-4 h-4"></i> Quick Add
-            </button>
-            <a href="{{ url_for('investments.add_investment') }}" class="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-primary text-white font-medium rounded-xl hover:bg-primary-hover transition-colors shadow-md w-full sm:w-auto">
-                <i data-lucide="plus" class="w-4 h-4"></i> Add Investment
-            </a>
-        </div>
+<div id="content-investments" class="tab-content hidden">
+    <div class="flex justify-between items-center mb-6">
+        <h2 class="text-xl font-bold text-text m-0">Classic Investments</h2>
     </div>
-
-    {% if investments %}
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {% for inv in investments %}
-        <div class="bg-surface rounded-2xl p-6 border border-border shadow-sm hover:shadow-md transition-shadow relative group">
-            <div class="flex justify-between items-start mb-4">
-                <div class="flex items-center gap-3">
-                    <div class="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary">
-                        <i data-lucide="trending-up" class="w-5 h-5"></i>
-                    </div>
-                    <div>
-                        <h3 class="text-lg font-bold text-text m-0">{{ inv.name }}</h3>
-                        <span class="text-xs font-medium text-text-muted bg-surface-active px-2 py-0.5 rounded-md inline-block mt-1">{{ inv.investment_type }}</span>
-                    </div>
-                </div>
-                <div class="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <a href="{{ url_for('investments.edit_investment', id=inv.id) }}" class="p-2 text-text-muted hover:text-primary transition-colors rounded-lg hover:bg-surface-hover" title="Edit">
-                        <i data-lucide="pencil" class="w-4 h-4"></i>
-                    </a>
-                </div>
-            </div>
-            
-            <div class="grid grid-cols-2 gap-4 mb-4 bg-surface-active/50 p-4 rounded-xl">
-                <div>
-                    <div class="text-xs font-medium text-text-muted mb-1">Invested Amount</div>
-                    <div class="font-bold text-text">GHS {{ '{:,.2f}'.format(inv.amount_invested) }}</div>
-                </div>
-                <div>
-                    <div class="text-xs font-medium text-text-muted mb-1">Current Value</div>
-                    <div class="font-bold text-text">GHS {{ '{:,.2f}'.format(inv.current_value) }}</div>
-                </div>
-            </div>
-            
-            {% set roi = ((inv.current_value - inv.amount_invested) / inv.amount_invested * 100) if inv.amount_invested > 0 else 0 %}
-            <div class="flex justify-between items-center py-2">
-                <span class="text-sm font-medium text-text-muted">Return on Investment</span>
-                <span class="font-bold {{ 'text-success' if roi >= 0 else 'text-danger' }} bg-{{ 'success' if roi >= 0 else 'danger' }}/10 px-2 py-1 rounded-md">{{ '{:+,.1f}'.format(roi) }}%</span>
-            </div>
-            
-            {% if inv.platform %}
-            <div class="mt-4 pt-4 border-t border-border flex items-center gap-2 text-sm text-text-muted">
-                <i data-lucide="layout" class="w-4 h-4"></i> Platform: <span class="text-text font-medium">{{ inv.platform }}</span>
-            </div>
-            {% endif %}
-        </div>
+        {{ render_investment_card(inv) }}
+        {% else %}
+        <p class="text-text-muted col-span-full">No classic investments found.</p>
         {% endfor %}
     </div>
-    {% else %}
-    <div class="text-center py-16 px-4 bg-surface rounded-2xl border border-dashed border-border shadow-sm">
-        <div class="w-16 h-16 bg-surface-active rounded-full flex items-center justify-center mx-auto mb-4 border border-border">
-            <i data-lucide="line-chart" class="w-8 h-8 text-text-muted"></i>
+</div>
+
+<!-- Businesses Tab -->
+<div id="content-businesses" class="tab-content hidden">
+    <div class="flex justify-between items-center mb-6">
+        <h2 class="text-xl font-bold text-text m-0">Businesses</h2>
+    </div>
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {% for entity in businesses %}
+        {{ render_entity_card(entity) }}
+        {% else %}
+        <p class="text-text-muted col-span-full">No businesses found.</p>
+        {% endfor %}
+    </div>
+</div>
+
+<!-- Partnerships Tab -->
+<div id="content-partnerships" class="tab-content hidden">
+    <div class="flex justify-between items-center mb-6">
+        <h2 class="text-xl font-bold text-text m-0">Partnerships</h2>
+    </div>
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {% for entity in partnerships %}
+        {{ render_entity_card(entity) }}
+        {% else %}
+        <p class="text-text-muted col-span-full">No partnerships found.</p>
+        {% endfor %}
+    </div>
+</div>
+
+<!-- Shareholding Tab -->
+<div id="content-shareholding" class="tab-content hidden">
+    <div class="flex justify-between items-center mb-6">
+        <h2 class="text-xl font-bold text-text m-0">Shareholding</h2>
+    </div>
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {% for entity in shareholding %}
+        {{ render_entity_card(entity) }}
+        {% else %}
+        <p class="text-text-muted col-span-full">No shareholdings found.</p>
+        {% endfor %}
+    </div>
+</div>
+
+<!-- Jobs Tab -->
+<div id="content-jobs" class="tab-content hidden">
+    <div class="flex justify-between items-center mb-6">
+        <h2 class="text-xl font-bold text-text m-0">Jobs</h2>
+    </div>
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {% for entity in jobs %}
+        {{ render_entity_card(entity) }}
+        {% else %}
+        <p class="text-text-muted col-span-full">No jobs found.</p>
+        {% endfor %}
+    </div>
+</div>
+
+<!-- Macros for Cards -->
+{% macro render_investment_card(inv) %}
+<div class="bg-surface rounded-3xl p-6 border border-border shadow-sm hover:shadow-md transition-all relative group">
+    <div class="flex justify-between items-start mb-5">
+        <div class="flex items-center gap-3">
+            <div class="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary shrink-0">
+                <i data-lucide="pie-chart" class="w-6 h-6"></i>
+            </div>
+            <div>
+                <h3 class="text-lg font-bold text-text m-0 leading-tight">{{ inv.name }}</h3>
+                <span class="text-xs font-semibold text-primary/80 bg-primary/10 px-2.5 py-1 rounded-lg inline-block mt-1.5">{{ inv.investment_type }}</span>
+            </div>
         </div>
-        <h3 class="text-lg font-bold text-text mb-2">No investments yet</h3>
-        <p class="text-text-muted mb-6">Start building your portfolio to track your assets.</p>
-        <a href="{{ url_for('investments.add_investment') }}" class="inline-flex items-center gap-2 px-6 py-2.5 bg-primary text-white font-medium rounded-xl hover:bg-primary-hover transition-colors shadow-md">
-            <i data-lucide="plus" class="w-4 h-4"></i> Add Your First Investment
+        <a href="{{ url_for('investments.edit_investment', id=inv.id) }}" class="p-2 text-text-muted hover:text-primary transition-colors rounded-xl hover:bg-surface-hover opacity-0 group-hover:opacity-100" title="Edit">
+            <i data-lucide="pencil" class="w-4 h-4"></i>
         </a>
     </div>
-    {% endif %}
-</div>
-
-<!-- Insurance Tab -->
-<div id="content-insurance" class="tab-content hidden">
-    <div class="flex justify-between items-center mb-6">
-        <h2 class="text-xl font-bold text-text m-0">Insurance Policies</h2>
+    
+    <div class="mb-4">
+        <div class="text-xs font-medium text-text-muted mb-1 uppercase tracking-wide">Current Value</div>
+        <div class="text-2xl font-bold text-text tracking-tight">GH&#8373;{{ '{:,.2f}'.format(inv.current_value) }}</div>
     </div>
     
-    {% if insurance_policies %}
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {% for policy in insurance_policies %}
-        <div class="bg-surface rounded-2xl p-6 border border-border shadow-sm flex flex-col hover:shadow-md transition-shadow">
-            <div class="flex items-center gap-4 mb-4 border-b border-border pb-4">
-                <div class="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center text-primary shrink-0">
-                    <i data-lucide="shield-check" class="w-6 h-6"></i>
-                </div>
-                <div>
-                    <h3 class="text-lg font-bold text-text m-0 leading-tight">{{ policy.name }}</h3>
-                    <span class="text-sm text-text-muted">{{ policy.policy_type }}</span>
-                </div>
-            </div>
-            <div class="mt-auto pt-2">
-                <span class="text-xs font-medium text-text-muted uppercase tracking-wider block mb-1">Premium Amount</span>
-                <span class="text-xl font-bold text-text">GHS {{ '{:,.2f}'.format(policy.premium) }}</span>
-            </div>
+    {% set roi = ((inv.current_value - inv.amount_invested) / inv.amount_invested * 100) if inv.amount_invested > 0 else 0 %}
+    <div class="flex justify-between items-center pt-4 border-t border-border mt-4">
+        <div>
+            <div class="text-xs text-text-muted mb-0.5">Invested</div>
+            <div class="font-semibold text-text text-sm">GH&#8373;{{ '{:,.0f}'.format(inv.amount_invested) }}</div>
         </div>
-        {% endfor %}
-    </div>
-    {% else %}
-    <div class="text-center py-12 px-4 bg-surface rounded-2xl border border-dashed border-border shadow-sm">
-        <i data-lucide="shield" class="w-12 h-12 text-text-muted/50 mx-auto mb-3"></i>
-        <p class="text-text-muted">No insurance policies recorded.</p>
-    </div>
-    {% endif %}
-</div>
-
-<!-- Pensions Tab -->
-<div id="content-pensions" class="tab-content hidden">
-    <div class="flex justify-between items-center mb-6">
-        <h2 class="text-xl font-bold text-text m-0">Pension Funds</h2>
-    </div>
-
-    {% if pensions %}
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {% for pension in pensions %}
-        <div class="bg-surface rounded-2xl p-6 border border-border shadow-sm hover:shadow-md transition-shadow">
-            <div class="flex justify-between items-center mb-4">
-                <div class="flex items-center gap-3">
-                    <div class="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary">
-                        <i data-lucide="landmark" class="w-5 h-5"></i>
-                    </div>
-                    <h3 class="text-lg font-bold text-text m-0">{{ pension.name }}</h3>
-                </div>
-            </div>
-            <div class="bg-surface-active/50 rounded-xl p-4">
-                <div class="text-xs font-medium text-text-muted mb-1">Current Balance</div>
-                <div class="text-2xl font-bold text-text">GHS {{ '{:,.2f}'.format(pension.balance) }}</div>
-            </div>
-        </div>
-        {% endfor %}
-    </div>
-    {% else %}
-    <div class="text-center py-12 px-4 bg-surface rounded-2xl border border-dashed border-border shadow-sm">
-        <i data-lucide="landmark" class="w-12 h-12 text-text-muted/50 mx-auto mb-3"></i>
-        <p class="text-text-muted">No pension records found.</p>
-    </div>
-    {% endif %}
-</div>
-
-<!-- SSNIT Tab -->
-<div id="content-ssnit" class="tab-content hidden">
-    <div class="flex justify-between items-center mb-6">
-        <h2 class="text-xl font-bold text-text m-0">SSNIT Contributions</h2>
-    </div>
-
-    {% if ssnit_contributions %}
-    <div class="bg-surface rounded-2xl border border-border shadow-sm overflow-hidden">
-        <div class="overflow-x-auto">
-            <table class="w-full text-left border-collapse">
-                <thead>
-                    <tr class="bg-surface-active/50 border-b border-border">
-                        <th class="p-4 text-sm font-semibold text-text-muted">Period</th>
-                        <th class="p-4 text-sm font-semibold text-text-muted">Amount</th>
-                        <th class="p-4 text-sm font-semibold text-text-muted">Status</th>
-                    </tr>
-                </thead>
-                <tbody class="divide-y divide-border">
-                    {% for c in ssnit_contributions %}
-                    <tr class="hover:bg-surface-hover/50 transition-colors">
-                        <td class="p-4 font-medium text-text">
-                            <div class="flex items-center gap-2">
-                                <i data-lucide="calendar" class="w-4 h-4 text-text-muted"></i> {{ c.period }}
-                            </div>
-                        </td>
-                        <td class="p-4 font-medium">GHS {{ '{:,.2f}'.format(c.amount) }}</td>
-                        <td class="p-4">
-                            <span class="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-semibold {{ 'bg-success/10 text-success' if c.status == 'Paid' else 'bg-danger/10 text-danger' }}">
-                                {{ c.status }}
-                            </span>
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+        <div class="text-right">
+            <div class="text-xs text-text-muted mb-0.5">Gain</div>
+            <span class="font-bold text-sm {{ 'text-success' if roi >= 0 else 'text-danger' }} flex items-center justify-end gap-1">
+                <i data-lucide="{{ 'trending-up' if roi >= 0 else 'trending-down' }}" class="w-3 h-3"></i>
+                {{ '{:+,.1f}'.format(roi) }}%
+            </span>
         </div>
     </div>
-    {% else %}
-    <div class="text-center py-12 px-4 bg-surface rounded-2xl border border-dashed border-border shadow-sm">
-        <i data-lucide="building" class="w-12 h-12 text-text-muted/50 mx-auto mb-3"></i>
-        <p class="text-text-muted">No SSNIT contributions recorded.</p>
-    </div>
-    {% endif %}
 </div>
+{% endmacro %}
 
-<!-- Add Investment Quick Modal -->
+{% macro render_entity_card(entity) %}
+<div class="bg-surface rounded-3xl p-6 border border-border shadow-sm hover:shadow-md transition-all relative group">
+    <div class="flex justify-between items-start mb-5">
+        <div class="flex items-center gap-3">
+            <div class="w-12 h-12 rounded-2xl bg-success/10 flex items-center justify-center text-success shrink-0">
+                <i data-lucide="briefcase" class="w-6 h-6"></i>
+            </div>
+            <div>
+                <h3 class="text-lg font-bold text-text m-0 leading-tight">{{ entity.name }}</h3>
+                <span class="text-xs font-semibold text-success/80 bg-success/10 px-2.5 py-1 rounded-lg inline-block mt-1.5">{{ entity.entity_type }} ({{ entity.ownership_percent }}%)</span>
+            </div>
+        </div>
+        <a href="{{ url_for('domain.edit_entity', id=entity.id) }}" class="p-2 text-text-muted hover:text-primary transition-colors rounded-xl hover:bg-surface-hover opacity-0 group-hover:opacity-100" title="Edit">
+            <i data-lucide="pencil" class="w-4 h-4"></i>
+        </a>
+    </div>
+    
+    <div class="mb-4">
+        <div class="text-xs font-medium text-text-muted mb-1 uppercase tracking-wide">Estimated Value</div>
+        <div class="text-2xl font-bold text-text tracking-tight">GH&#8373;{{ '{:,.2f}'.format(entity.value) }}</div>
+    </div>
+    
+    <div class="pt-4 border-t border-border mt-4 text-sm text-text-muted">
+        {% if entity.description %}
+            {{ entity.description|truncate(60) }}
+        {% else %}
+            No description provided.
+        {% endif %}
+    </div>
+</div>
+{% endmacro %}
+
+<!-- Add Investment Modal -->
 <div id="addInvestmentModal" class="hidden fixed inset-0 z-50 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
     <div class="flex items-end justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
         <div class="fixed inset-0 transition-opacity bg-background/80 backdrop-blur-sm" aria-hidden="true" onclick="document.getElementById('addInvestmentModal').classList.add('hidden')"></div>
         <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
-        <div class="inline-block px-4 pt-5 pb-4 overflow-hidden text-left align-bottom transition-all transform bg-surface border border-border rounded-2xl shadow-xl sm:my-8 sm:align-middle sm:max-w-lg sm:w-full sm:p-6">
-            <div class="flex justify-between items-center mb-5 border-b border-border pb-4">
+        <div class="inline-block px-4 pt-5 pb-4 overflow-hidden text-left align-bottom transition-all transform bg-surface border border-border rounded-3xl shadow-2xl sm:my-8 sm:align-middle sm:max-w-lg sm:w-full sm:p-6 sm:pb-8">
+            <div class="flex justify-between items-center mb-6 border-b border-border pb-4">
                 <div class="flex items-center gap-3">
-                    <div class="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center text-primary">
-                        <i data-lucide="trending-up" class="w-5 h-5"></i>
+                    <div class="w-12 h-12 bg-primary/10 rounded-2xl flex items-center justify-center text-primary">
+                        <i data-lucide="trending-up" class="w-6 h-6"></i>
                     </div>
                     <div>
-                        <h3 class="text-xl font-bold text-text m-0">Quick Add Investment</h3>
+                        <h3 class="text-xl font-bold text-text m-0">New Investment</h3>
                     </div>
                 </div>
-                <button type="button" onclick="document.getElementById('addInvestmentModal').classList.add('hidden')" class="text-text-muted hover:text-text hover:bg-surface-hover rounded-lg p-1 transition-colors">
+                <button type="button" onclick="document.getElementById('addInvestmentModal').classList.add('hidden')" class="text-text-muted hover:text-text bg-surface-hover rounded-full p-2 transition-colors">
                     <i data-lucide="x" class="w-5 h-5"></i>
                 </button>
             </div>
             
             <form method="POST" action="{{ url_for('investments.add_investment') }}" class="space-y-5">
                 <div class="space-y-2">
-                    <label class="block text-sm font-medium text-text-muted">Investment Name</label>
-                    <input type="text" name="name" required class="w-full px-4 py-2.5 bg-surface text-text border border-border rounded-xl focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors shadow-sm">
+                    <label class="block text-sm font-semibold text-text">Investment Name</label>
+                    <input type="text" name="name" required class="w-full px-4 py-3 bg-background text-text border border-border rounded-xl focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all shadow-sm">
                 </div>
                 <div class="space-y-2">
-                    <label class="block text-sm font-medium text-text-muted">Type</label>
+                    <label class="block text-sm font-semibold text-text">Asset Class</label>
                     <div class="relative">
-                        <select name="investment_type" required class="w-full px-4 py-2.5 bg-surface text-text border border-border rounded-xl focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors appearance-none shadow-sm cursor-pointer">
+                        <select name="investment_type" required class="w-full px-4 py-3 bg-background text-text border border-border rounded-xl focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all appearance-none shadow-sm cursor-pointer">
                             <option value="Stocks">Stocks</option>
                             <option value="Bonds">Bonds</option>
                             <option value="Mutual Fund">Mutual Fund</option>
@@ -272,26 +297,36 @@
                             <option value="Treasury Bill">Treasury Bill</option>
                         </select>
                         <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-text-muted">
-                            <i data-lucide="chevron-down" class="w-4 h-4"></i>
+                            <i data-lucide="chevron-down" class="w-5 h-5"></i>
                         </div>
                     </div>
                 </div>
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
                     <div class="space-y-2">
-                        <label class="block text-sm font-medium text-text-muted">Amount Invested</label>
-                        <input type="number" name="amount_invested" step="0.01" required class="w-full px-4 py-2.5 bg-surface text-text border border-border rounded-xl focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors shadow-sm font-bold">
+                        <label class="block text-sm font-semibold text-text">Amount Invested</label>
+                        <div class="relative">
+                            <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                                <span class="text-text-muted font-medium">GH&#8373;</span>
+                            </div>
+                            <input type="number" name="amount_invested" step="0.01" required class="w-full pl-12 pr-4 py-3 bg-background text-text border border-border rounded-xl focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all shadow-sm font-semibold">
+                        </div>
                     </div>
                     <div class="space-y-2">
-                        <label class="block text-sm font-medium text-text-muted">Current Value</label>
-                        <input type="number" name="current_value" step="0.01" required class="w-full px-4 py-2.5 bg-surface text-text border border-border rounded-xl focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors shadow-sm">
+                        <label class="block text-sm font-semibold text-text">Current Value</label>
+                        <div class="relative">
+                            <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                                <span class="text-text-muted font-medium">GH&#8373;</span>
+                            </div>
+                            <input type="number" name="current_value" step="0.01" required class="w-full pl-12 pr-4 py-3 bg-background text-text border border-border rounded-xl focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all shadow-sm">
+                        </div>
                     </div>
                 </div>
-                <div class="flex flex-col sm:flex-row gap-3 pt-4 border-t border-border mt-4">
-                    <button type="submit" class="inline-flex items-center justify-center gap-2 px-6 py-2.5 bg-primary text-white font-medium rounded-xl hover:bg-primary-hover transition-colors shadow-md flex-1">
-                        Add Investment
-                    </button>
-                    <button type="button" onclick="document.getElementById('addInvestmentModal').classList.add('hidden')" class="inline-flex items-center justify-center gap-2 px-6 py-2.5 bg-surface text-text border border-border font-medium rounded-xl hover:bg-surface-hover transition-colors shadow-sm sm:w-auto w-full">
+                <div class="flex flex-col sm:flex-row gap-3 pt-6 mt-2">
+                    <button type="button" onclick="document.getElementById('addInvestmentModal').classList.add('hidden')" class="inline-flex items-center justify-center px-6 py-3 bg-surface hover:bg-surface-hover text-text border border-border font-semibold rounded-xl transition-colors shadow-sm w-full sm:w-1/3">
                         Cancel
+                    </button>
+                    <button type="submit" class="inline-flex items-center justify-center px-6 py-3 bg-primary text-white font-semibold rounded-xl hover:bg-primary-hover hover:shadow-lg hover:-translate-y-0.5 transition-all w-full sm:w-2/3">
+                        Save Investment
                     </button>
                 </div>
             </form>
@@ -299,28 +334,184 @@
     </div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
 <script>
+    // Tab switching logic
     function showTab(tabName) {
-        // Hide all tabs
         document.querySelectorAll('.tab-content').forEach(el => {
             el.classList.add('hidden');
             el.classList.remove('block');
         });
         
-        // Reset all tab buttons classes
         document.querySelectorAll('.tab-btn').forEach(el => {
-            el.className = 'tab-btn transition-colors px-6 py-3 font-medium text-text-muted border-b-2 border-transparent hover:text-text hover:border-text-muted focus:outline-none whitespace-nowrap flex items-center gap-2';
+            el.className = 'tab-btn transition-all px-6 py-2.5 font-medium text-text-muted rounded-xl hover:text-text hover:bg-surface-hover whitespace-nowrap';
         });
         
-        // Show selected tab content
         document.getElementById('content-' + tabName).classList.remove('hidden');
         document.getElementById('content-' + tabName).classList.add('block');
         
-        // Set active class for selected tab button
         const activeTab = document.getElementById('tab-' + tabName);
-        activeTab.className = 'tab-btn active transition-colors px-6 py-3 font-semibold text-primary border-b-2 border-primary focus:outline-none whitespace-nowrap flex items-center gap-2';
+        activeTab.className = 'tab-btn active transition-all px-6 py-2.5 font-medium rounded-xl whitespace-nowrap bg-background text-text shadow-sm ring-1 ring-border';
     }
+
+    // Chart Data from backend
+    const allocationLabels = JSON.parse('{{ allocation_labels | safe }}');
+    const allocationSeries = JSON.parse('{{ allocation_series | safe }}');
     
-    lucide.createIcons();
+    const performanceLabels = JSON.parse('{{ performance_labels | safe }}');
+    const performanceSeries = JSON.parse('{{ performance_series | safe }}');
+
+    // Chart Theme Helper
+    const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+    const textColor = isDark ? '#9ca3af' : '#6b7280';
+    const gridColor = isDark ? '#374151' : '#e5e7eb';
+    const colors = ['#6366f1', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'];
+
+    // Portfolio Allocation Donut Chart
+    if (allocationSeries.length > 0) {
+        const allocationOptions = {
+            series: allocationSeries,
+            labels: allocationLabels,
+            chart: {
+                type: 'donut',
+                height: 350,
+                fontFamily: 'inherit',
+                background: 'transparent'
+            },
+            colors: colors,
+            plotOptions: {
+                pie: {
+                    donut: {
+                        size: '75%',
+                        labels: {
+                            show: true,
+                            name: {
+                                show: true,
+                            },
+                            value: {
+                                show: true,
+                                formatter: function (val) {
+                                    return "GH₵" + parseFloat(val).toLocaleString(undefined, {minimumFractionDigits: 0});
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            dataLabels: {
+                enabled: false
+            },
+            stroke: {
+                show: true,
+                colors: isDark ? ['#1f2937'] : ['#ffffff'],
+                width: 2
+            },
+            theme: {
+                mode: isDark ? 'dark' : 'light'
+            },
+            legend: {
+                position: 'bottom',
+                markers: {
+                    radius: 12
+                }
+            }
+        };
+
+        const allocationChart = new ApexCharts(document.querySelector("#allocationChart"), allocationOptions);
+        allocationChart.render();
+    } else {
+        document.querySelector("#allocationChart").innerHTML = '<div class="text-text-muted flex flex-col items-center justify-center h-full"><i data-lucide="pie-chart" class="w-8 h-8 opacity-50 mb-2"></i><p>No allocation data to display.</p></div>';
+    }
+
+    // Portfolio Performance Area Chart
+    const performanceOptions = {
+        series: [{
+            name: 'Portfolio Value',
+            data: performanceSeries
+        }],
+        chart: {
+            type: 'area',
+            height: 350,
+            fontFamily: 'inherit',
+            background: 'transparent',
+            toolbar: {
+                show: false
+            },
+            zoom: {
+                enabled: false
+            }
+        },
+        colors: ['#6366f1'],
+        fill: {
+            type: 'gradient',
+            gradient: {
+                shadeIntensity: 1,
+                opacityFrom: 0.4,
+                opacityTo: 0.05,
+                stops: [0, 100]
+            }
+        },
+        dataLabels: {
+            enabled: false
+        },
+        stroke: {
+            curve: 'smooth',
+            width: 3
+        },
+        xaxis: {
+            categories: performanceLabels,
+            axisBorder: {
+                show: false
+            },
+            axisTicks: {
+                show: false
+            },
+            labels: {
+                style: {
+                    colors: textColor
+                }
+            }
+        },
+        yaxis: {
+            labels: {
+                formatter: function (value) {
+                    if(value >= 1000) {
+                        return "$" + (value / 1000).toFixed(1) + "k";
+                    }
+                    return "$" + value;
+                },
+                style: {
+                    colors: textColor
+                }
+            }
+        },
+        grid: {
+            borderColor: gridColor,
+            strokeDashArray: 4,
+            xaxis: {
+                lines: {
+                    show: true
+                }
+            },
+            yaxis: {
+                lines: {
+                    show: true
+                }
+            }
+        },
+        theme: {
+            mode: isDark ? 'dark' : 'light'
+        },
+        tooltip: {
+            y: {
+                formatter: function (val) {
+                    return "GH₵" + parseFloat(val).toLocaleString(undefined, {minimumFractionDigits: 2});
+                }
+            }
+        }
+    };
+
+    const performanceChart = new ApexCharts(document.querySelector("#performanceChart"), performanceOptions);
+    performanceChart.render();
 </script>
 {% endblock %}

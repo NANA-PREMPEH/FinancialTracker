@@ -1,8 +1,10 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash
 from flask_login import login_required, current_user
 from . import db
-from .models import Investment, Dividend, InsurancePolicy, PensionScheme, SSNITContribution
-from datetime import datetime
+from .models import Investment, Dividend, InsurancePolicy, PensionScheme, SSNITContribution, GlobalEntity
+from datetime import datetime, timedelta
+import json
+from collections import defaultdict
 
 investments_bp = Blueprint('investments', __name__, url_prefix='/investments')
 
@@ -10,24 +12,74 @@ investments_bp = Blueprint('investments', __name__, url_prefix='/investments')
 @investments_bp.route('/', methods=['GET'])
 @login_required
 def investments_list():
-    """List all investments, insurance policies, pensions, SSNIT contributions for current user"""
+    """List all investments, businesses, partnerships, shareholding, and jobs"""
     investments = Investment.query.filter_by(user_id=current_user.id).all()
-    insurance_policies = InsurancePolicy.query.filter_by(user_id=current_user.id).all()
-    pensions = PensionScheme.query.filter_by(user_id=current_user.id).all()
-    ssnit_contributions = SSNITContribution.query.filter_by(user_id=current_user.id).all()
-
+    global_entities = GlobalEntity.query.filter_by(user_id=current_user.id).all()
+    
+    businesses = [e for e in global_entities if e.entity_type == 'Business']
+    partnerships = [e for e in global_entities if e.entity_type == 'Partnership']
+    shareholding = [e for e in global_entities if e.entity_type == 'Shareholding']
+    jobs = [e for e in global_entities if e.entity_type == 'Job']
+    
     total_invested = sum(inv.amount_invested for inv in investments)
-    total_current_value = sum(inv.current_value for inv in investments)
-    total_roi = ((total_current_value - total_invested) / total_invested * 100) if total_invested > 0 else 0
+    total_investment_value = sum(inv.current_value for inv in investments)
+    total_entity_value = sum(e.value for e in global_entities)
+    
+    total_portfolio_value = total_investment_value + total_entity_value
+    
+    investment_gain = total_investment_value - total_invested
+    total_gain_loss = investment_gain 
+    
+    total_roi = (investment_gain / total_invested * 100) if total_invested > 0 else 0
+    total_investments_count = len(investments) + len(global_entities)
+    
+    asset_types = set([inv.investment_type for inv in investments] + [e.entity_type for e in global_entities])
+    asset_classes_count = len(asset_types)
+    
+    best_performer_name = "N/A"
+    best_performer_roi = 0
+    if investments:
+        best_inv = max(investments, key=lambda i: i.roi if hasattr(i, 'roi') else ((i.current_value - i.amount_invested) / i.amount_invested) if i.amount_invested > 0 else 0)
+        best_performer_name = best_inv.name
+        best_performer_roi = best_inv.roi if hasattr(best_inv, 'roi') else ((best_inv.current_value - best_inv.amount_invested) / best_inv.amount_invested * 100) if best_inv.amount_invested > 0 else 0
+        
+    allocation_data = defaultdict(float)
+    for inv in investments:
+        allocation_data[inv.investment_type] += inv.current_value
+    for e in global_entities:
+        allocation_data[e.entity_type] += e.value
+        
+    allocation_labels = list(allocation_data.keys())
+    allocation_series = list(allocation_data.values())
+    
+    # Portfolio Performance Chart Data (Mock data for 6 months representation)
+    performance_labels = []
+    performance_series = []
+    today = datetime.today()
+    for i in range(5, -1, -1):
+        month_date = today.replace(day=1) - timedelta(days=30 * i)
+        performance_labels.append(month_date.strftime('%b'))
+        # Using mock historical variation based on today's value for demonstration
+        performance_series.append(total_portfolio_value * (1 - (0.015 * i)))
 
     return render_template(
         'investments.html',
         investments=investments,
-        insurance_policies=insurance_policies,
-        pensions=pensions,
-        ssnit_contributions=ssnit_contributions,
-        total_invested=total_invested,
-        total_roi=total_roi
+        businesses=businesses,
+        partnerships=partnerships,
+        shareholding=shareholding,
+        jobs=jobs,
+        total_portfolio_value=total_portfolio_value,
+        total_gain_loss=total_gain_loss,
+        total_roi=total_roi,
+        total_investments_count=total_investments_count,
+        asset_classes_count=asset_classes_count,
+        best_performer_name=best_performer_name,
+        best_performer_roi=best_performer_roi,
+        allocation_labels=json.dumps(allocation_labels),
+        allocation_series=json.dumps(allocation_series),
+        performance_labels=json.dumps(performance_labels),
+        performance_series=json.dumps(performance_series)
     )
 
 

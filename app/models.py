@@ -254,6 +254,7 @@ class Goal(db.Model):
     goal_type = db.Column(db.String(50), default='Custom')
     icon = db.Column(db.String(10), default='🎯')
     color = db.Column(db.String(20), default='#6366f1')
+    priority = db.Column(db.Integer, default=3)
     notes = db.Column(db.Text, nullable=True)
     is_completed = db.Column(db.Boolean, default=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
@@ -266,6 +267,36 @@ class Goal(db.Model):
 
     def __repr__(self):
         return f'<Goal {self.name}: {self.current_amount}/{self.target_amount}>'
+
+
+class GoalTask(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    goal_id = db.Column(db.Integer, db.ForeignKey('goal.id'), nullable=False)
+    title = db.Column(db.String(200), nullable=False)
+    description = db.Column(db.Text, nullable=True)
+    due_date = db.Column(db.DateTime, nullable=True)
+    priority = db.Column(db.Integer, default=3)
+    is_completed = db.Column(db.Boolean, default=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    goal = db.relationship('Goal', backref=db.backref('tasks', lazy=True, cascade='all, delete-orphan'))
+
+    def __repr__(self):
+        return f'<GoalTask {self.title}>'
+
+
+class GoalMilestone(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    goal_id = db.Column(db.Integer, db.ForeignKey('goal.id'), nullable=False)
+    title = db.Column(db.String(200), nullable=False)
+    target_amount = db.Column(db.Float, nullable=False)
+    is_completed = db.Column(db.Boolean, default=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    goal = db.relationship('Goal', backref=db.backref('milestones', lazy=True, cascade='all, delete-orphan'))
+
+    def __repr__(self):
+        return f'<GoalMilestone {self.title}>'
 
 
 # ===== PHASE 3: Investments & Net Worth =====
