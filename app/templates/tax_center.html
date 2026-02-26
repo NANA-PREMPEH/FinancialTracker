@@ -1,0 +1,135 @@
+{% extends "base.html" %}
+
+{% block title %}Tax Center - Financial Tracker{% endblock %}
+{% block header_title %}Tax Center{% endblock %}
+
+{% block content %}
+<div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8">
+    <div>
+        <h1 class="text-3xl font-bold text-text m-0">Tax Center</h1>
+        <p class="text-text-muted mt-2">Comprehensive tax planning and preparation workspace.</p>
+    </div>
+    <form method="GET" class="flex items-center gap-2">
+        <label class="text-sm text-text-muted">Year</label>
+        <input type="number" name="year" value="{{ selected_year }}" class="w-28 px-3 py-2 bg-surface border border-border rounded-xl">
+        <input type="hidden" name="tab" value="{{ tab }}">
+        <button type="submit" class="px-3 py-2 bg-primary text-white rounded-xl">Apply</button>
+    </form>
+</div>
+
+<div class="bg-surface border border-border rounded-2xl p-2 mb-6 flex flex-wrap gap-2">
+    <a href="{{ url_for('advanced.tax_center', year=selected_year, tab='overview') }}" class="px-4 py-2 rounded-xl text-sm {{ 'bg-background text-text border border-border' if tab == 'overview' else 'text-text-muted hover:text-text' }}">Overview</a>
+    <a href="{{ url_for('advanced.tax_center', year=selected_year, tab='documents') }}" class="px-4 py-2 rounded-xl text-sm {{ 'bg-background text-text border border-border' if tab == 'documents' else 'text-text-muted hover:text-text' }}">Documents</a>
+    <a href="{{ url_for('advanced.tax_center', year=selected_year, tab='deductions') }}" class="px-4 py-2 rounded-xl text-sm {{ 'bg-background text-text border border-border' if tab == 'deductions' else 'text-text-muted hover:text-text' }}">Deductions</a>
+    <a href="{{ url_for('advanced.tax_center', year=selected_year, tab='planning') }}" class="px-4 py-2 rounded-xl text-sm {{ 'bg-background text-text border border-border' if tab == 'planning' else 'text-text-muted hover:text-text' }}">Tax Planning</a>
+</div>
+
+{% if tab == 'overview' %}
+<div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-4 mb-8">
+    <div class="bg-surface border border-border rounded-2xl p-4"><div class="text-xs uppercase text-text-muted mb-1">Estimated Tax Owed</div><div class="text-2xl font-bold text-danger">GHS {{ "{:,.2f}".format(estimated_owed) }}</div></div>
+    <div class="bg-surface border border-border rounded-2xl p-4"><div class="text-xs uppercase text-text-muted mb-1">Withholdings</div><div class="text-2xl font-bold text-primary">GHS 0.00</div></div>
+    <div class="bg-surface border border-border rounded-2xl p-4"><div class="text-xs uppercase text-text-muted mb-1">Expected Refund</div><div class="text-2xl font-bold text-success">GHS 0.00</div></div>
+    <div class="bg-surface border border-border rounded-2xl p-4"><div class="text-xs uppercase text-text-muted mb-1">Effective Rate</div><div class="text-2xl font-bold text-text">{{ "{:.1f}".format(effective_rate) }}%</div></div>
+    <div class="bg-surface border border-border rounded-2xl p-4"><div class="text-xs uppercase text-text-muted mb-1">Marginal Rate</div><div class="text-2xl font-bold text-text">{{ "{:.1f}".format(marginal_rate) }}%</div></div>
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+    <div class="bg-surface border border-border rounded-2xl p-6">
+        <h2 class="text-lg font-bold text-text mb-4">Quarterly Estimated Payments</h2>
+        <div class="space-y-3">
+            {% for item in quarterly_due %}
+            <div class="flex items-center justify-between border border-border rounded-xl px-3 py-3">
+                <div>
+                    <div class="font-semibold text-text">{{ item.quarter }}</div>
+                    <div class="text-xs text-text-muted">Due: {{ item.due_date }}</div>
+                </div>
+                <span class="px-2 py-1 rounded-md text-xs bg-warning/10 text-warning">Upcoming</span>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    <div class="bg-surface border border-border rounded-2xl p-6">
+        <h2 class="text-lg font-bold text-text mb-4">Tax Summary</h2>
+        <div class="space-y-3 text-sm">
+            <div class="flex justify-between"><span class="text-text-muted">Total Income</span><span class="font-semibold text-success">GHS {{ "{:,.2f}".format(total_income) }}</span></div>
+            <div class="flex justify-between"><span class="text-text-muted">Recorded Expenses</span><span class="font-semibold text-danger">GHS {{ "{:,.2f}".format(total_expenses) }}</span></div>
+            <div class="flex justify-between"><span class="text-text-muted">Eligible Deductions</span><span class="font-semibold text-primary">GHS {{ "{:,.2f}".format(deductions) }}</span></div>
+            <div class="flex justify-between border-t border-border pt-2"><span class="text-text-muted">Taxable Income</span><span class="font-bold text-text">GHS {{ "{:,.2f}".format(taxable_income) }}</span></div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{% if tab == 'documents' %}
+<div class="bg-surface border border-border rounded-2xl p-6">
+    <h2 class="text-lg font-bold text-text mb-4">Tax Documents</h2>
+    <div class="space-y-3">
+        {% for doc in docs %}
+        <div class="flex items-center justify-between border border-border rounded-xl px-3 py-3">
+            <div class="font-medium text-text">{{ doc.name }}</div>
+            <span class="text-xs px-2 py-1 rounded-md {{ 'bg-success/10 text-success' if doc.status == 'uploaded' else 'bg-warning/10 text-warning' }}">{{ doc.status|upper }}</span>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
+{% if tab == 'deductions' %}
+<div class="bg-surface border border-border rounded-2xl p-6">
+    <h2 class="text-lg font-bold text-text mb-4">Deduction Utilization</h2>
+    <div class="space-y-4">
+        {% for row in deduction_breakdown %}
+        <div class="border border-border rounded-xl p-3">
+            <div class="flex items-center justify-between mb-2">
+                <span class="font-semibold text-text">{{ row.category }}</span>
+                <span class="text-sm text-text-muted">GHS {{ "{:,.2f}".format(row.amount) }} / {{ "{:,.2f}".format(row.limit_amount) }}</span>
+            </div>
+            <div class="w-full h-2 rounded-full bg-surface-active overflow-hidden">
+                <div class="h-full rounded-full bg-primary" style="width: {{ row.usage }}%;"></div>
+            </div>
+            <div class="text-xs text-text-muted mt-1">{{ "{:.1f}".format(row.usage) }}% of limit used</div>
+        </div>
+        {% else %}
+        <div class="text-sm text-text-muted">No deduction data available for this year.</div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
+{% if tab == 'planning' %}
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <div class="bg-surface border border-border rounded-2xl p-6">
+        <h2 class="text-lg font-bold text-text mb-4">Optimization Strategies</h2>
+        <div class="space-y-3 text-sm">
+            <div class="border border-border rounded-xl p-3">
+                <div class="font-semibold text-text mb-1">Maximize pension contributions</div>
+                <p class="text-text-muted">Use retirement contributions to reduce taxable base while building long-term assets.</p>
+            </div>
+            <div class="border border-border rounded-xl p-3">
+                <div class="font-semibold text-text mb-1">Track deductible expenses monthly</div>
+                <p class="text-text-muted">Maintain clear category tagging for insurance, education, medical, and charity spend.</p>
+            </div>
+            <div class="border border-border rounded-xl p-3">
+                <div class="font-semibold text-text mb-1">Harvest losses in volatile assets</div>
+                <p class="text-text-muted">Where applicable, offset gains with realized losses before annual close.</p>
+            </div>
+        </div>
+    </div>
+    <div class="bg-surface border border-border rounded-2xl p-6">
+        <h2 class="text-lg font-bold text-text mb-4">Tax Calendar</h2>
+        <div class="space-y-3 text-sm">
+            <div class="flex justify-between border border-border rounded-xl px-3 py-2"><span class="text-text">Annual Return Due</span><span class="text-text-muted">April 15, {{ selected_year + 1 }}</span></div>
+            <div class="flex justify-between border border-border rounded-xl px-3 py-2"><span class="text-text">Q3 Estimated Payment</span><span class="text-text-muted">September 15, {{ selected_year }}</span></div>
+            <div class="flex justify-between border border-border rounded-xl px-3 py-2"><span class="text-text">Q4 Estimated Payment</span><span class="text-text-muted">January 15, {{ selected_year + 1 }}</span></div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<div class="mt-6">
+    <form method="POST" action="{{ url_for('advanced.tax_center_calculate') }}">
+        <input type="hidden" name="year" value="{{ selected_year }}">
+        <button type="submit" class="px-4 py-2 bg-primary text-white rounded-xl">Calculate Tax</button>
+    </form>
+</div>
+{% endblock %}

@@ -114,7 +114,7 @@
                     <div class="nav-label">Insights</div>
                     <a href="{{ url_for('main.all_expenses') }}" class="nav-item {% if request.endpoint == 'main.all_expenses' %}active{% endif %}">
                         <i data-lucide="list"></i>
-                        <span>All Transactions</span>
+                        <span>Transactions</span>
                     </a>
                     <a href="{{ url_for('main.analytics') }}" class="nav-item {% if request.endpoint == 'main.analytics' %}active{% endif %}">
                         <i data-lucide="pie-chart"></i>
@@ -146,7 +146,7 @@
                     </a>
                     <a href="{{ url_for('main.budgets') }}" class="nav-item {% if request.endpoint == 'main.budgets' %}active{% endif %}">
                         <i data-lucide="piggy-bank"></i>
-                        <span>Budgets</span>
+                        <span>Budget</span>
                     </a>
                     <a href="{{ url_for('budget_planning.budget_planning') }}" class="nav-item {% if request.blueprint == 'budget_planning' %}active{% endif %}">
                         <i data-lucide="calculator"></i>
@@ -159,6 +159,14 @@
                     <a href="{{ url_for('networth.net_worth_dashboard') }}" class="nav-item {% if request.blueprint == 'networth' %}active{% endif %}">
                         <i data-lucide="gem"></i>
                         <span>Net Worth</span>
+                    </a>
+                    <a href="{{ url_for('advanced.insurance') }}" class="nav-item {% if request.endpoint in ['advanced.insurance', 'investments.insurance_policies'] %}active{% endif %}">
+                        <i data-lucide="shield-plus"></i>
+                        <span>Insurance</span>
+                    </a>
+                    <a href="{{ url_for('advanced.tax_center') }}" class="nav-item {% if request.endpoint == 'advanced.tax_center' %}active{% endif %}">
+                        <i data-lucide="receipt-text"></i>
+                        <span>Tax Center</span>
                     </a>
                 </div>
 
@@ -174,7 +182,7 @@
                     </a>
                     <a href="{{ url_for('main.recurring_transactions') }}" class="nav-item {% if request.endpoint == 'main.recurring_transactions' %}active{% endif %}">
                         <i data-lucide="repeat"></i>
-                        <span>Recurring</span>
+                        <span>Recurring Transactions</span>
                     </a>
                     <a href="{{ url_for('main.projects') }}" class="nav-item {% if request.endpoint == 'main.projects' %}active{% endif %}">
                         <i data-lucide="briefcase"></i>
@@ -255,6 +263,14 @@
                     <a href="{{ url_for('api_keys.api_keys_list') }}" class="nav-item {% if request.blueprint == 'api_keys' %}active{% endif %}">
                         <i data-lucide="key"></i>
                         <span>API Keys</span>
+                    </a>
+                    <a href="{{ url_for('advanced.ml_training') }}" class="nav-item {% if request.endpoint == 'advanced.ml_training' %}active{% endif %}">
+                        <i data-lucide="brain-circuit"></i>
+                        <span>ML Training</span>
+                    </a>
+                    <a href="{{ url_for('advanced.metrics') }}" class="nav-item {% if request.endpoint == 'advanced.metrics' %}active{% endif %}">
+                        <i data-lucide="activity"></i>
+                        <span>Real-Time Metrics</span>
                     </a>
                     {% if current_user.is_authenticated and current_user.role == 'admin' %}
                     <a href="{{ url_for('admin.admin_panel') }}" class="nav-item {% if request.blueprint == 'admin' %}active{% endif %}">

@@ -424,6 +424,7 @@ def delete_expense(id):
     return redirect(url_for('main.all_expenses'))
 
 @main.route('/expenses')
+@main.route('/transactions')
 @login_required
 def all_expenses():
     # Search and filter
@@ -676,6 +677,7 @@ def transfer_funds():
 
 # ===== BUDGETS =====
 @main.route('/budgets')
+@main.route('/budget')
 @login_required
 def budgets():
     all_budgets = Budget.query.filter_by(is_active=True).all()
@@ -757,6 +759,7 @@ def delete_budget(id):
 
 # ===== RECURRING TRANSACTIONS =====
 @main.route('/recurring')
+@main.route('/recurring-transactions')
 @login_required
 def recurring_transactions():
     recurring = RecurringTransaction.query.filter_by(is_active=True).all()
@@ -1041,6 +1044,7 @@ def delete_category(id):
 
 # ===== CREDITORS =====
 @main.route('/creditors')
+@main.route('/debts')
 @login_required
 def creditors():
     all_creditors = Creditor.query.all()

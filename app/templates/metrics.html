@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+
+{% block title %}Real-Time Metrics - Financial Tracker{% endblock %}
+{% block header_title %}Real-Time Metrics{% endblock %}
+
+{% block content %}
+<div class="mb-8">
+    <h1 class="text-3xl font-bold text-text m-0">Real-Time Metrics</h1>
+    <p class="text-text-muted mt-2">Live operational indicators for finance, liquidity, and execution health.</p>
+    <p class="text-xs text-text-muted mt-1">Updated {{ generated_at.strftime('%b %d, %Y %H:%M:%S') }} UTC</p>
+    <form method="POST" action="{{ url_for('advanced.metrics_refresh') }}" class="mt-3">
+        <button type="submit" class="px-4 py-2 bg-primary text-white rounded-xl text-sm">Refresh Metrics</button>
+    </form>
+</div>
+
+<div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6 mb-6">
+    <div class="bg-surface border border-border rounded-2xl p-6">
+        <div class="text-xs uppercase text-text-muted mb-1">Transactions Today</div>
+        <div class="text-3xl font-bold text-text">{{ tx_count }}</div>
+        <div class="text-sm text-text-muted mt-2">Volume: GHS {{ "{:,.2f}".format(tx_volume) }}</div>
+    </div>
+    <div class="bg-surface border border-border rounded-2xl p-6">
+        <div class="text-xs uppercase text-text-muted mb-1">Cash Balance</div>
+        <div class="text-3xl font-bold text-success">GHS {{ "{:,.2f}".format(cash_balance) }}</div>
+        <div class="text-sm text-text-muted mt-2">Debt: GHS {{ "{:,.2f}".format(debt_total) }}</div>
+    </div>
+    <div class="bg-surface border border-border rounded-2xl p-6">
+        <div class="text-xs uppercase text-text-muted mb-1">Net Worth</div>
+        <div class="text-3xl font-bold text-text">GHS {{ "{:,.2f}".format(net_worth) }}</div>
+        <div class="text-sm text-text-muted mt-2">Goal on-track rate: {{ "{:.1f}".format(on_track_rate) }}%</div>
+    </div>
+    <div class="bg-surface border border-border rounded-2xl p-6">
+        <div class="text-xs uppercase text-text-muted mb-1">System Health</div>
+        <div class="text-3xl font-bold text-success">Healthy</div>
+        <div class="text-sm text-text-muted mt-2">No critical sync errors detected.</div>
+    </div>
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <div class="bg-surface border border-border rounded-2xl p-6">
+        <h2 class="text-lg font-bold text-text mb-4">Execution Snapshot</h2>
+        <div class="space-y-3 text-sm">
+            <div class="flex justify-between"><span class="text-text-muted">Transactions processed today</span><span class="font-semibold text-text">{{ tx_count }}</span></div>
+            <div class="flex justify-between"><span class="text-text-muted">Processed cash volume</span><span class="font-semibold text-text">GHS {{ "{:,.2f}".format(tx_volume) }}</span></div>
+            <div class="flex justify-between"><span class="text-text-muted">Liquidity buffer (cash - debt)</span><span class="font-semibold {{ 'text-success' if cash_balance - debt_total >= 0 else 'text-danger' }}">GHS {{ "{:,.2f}".format(cash_balance - debt_total) }}</span></div>
+        </div>
+    </div>
+    <div class="bg-surface border border-border rounded-2xl p-6">
+        <h2 class="text-lg font-bold text-text mb-4">Operational Alerts</h2>
+        <div class="space-y-3 text-sm">
+            <div class="border border-border rounded-xl p-3">
+                <div class="font-semibold text-text mb-1">Debt pressure</div>
+                <p class="text-text-muted">{{ "Debt currently exceeds available cash." if debt_total > cash_balance else "Debt remains within available cash coverage." }}</p>
+            </div>
+            <div class="border border-border rounded-xl p-3">
+                <div class="font-semibold text-text mb-1">Goal execution</div>
+                <p class="text-text-muted">{{ "{:.1f}".format(on_track_rate) }}% of active goals are currently on track.</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+
+{% block title %}ML Training - Financial Tracker{% endblock %}
+{% block header_title %}ML Training{% endblock %}
+
+{% block content %}
+<div class="mb-8">
+    <h1 class="text-3xl font-bold text-text m-0">ML Training</h1>
+    <p class="text-text-muted mt-2">Self-learning financial model health, feature coverage, and training tasks.</p>
+    <form method="POST" action="{{ url_for('advanced.ml_training_run') }}" class="mt-3">
+        <input type="hidden" name="job_id" value="all">
+        <button type="submit" class="px-4 py-2 bg-primary text-white rounded-xl text-sm">Run All Models</button>
+    </form>
+</div>
+
+<div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-4 mb-8">
+    <div class="bg-surface border border-border rounded-2xl p-4">
+        <div class="text-xs uppercase text-text-muted mb-1">Data Readiness</div>
+        <div class="text-2xl font-bold text-text">{{ readiness }}%</div>
+    </div>
+    <div class="bg-surface border border-border rounded-2xl p-4">
+        <div class="text-xs uppercase text-text-muted mb-1">Transactions</div>
+        <div class="text-2xl font-bold text-text">{{ txn_count }}</div>
+    </div>
+    <div class="bg-surface border border-border rounded-2xl p-4">
+        <div class="text-xs uppercase text-text-muted mb-1">Labeled Categories</div>
+        <div class="text-2xl font-bold text-text">{{ labeled_categories }}</div>
+    </div>
+    <div class="bg-surface border border-border rounded-2xl p-4">
+        <div class="text-xs uppercase text-text-muted mb-1">Goals</div>
+        <div class="text-2xl font-bold text-text">{{ goals_count }}</div>
+    </div>
+    <div class="bg-surface border border-border rounded-2xl p-4">
+        <div class="text-xs uppercase text-text-muted mb-1">Budgets</div>
+        <div class="text-2xl font-bold text-text">{{ budgets_count }}</div>
+    </div>
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+    <div class="bg-surface border border-border rounded-2xl p-6">
+        <h2 class="text-lg font-bold text-text mb-4">Feature Coverage</h2>
+        <div class="space-y-3 text-sm">
+            <div class="flex justify-between"><span class="text-text-muted">Transaction history depth</span><span class="font-semibold text-text">{{ txn_count }}</span></div>
+            <div class="flex justify-between"><span class="text-text-muted">Category labels</span><span class="font-semibold text-text">{{ labeled_categories }}</span></div>
+            <div class="flex justify-between"><span class="text-text-muted">Goal labels</span><span class="font-semibold text-text">{{ goals_count }}</span></div>
+            <div class="flex justify-between"><span class="text-text-muted">Budget signals</span><span class="font-semibold text-text">{{ budgets_count }}</span></div>
+            <div class="pt-2">
+                <div class="w-full h-2 rounded-full bg-surface-active overflow-hidden">
+                    <div class="h-full rounded-full bg-primary" style="width: {{ readiness }}%;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="bg-surface border border-border rounded-2xl p-6">
+        <h2 class="text-lg font-bold text-text mb-4">Training Recommendations</h2>
+        <div class="space-y-3 text-sm">
+            <div class="border border-border rounded-xl p-3">
+                <div class="font-semibold text-text mb-1">Increase labeled transactions</div>
+                <p class="text-text-muted">Consistent category assignment improves forecast and anomaly precision.</p>
+            </div>
+            <div class="border border-border rounded-xl p-3">
+                <div class="font-semibold text-text mb-1">Maintain monthly budget updates</div>
+                <p class="text-text-muted">Regular budget refresh gives the model better seasonality signals.</p>
+            </div>
+            <div class="border border-border rounded-xl p-3">
+                <div class="font-semibold text-text mb-1">Capture goal milestones</div>
+                <p class="text-text-muted">Milestone-level labels improve completion-date prediction quality.</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="bg-surface border border-border rounded-2xl p-6">
+    <h2 class="text-lg font-bold text-text mb-4">Training Jobs</h2>
+    <div class="space-y-3">
+        {% for job in jobs %}
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 border border-border rounded-xl px-3 py-3">
+            <div>
+                <div class="font-semibold text-text">{{ job.name }}</div>
+                <div class="text-xs text-text-muted">Last run: {{ job.last_run.strftime('%b %d, %Y %H:%M') }} UTC</div>
+            </div>
+            <div class="flex items-center gap-2">
+                <span class="text-xs px-2 py-1 rounded-md {{ 'bg-success/10 text-success' if job.status == 'healthy' else 'bg-warning/10 text-warning' }}">{{ job.status|upper }}</span>
+                <form method="POST" action="{{ url_for('advanced.ml_training_run') }}">
+                    <input type="hidden" name="job_id" value="{{ job.id }}">
+                    <button type="submit" class="px-3 py-1.5 text-xs bg-background border border-border rounded-lg">Run</button>
+                </form>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}
