@@ -16,15 +16,21 @@
         <!-- Transaction Type Toggle -->
         <div class="mb-6">
             <label class="block text-sm font-medium text-text-muted mb-2">Transaction Type</label>
-            <div class="flex p-1 bg-surface-hover rounded-xl border border-border shadow-sm">
-                <input type="radio" id="type_expense" name="transaction_type" value="expense" {% if expense.transaction_type == 'expense' %}checked{% endif %} class="peer hidden">
-                <label for="type_expense" class="flex-1 text-center py-2.5 text-sm font-medium text-text-muted rounded-lg cursor-pointer transition-all peer-checked:bg-surface peer-checked:text-text peer-checked:shadow-sm peer-checked:border peer-checked:border-border">Expenses</label>
+            <div class="flex p-1 bg-surface-hover rounded-xl border border-border shadow-sm relative">
+                <div class="flex-1">
+                    <input type="radio" id="type_expense" name="transaction_type" value="expense" {% if expense.transaction_type == 'expense' %}checked{% endif %} class="peer sr-only">
+                    <label for="type_expense" class="block w-full text-center py-2.5 text-sm font-bold text-text-muted rounded-lg cursor-pointer transition-all peer-checked:bg-primary peer-checked:text-white peer-checked:shadow-md relative z-10">Expenses</label>
+                </div>
                 
-                <input type="radio" id="type_income" name="transaction_type" value="income" {% if expense.transaction_type == 'income' %}checked{% endif %} class="peer hidden">
-                <label for="type_income" class="flex-1 text-center py-2.5 text-sm font-medium text-text-muted rounded-lg cursor-pointer transition-all peer-checked:bg-surface peer-checked:text-text peer-checked:shadow-sm peer-checked:border peer-checked:border-border">Income</label>
+                <div class="flex-1">
+                    <input type="radio" id="type_income" name="transaction_type" value="income" {% if expense.transaction_type == 'income' %}checked{% endif %} class="peer sr-only">
+                    <label for="type_income" class="block w-full text-center py-2.5 text-sm font-bold text-text-muted rounded-lg cursor-pointer transition-all peer-checked:bg-primary peer-checked:text-white peer-checked:shadow-md relative z-10">Income</label>
+                </div>
                 
-                <input type="radio" id="type_transfer" name="transaction_type" value="transfer" {% if expense.transaction_type == 'transfer' %}checked{% endif %} class="peer hidden">
-                <label for="type_transfer" class="flex-1 text-center py-2.5 text-sm font-medium text-text-muted rounded-lg cursor-pointer transition-all peer-checked:bg-surface peer-checked:text-text peer-checked:shadow-sm peer-checked:border peer-checked:border-border">Transfer</label>
+                <div class="flex-1">
+                    <input type="radio" id="type_transfer" name="transaction_type" value="transfer" {% if expense.transaction_type == 'transfer' %}checked{% endif %} class="peer sr-only">
+                    <label for="type_transfer" class="block w-full text-center py-2.5 text-sm font-bold text-text-muted rounded-lg cursor-pointer transition-all peer-checked:bg-primary peer-checked:text-white peer-checked:shadow-md relative z-10">Transfer</label>
+                </div>
             </div>
         </div>
 
