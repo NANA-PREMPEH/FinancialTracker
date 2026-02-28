@@ -3,7 +3,7 @@ from . import api_bp, require_api_key
 from ..models import Expense, Wallet, Budget, Goal, Creditor, Category
 from .. import db
 from datetime import datetime
-from sqlalchemy import func
+from sqlalchemy import func, or_
 
 
 @api_bp.route('/summary', methods=['GET'])
@@ -14,23 +14,44 @@ def dashboard_summary():
     month_start = datetime(now.year, now.month, 1)
     year_start = datetime(now.year, 1, 1)
 
-    # Totals
+    # Exclude transfers
+    transfer_cat = Category.query.filter_by(name='Transfer', user_id=user_id).first()
+    transfer_id = transfer_cat.id if transfer_cat else -1
+    transfer_types = ('transfer', 'transfer_out', 'transfer_in')
+    transfer_filters = [
+        Expense.transaction_type.in_(transfer_types),
+        Expense.tags.ilike('%transfer%'),
+        Expense.description.ilike('Transfer to %'),
+        Expense.description.ilike('Transfer from %')
+    ]
+    if transfer_id != -1:
+        transfer_filters.append(Expense.category_id == transfer_id)
+    transfer_filter = or_(*transfer_filters)
+
     total_income = db.session.query(func.sum(Expense.amount)).filter(
-        Expense.user_id == user_id, Expense.transaction_type == 'income'
+        Expense.user_id == user_id,
+        Expense.transaction_type == 'income',
+        ~transfer_filter
     ).scalar() or 0
 
     total_expense = db.session.query(func.sum(Expense.amount)).filter(
-        Expense.user_id == user_id, Expense.transaction_type == 'expense'
+        Expense.user_id == user_id,
+        Expense.transaction_type == 'expense',
+        ~transfer_filter
     ).scalar() or 0
 
     monthly_expense = db.session.query(func.sum(Expense.amount)).filter(
-        Expense.user_id == user_id, Expense.transaction_type == 'expense',
-        Expense.date >= month_start
+        Expense.user_id == user_id,
+        Expense.transaction_type == 'expense',
+        Expense.date >= month_start,
+        ~transfer_filter
     ).scalar() or 0
 
     yearly_expense = db.session.query(func.sum(Expense.amount)).filter(
-        Expense.user_id == user_id, Expense.transaction_type == 'expense',
-        Expense.date >= year_start
+        Expense.user_id == user_id,
+        Expense.transaction_type == 'expense',
+        Expense.date >= year_start,
+        ~transfer_filter
     ).scalar() or 0
 
     # Wallet balances
@@ -53,7 +74,8 @@ def dashboard_summary():
     ).join(Category).filter(
         Expense.user_id == user_id,
         Expense.transaction_type == 'expense',
-        Expense.date >= month_start
+        Expense.date >= month_start,
+        ~transfer_filter
     ).group_by(Category.name).order_by(func.sum(Expense.amount).desc()).limit(10).all()
 
     return jsonify({

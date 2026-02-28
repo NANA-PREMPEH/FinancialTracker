@@ -16,21 +16,35 @@ main = Blueprint('main', __name__)
 @login_required
 def dashboard():
     wallets = Wallet.query.filter_by(user_id=current_user.id).all()
-    recent_expenses = Expense.query.filter_by(user_id=current_user.id).order_by(Expense.date.desc()).limit(5).all()
-
-    # Exclude Transfer category from totals
+    # Exclude Transfer category
     transfer_cat = Category.query.filter_by(name='Transfer', user_id=current_user.id).first()
     transfer_id = transfer_cat.id if transfer_cat else -1
-    
+    transfer_types = ('transfer', 'transfer_out', 'transfer_in')
+    transfer_filters = [
+        Expense.transaction_type.in_(transfer_types),
+        Expense.tags.ilike('%transfer%'),
+        Expense.description.ilike('Transfer to %'),
+        Expense.description.ilike('Transfer from %')
+    ]
+    if transfer_id != -1:
+        transfer_filters.append(Expense.category_id == transfer_id)
+    transfer_filter = or_(*transfer_filters)
+
+    recent_expenses = Expense.query.filter(
+        Expense.user_id == current_user.id,
+        ~transfer_filter
+    ).order_by(Expense.date.desc()).limit(5).all()
+
+    # Exclude transfers from totals
     total_expenses = db.session.query(func.sum(Expense.amount)).filter(
         Expense.user_id == current_user.id,
         Expense.transaction_type == 'expense',
-        Expense.category_id != transfer_id
+        ~transfer_filter
     ).scalar() or 0
     total_income = db.session.query(func.sum(Expense.amount)).filter(
         Expense.user_id == current_user.id,
         Expense.transaction_type == 'income',
-        Expense.category_id != transfer_id
+        ~transfer_filter
     ).scalar() or 0
     
     # Add Historical Data to Totals
@@ -41,7 +55,11 @@ def dashboard():
     total_income += hist_income
     
     # Get the oldest date for Total Expenses context
-    oldest_expense = db.session.query(func.min(Expense.date)).filter(Expense.user_id == current_user.id, Expense.transaction_type == 'expense').scalar()
+    oldest_expense = db.session.query(func.min(Expense.date)).filter(
+        Expense.user_id == current_user.id,
+        Expense.transaction_type == 'expense',
+        ~transfer_filter
+    ).scalar()
     oldest_hist = db.session.query(func.min(FinancialSummary.year)).filter(FinancialSummary.user_id == current_user.id).scalar()
     
     oldest_date = None
@@ -69,7 +87,7 @@ def dashboard():
         Expense.user_id == current_user.id,
         Expense.transaction_type == 'expense',
         Expense.date >= month_start,
-        Expense.category_id != transfer_id
+        ~transfer_filter
     ).scalar() or 0
     
     # Calculate current year's expenses
@@ -78,7 +96,7 @@ def dashboard():
         Expense.user_id == current_user.id,
         Expense.transaction_type == 'expense',
         Expense.date >= year_start,
-        Expense.category_id != transfer_id
+        ~transfer_filter
     ).scalar() or 0
     
     # Add Historical Data for Current Year
@@ -134,7 +152,7 @@ def dashboard():
         Expense.user_id == current_user.id,
         Expense.transaction_type == 'expense',
         Expense.date >= month_start,
-        Expense.category_id != transfer_id
+        ~transfer_filter
     ).group_by(Category.id).order_by(func.sum(Expense.amount).desc()).all()
 
     chart_categories = [row[0] for row in category_spending]
@@ -158,7 +176,7 @@ def dashboard():
             Expense.transaction_type == 'expense',
             Expense.date >= m_start,
             Expense.date < m_end,
-            Expense.category_id != transfer_id
+            ~transfer_filter
         ).scalar() or 0
         monthly_trend.append({
             'label': m_start.strftime('%b'),
@@ -263,6 +281,14 @@ def add_expense():
                 flash('Destination wallet not found!', 'error')
                 return redirect(url_for('main.add_expense'))
                 
+            # Ensure "Transfer" category exists for this user
+            transfer_cat = Category.query.filter_by(name='Transfer', user_id=current_user.id).first()
+            if not transfer_cat:
+                transfer_cat = Category(name='Transfer', icon='??', user_id=current_user.id)
+                db.session.add(transfer_cat)
+                db.session.flush() # flush to get ID
+            category_id = transfer_cat.id
+                
             # Create the withdrawal record (source wallet)
             expense_out = Expense(
                 user_id=current_user.id,
@@ -274,7 +300,7 @@ def add_expense():
                 notes=notes,
                 tags=tags,
                 receipt_path=receipt_path,
-                transaction_type='expense', # Mark as outgoing
+                transaction_type='transfer_out', # Mark as outgoing transfer
                 original_amount=input_amount,
                 original_currency=currency
             )
@@ -297,7 +323,7 @@ def add_expense():
                 notes=notes,
                 tags=tags,
                 receipt_path=receipt_path,
-                transaction_type='income', # Mark as incoming
+                transaction_type='transfer_in', # Mark as incoming transfer
                 original_amount=input_amount,
                 original_currency=currency
             )
@@ -446,13 +472,20 @@ def all_expenses():
     
     if category_filter:
         query = query.filter_by(category_id=int(category_filter))
+    else:
+        # Exclude Transfer category by default unless specifically filtered for it
+        if type_filter != 'transfer':
+            transfer_cat = Category.query.filter_by(name='Transfer', user_id=current_user.id).first()
+            if transfer_cat:
+                query = query.filter(Expense.category_id != transfer_cat.id)
     
     if wallet_filter:
         query = query.filter_by(wallet_id=int(wallet_filter))
     
     if type_filter:
         if type_filter == 'transfer':
-            query = query.filter(Expense.transaction_type.in_(['transfer', 'transfer_out', 'transfer_in']))
+            query = query.filter(Expense.transaction_type.in_(['transfer', 'transfer_out', 'transfer_in', 'expense', 'income']))
+            # Note: the category_id filter above acts as the primary 'transfer' gatekeeper if type_filter != 'transfer'
         else:
             query = query.filter_by(transaction_type=type_filter)
     
@@ -605,6 +638,7 @@ def transfer_funds():
     amount = float(request.form.get('amount'))
     exchange_rate = float(request.form.get('exchange_rate', 1.0))
     date_str = request.form.get('date')
+    reason = request.form.get('reason', '').strip()
     
     if source_wallet_id == dest_wallet_id:
         flash('Cannot transfer to the same wallet!', 'error')
@@ -625,10 +659,10 @@ def transfer_funds():
     #     flash('Insufficient funds in source wallet!', 'error')
     #     return redirect(url_for('main.wallets'))
         
-    # Get or create Transfer category
-    transfer_category = Category.query.filter_by(name='Transfer').first()
+    # Get or create Transfer category for the current user
+    transfer_category = Category.query.filter_by(name='Transfer', user_id=current_user.id).first()
     if not transfer_category:
-        transfer_category = Category(name='Transfer', icon='↔️', is_custom=False)
+        transfer_category = Category(name='Transfer', icon='↔️', user_id=current_user.id)
         db.session.add(transfer_category)
         db.session.commit()
     
@@ -642,7 +676,7 @@ def transfer_funds():
     expense = Expense(
         user_id=current_user.id,
         amount=amount,
-        description=f"Transfer to {dest_wallet.name} (Rate: {exchange_rate})",
+        description=f"Transfer to {dest_wallet.name}" + (f": {reason}" if reason else "") + (f" (Rate: {exchange_rate})" if exchange_rate != 1.0 else ""),
         category_id=transfer_category.id,
         wallet_id=source_wallet.id,
         date=date_obj,
@@ -655,7 +689,7 @@ def transfer_funds():
     income = Expense(
         user_id=current_user.id,
         amount=dest_amount,
-        description=f"Transfer from {source_wallet.name} (Rate: {exchange_rate})",
+        description=f"Transfer from {source_wallet.name}" + (f": {reason}" if reason else "") + (f" (Rate: {exchange_rate})" if exchange_rate != 1.0 else ""),
         category_id=transfer_category.id,
         wallet_id=dest_wallet.id,
         date=date_obj,
