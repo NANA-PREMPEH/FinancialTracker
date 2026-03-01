@@ -152,6 +152,10 @@
                         <i data-lucide="calculator"></i>
                         <span>Budget Planning</span>
                     </a>
+                    <a href="{{ url_for('calculator.calculator_view') }}" class="nav-item {% if request.blueprint == 'calculator' %}active{% endif %}">
+                        <i data-lucide="function-square"></i>
+                        <span>Advanced Calculator</span>
+                    </a>
                     <a href="{{ url_for('investments.investments_list') }}" class="nav-item {% if request.blueprint == 'investments' %}active{% endif %}">
                         <i data-lucide="trending-up"></i>
                         <span>Investments</span>

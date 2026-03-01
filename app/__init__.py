@@ -73,6 +73,7 @@ def create_app():
     from .routes_api_keys import api_keys_bp
     from .routes_domain import domain_bp
     from .routes_advanced import advanced_bp
+    from .routes_calculator import calculator_bp
     from .api import api_bp
     from .routes_push import push_bp
 
@@ -99,6 +100,7 @@ def create_app():
     app.register_blueprint(api_keys_bp)
     app.register_blueprint(domain_bp)
     app.register_blueprint(advanced_bp)
+    app.register_blueprint(calculator_bp)
     app.register_blueprint(api_bp)
     app.register_blueprint(push_bp)
 

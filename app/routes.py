@@ -4,6 +4,7 @@ from . import db
 from .models import Expense, Category, Wallet, Budget, RecurringTransaction, ExchangeRate, Project, ProjectItem, ProjectItemPayment, FinancialSummary, WishlistItem, Creditor
 from .utils import get_exchange_rate
 from datetime import datetime, timedelta
+from dateutil.relativedelta import relativedelta
 from sqlalchemy import func, or_
 import io
 import csv
@@ -910,8 +911,8 @@ def analytics():
     today = datetime.utcnow()
     
     for i in range(5, -1, -1):
-        # Calculate start of month
-        month_date = today - timedelta(days=30 * i) # Approximate
+        # Calculate start of month exactly
+        month_date = today - relativedelta(months=i)
         month_start = datetime(month_date.year, month_date.month, 1)
         
         # Calculate end of month
@@ -956,8 +957,8 @@ def analytics():
     yearly_data = []
     
     for i in range(11, -1, -1):
-        # Calculate start of month
-        month_date = today - timedelta(days=30 * i)
+        # Calculate start of month exactly
+        month_date = today - relativedelta(months=i)
         month_start = datetime(month_date.year, month_date.month, 1)
         
         if month_start.month == 12:
