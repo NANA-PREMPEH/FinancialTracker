@@ -1,468 +1,225 @@
 {% extends "base.html" %}
-
 {% block title %}Advanced Calculator - FinTracker{% endblock %}
-
 {% block header_title %}Advanced Financial Calculator{% endblock %}
-
 {% block content %}
-<div class="calculator-container" style="max-width: 1200px; margin: 0 auto; animation: fade-in 0.5s ease-out;">
-    
-    <!-- Header Section -->
-    <div style="display: flex; flex-direction: column; gap: 0.5rem; margin-bottom: 2rem;">
-        <h2 style="font-size: 1.5rem; font-weight: 700; color: var(--color-text);">Financial Tools</h2>
-        <p style="color: var(--color-text-muted); font-size: 0.95rem;">Plan ahead with our suite of advanced calculators.</p>
+<div class="calc-wrap">
+  <section class="calc-hero">
+    <p class="eyebrow">Finance Toolkit</p>
+    <h2>Plan money decisions before you commit.</h2>
+    <p>Use one screen for quick math, loan planning, ROI checks, savings targets, and debt payoff timelines.</p>
+  </section>
+
+  <div class="tabs" role="tablist">
+    <button class="tab active" data-tab="standard"><i data-lucide="calculator"></i>Standard</button>
+    <button class="tab" data-tab="loan"><i data-lucide="landmark"></i>Loan</button>
+    <button class="tab" data-tab="compound"><i data-lucide="trending-up"></i>Compound</button>
+    <button class="tab" data-tab="roi"><i data-lucide="percent"></i>ROI</button>
+    <button class="tab" data-tab="savings"><i data-lucide="target"></i>Savings Goal</button>
+    <button class="tab" data-tab="debt"><i data-lucide="wallet-cards"></i>Debt Payoff</button>
+  </div>
+
+  <section id="panel-standard" class="panel active">
+    <div class="std-card">
+      <div class="std-display">
+        <div id="std-history" class="history"></div>
+        <div id="std-result" class="std-value">0</div>
+      </div>
+      <div class="keys">
+        <button onclick="stdClear()">C</button>
+        <button onclick="stdCE()">CE</button>
+        <button onclick="stdBack()"><i data-lucide="delete"></i></button>
+        <button class="op" onclick="stdPush('/')">/</button>
+        <button onclick="stdPush('7')">7</button>
+        <button onclick="stdPush('8')">8</button>
+        <button onclick="stdPush('9')">9</button>
+        <button class="op" onclick="stdPush('*')">*</button>
+        <button onclick="stdPush('4')">4</button>
+        <button onclick="stdPush('5')">5</button>
+        <button onclick="stdPush('6')">6</button>
+        <button class="op" onclick="stdPush('-')">-</button>
+        <button onclick="stdPush('1')">1</button>
+        <button onclick="stdPush('2')">2</button>
+        <button onclick="stdPush('3')">3</button>
+        <button class="op" onclick="stdPush('+')">+</button>
+        <button onclick="stdSign()">+/-</button>
+        <button onclick="stdPush('0')">0</button>
+        <button onclick="stdPush('.')">.</button>
+        <button class="eq" onclick="stdEval()">=</button>
+      </div>
+      <p class="hint">Keyboard: numbers, operators, Enter, Backspace, Esc.</p>
     </div>
+  </section>
 
-    <!-- Tabs Navigation -->
-    <div class="tabs-nav" style="display: flex; gap: 1rem; overflow-x: auto; padding-bottom: 1rem; margin-bottom: 1.5rem; border-bottom: 1px solid var(--color-border); scrollbar-width: none;">
-        <button class="tab-btn active" onclick="switchTab('standard')" data-tab="standard" style="padding: 0.75rem 1.5rem; border: none; background: transparent; color: var(--color-text-muted); font-weight: 600; cursor: pointer; transition: all 0.3s ease; position: relative; white-space: nowrap; display: flex; align-items: center; gap: 0.5rem;">
-            <i data-lucide="calculator" style="width: 18px; height: 18px;"></i>
-            Standard
-            <div class="tab-indicator" style="position: absolute; bottom: -1px; left: 0; width: 100%; height: 2px; background: var(--color-primary); transform: scaleX(1); transition: transform 0.3s ease;"></div>
-        </button>
-        <button class="tab-btn" onclick="switchTab('loan')" data-tab="loan" style="padding: 0.75rem 1.5rem; border: none; background: transparent; color: var(--color-text-muted); font-weight: 600; cursor: pointer; transition: all 0.3s ease; position: relative; white-space: nowrap; display: flex; align-items: center; gap: 0.5rem;">
-            <i data-lucide="landmark" style="width: 18px; height: 18px;"></i>
-            Loan / Mortgage
-            <div class="tab-indicator" style="position: absolute; bottom: -1px; left: 0; width: 100%; height: 2px; background: var(--color-primary); transform: scaleX(0); transition: transform 0.3s ease;"></div>
-        </button>
-        <button class="tab-btn" onclick="switchTab('compound')" data-tab="compound" style="padding: 0.75rem 1.5rem; border: none; background: transparent; color: var(--color-text-muted); font-weight: 600; cursor: pointer; transition: all 0.3s ease; position: relative; white-space: nowrap; display: flex; align-items: center; gap: 0.5rem;">
-            <i data-lucide="trending-up" style="width: 18px; height: 18px;"></i>
-            Compound Interest
-            <div class="tab-indicator" style="position: absolute; bottom: -1px; left: 0; width: 100%; height: 2px; background: var(--color-primary); transform: scaleX(0); transition: transform 0.3s ease;"></div>
-        </button>
-        <button class="tab-btn" onclick="switchTab('roi')" data-tab="roi" style="padding: 0.75rem 1.5rem; border: none; background: transparent; color: var(--color-text-muted); font-weight: 600; cursor: pointer; transition: all 0.3s ease; position: relative; white-space: nowrap; display: flex; align-items: center; gap: 0.5rem;">
-            <i data-lucide="pie-chart" style="width: 18px; height: 18px;"></i>
-            ROI
-            <div class="tab-indicator" style="position: absolute; bottom: -1px; left: 0; width: 100%; height: 2px; background: var(--color-primary); transform: scaleX(0); transition: transform 0.3s ease;"></div>
-        </button>
+  <section id="panel-loan" class="panel">
+    <div class="grid">
+      <div class="card">
+        <h3><i data-lucide="settings-2"></i>Loan Inputs</h3>
+        <label>Loan amount</label><input id="loan-amount" type="number" min="0" step="100" placeholder="250000">
+        <label>Annual rate (%)</label><input id="loan-rate" type="number" min="0" step="0.01" placeholder="6.5">
+        <label>Term (years)</label><input id="loan-years" type="number" min="1" step="1" placeholder="30">
+      </div>
+      <div class="card result primary">
+        <h3><i data-lucide="receipt-text"></i>Loan Result</h3>
+        <p class="big" id="loan-monthly">0.00</p>
+        <div class="stats">
+          <div><span>Total payment</span><strong id="loan-total">0.00</strong></div>
+          <div><span>Total interest</span><strong id="loan-interest">0.00</strong></div>
+        </div>
+      </div>
     </div>
+  </section>
 
-    <!-- Tab Contents -->
-    <div class="tab-contents">
-        
-        <!-- Standard Calculator Tab -->
-        <div id="tab-standard" class="tab-content active" style="animation: slide-up 0.4s ease-out;">
-            <div class="calc-card" style="background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-xl); padding: 2rem; box-shadow: 0 4px 20px rgba(0,0,0,0.05); max-width: 400px; margin: 0 auto;">
-                <div class="calc-display" style="background: var(--color-background); border-radius: var(--radius-lg); padding: 1.5rem; margin-bottom: 1.5rem; text-align: right; border: 1px solid var(--color-border); min-height: 100px; display: flex; flex-direction: column; justify-content: space-between;">
-                    <div id="std-history" style="color: var(--color-text-muted); font-size: 0.9rem; min-height: 1.2rem;"></div>
-                    <div id="std-result" style="color: var(--color-text); font-size: 2.5rem; font-weight: 700; word-break: break-all; line-height: 1;">0</div>
-                </div>
-                <div class="calc-grid" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.75rem;">
-                    <!-- Row 1 -->
-                    <button class="calc-btn btn-action" onclick="stdClear('C')" style="background: var(--color-danger-bg); color: var(--color-danger); border: none; border-radius: var(--radius-md); padding: 1rem; font-size: 1.2rem; font-weight: 600; cursor: pointer; transition: filter 0.2s;">C</button>
-                    <button class="calc-btn btn-action" onclick="stdClear('CE')" style="background: var(--color-surface-hover); color: var(--color-danger); border: none; border-radius: var(--radius-md); padding: 1rem; font-size: 1.1rem; font-weight: 600; cursor: pointer; transition: filter 0.2s;">CE</button>
-                    <button class="calc-btn btn-op" onclick="stdOp('%')" style="background: var(--color-surface-hover); color: var(--color-primary); border: none; border-radius: var(--radius-md); padding: 1rem; font-size: 1.2rem; font-weight: 600; cursor: pointer; transition: filter 0.2s;">%</button>
-                    <button class="calc-btn btn-op" onclick="stdOp('/')" style="background: var(--color-surface-hover); color: var(--color-primary); border: none; border-radius: var(--radius-md); padding: 1rem; font-size: 1.2rem; font-weight: 600; cursor: pointer; transition: filter 0.2s;">/</button>
-                    <!-- Row 2 -->
-                    <button class="calc-btn btn-num" onclick="stdNum('7')" style="background: var(--color-surface-hover); color: var(--color-text); border: none; border-radius: var(--radius-md); padding: 1rem; font-size: 1.2rem; font-weight: 600; cursor: pointer; transition: filter 0.2s;">7</button>
-                    <button class="calc-btn btn-num" onclick="stdNum('8')" style="background: var(--color-surface-hover); color: var(--color-text); border: none; border-radius: var(--radius-md); padding: 1rem; font-size: 1.2rem; font-weight: 600; cursor: pointer; transition: filter 0.2s;">8</button>
-                    <button class="calc-btn btn-num" onclick="stdNum('9')" style="background: var(--color-surface-hover); color: var(--color-text); border: none; border-radius: var(--radius-md); padding: 1rem; font-size: 1.2rem; font-weight: 600; cursor: pointer; transition: filter 0.2s;">9</button>
-                    <button class="calc-btn btn-op" onclick="stdOp('*')" style="background: var(--color-surface-hover); color: var(--color-primary); border: none; border-radius: var(--radius-md); padding: 1rem; font-size: 1.2rem; font-weight: 600; cursor: pointer; transition: filter 0.2s;">×</button>
-                    <!-- Row 3 -->
-                    <button class="calc-btn btn-num" onclick="stdNum('4')" style="background: var(--color-surface-hover); color: var(--color-text); border: none; border-radius: var(--radius-md); padding: 1rem; font-size: 1.2rem; font-weight: 600; cursor: pointer; transition: filter 0.2s;">4</button>
-                    <button class="calc-btn btn-num" onclick="stdNum('5')" style="background: var(--color-surface-hover); color: var(--color-text); border: none; border-radius: var(--radius-md); padding: 1rem; font-size: 1.2rem; font-weight: 600; cursor: pointer; transition: filter 0.2s;">5</button>
-                    <button class="calc-btn btn-num" onclick="stdNum('6')" style="background: var(--color-surface-hover); color: var(--color-text); border: none; border-radius: var(--radius-md); padding: 1rem; font-size: 1.2rem; font-weight: 600; cursor: pointer; transition: filter 0.2s;">6</button>
-                    <button class="calc-btn btn-op" onclick="stdOp('-')" style="background: var(--color-surface-hover); color: var(--color-primary); border: none; border-radius: var(--radius-md); padding: 1rem; font-size: 1.5rem; font-weight: 600; cursor: pointer; transition: filter 0.2s;">-</button>
-                    <!-- Row 4 -->
-                    <button class="calc-btn btn-num" onclick="stdNum('1')" style="background: var(--color-surface-hover); color: var(--color-text); border: none; border-radius: var(--radius-md); padding: 1rem; font-size: 1.2rem; font-weight: 600; cursor: pointer; transition: filter 0.2s;">1</button>
-                    <button class="calc-btn btn-num" onclick="stdNum('2')" style="background: var(--color-surface-hover); color: var(--color-text); border: none; border-radius: var(--radius-md); padding: 1rem; font-size: 1.2rem; font-weight: 600; cursor: pointer; transition: filter 0.2s;">2</button>
-                    <button class="calc-btn btn-num" onclick="stdNum('3')" style="background: var(--color-surface-hover); color: var(--color-text); border: none; border-radius: var(--radius-md); padding: 1rem; font-size: 1.2rem; font-weight: 600; cursor: pointer; transition: filter 0.2s;">3</button>
-                    <button class="calc-btn btn-op" onclick="stdOp('+')" style="background: var(--color-surface-hover); color: var(--color-primary); border: none; border-radius: var(--radius-md); padding: 1rem; font-size: 1.2rem; font-weight: 600; cursor: pointer; transition: filter 0.2s;">+</button>
-                    <!-- Row 5 -->
-                    <button class="calc-btn btn-num" onclick="stdNum('0')" style="background: var(--color-surface-hover); color: var(--color-text); border: none; border-radius: var(--radius-md); padding: 1rem; font-size: 1.2rem; font-weight: 600; cursor: pointer; transition: filter 0.2s; grid-column: span 2;">0</button>
-                    <button class="calc-btn btn-num" onclick="stdNum('.')" style="background: var(--color-surface-hover); color: var(--color-text); border: none; border-radius: var(--radius-md); padding: 1rem; font-size: 1.5rem; font-weight: 600; cursor: pointer; transition: filter 0.2s;">.</button>
-                    <button class="calc-btn btn-eq" onclick="stdCalc()" style="background: var(--color-primary); color: white; border: none; border-radius: var(--radius-md); padding: 1rem; font-size: 1.2rem; font-weight: 600; cursor: pointer; transition: opacity 0.2s; box-shadow: 0 4px 12px var(--color-primary-light);">
-                        <i data-lucide="equal" style="margin: 0 auto;"></i>
-                    </button>
-                </div>
-            </div>
+  <section id="panel-compound" class="panel">
+    <div class="grid">
+      <div class="card">
+        <h3><i data-lucide="settings-2"></i>Growth Inputs</h3>
+        <label>Starting principal</label><input id="ci-principal" type="number" min="0" step="100" placeholder="10000">
+        <label>Monthly contribution</label><input id="ci-contrib" type="number" min="0" step="10" placeholder="500">
+        <label>Annual return (%)</label><input id="ci-rate" type="number" min="0" step="0.01" placeholder="8">
+        <label>Years</label><input id="ci-years" type="number" min="1" step="1" placeholder="10">
+      </div>
+      <div class="card result success">
+        <h3><i data-lucide="sparkles"></i>Future Value</h3>
+        <p class="big" id="ci-future">0.00</p>
+        <div class="stats">
+          <div><span>Contributions</span><strong id="ci-total-contrib">0.00</strong></div>
+          <div><span>Growth</span><strong id="ci-growth">0.00</strong></div>
         </div>
-
-        <!-- Loan Calculator Tab -->
-        <div id="tab-loan" class="tab-content" style="display: none; animation: slide-up 0.4s ease-out;">
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; align-items: start;">
-                <!-- Inputs -->
-                <div class="calc-form" style="background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-xl); padding: 2rem; box-shadow: 0 4px 20px rgba(0,0,0,0.05);">
-                    <h3 style="font-size: 1.2rem; font-weight: 600; margin-bottom: 1.5rem; display: flex; align-items: center; gap: 0.5rem;">
-                        <i data-lucide="settings-2" class="text-primary"></i> Parameters
-                    </h3>
-                    <div class="form-group" style="margin-bottom: 1.5rem;">
-                        <label style="display: block; margin-bottom: 0.5rem; font-size: 0.9rem; color: var(--color-text-muted);">Loan Amount ($)</label>
-                        <input type="number" id="loan-amount" class="form-control" placeholder="e.g., 250000" style="width: 100%; padding: 0.75rem; border: 1px solid var(--color-border); border-radius: var(--radius-md); background: var(--color-background); color: var(--color-text);" oninput="calcLoan()">
-                    </div>
-                    <div class="form-group" style="margin-bottom: 1.5rem;">
-                        <label style="display: block; margin-bottom: 0.5rem; font-size: 0.9rem; color: var(--color-text-muted);">Interest Rate (% per year)</label>
-                        <input type="number" id="loan-rate" class="form-control" placeholder="e.g., 4.5" step="0.1" style="width: 100%; padding: 0.75rem; border: 1px solid var(--color-border); border-radius: var(--radius-md); background: var(--color-background); color: var(--color-text);" oninput="calcLoan()">
-                    </div>
-                    <div class="form-group" style="margin-bottom: 1.5rem;">
-                        <label style="display: block; margin-bottom: 0.5rem; font-size: 0.9rem; color: var(--color-text-muted);">Loan Term (Years)</label>
-                        <input type="number" id="loan-term" class="form-control" placeholder="e.g., 30" style="width: 100%; padding: 0.75rem; border: 1px solid var(--color-border); border-radius: var(--radius-md); background: var(--color-background); color: var(--color-text);" oninput="calcLoan()">
-                    </div>
-                </div>
-
-                <!-- Results -->
-                <div class="calc-results" style="background: linear-gradient(135deg, var(--color-primary), var(--color-primary-dark)); border-radius: var(--radius-xl); padding: 2rem; color: white; box-shadow: 0 10px 30px var(--color-primary-light); height: 100%; display: flex; flex-direction: column;">
-                    <h3 style="font-size: 1.2rem; font-weight: 600; margin-bottom: 2rem; opacity: 0.9; display: flex; align-items: center; gap: 0.5rem;">
-                        <i data-lucide="bar-chart-2"></i> Monthly Payment
-                    </h3>
-                    <div style="font-size: 3.5rem; font-weight: 700; margin-bottom: 2rem; letter-spacing: -1px;">
-                        $<span id="loan-monthly">0.00</span>
-                    </div>
-                    <div style="flex: 1;"></div>
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; border-top: 1px solid rgba(255,255,255,0.2); padding-top: 1.5rem;">
-                        <div>
-                            <div style="font-size: 0.85rem; opacity: 0.8; margin-bottom: 0.25rem;">Total Payment</div>
-                            <div style="font-size: 1.25rem; font-weight: 600;">$<span id="loan-total">0.00</span></div>
-                        </div>
-                        <div>
-                            <div style="font-size: 0.85rem; opacity: 0.8; margin-bottom: 0.25rem;">Total Interest</div>
-                            <div style="font-size: 1.25rem; font-weight: 600;">$<span id="loan-interest">0.00</span></div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Compound Interest Tab -->
-        <div id="tab-compound" class="tab-content" style="display: none; animation: slide-up 0.4s ease-out;">
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; align-items: start;">
-                 <!-- Inputs -->
-                 <div class="calc-form" style="background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-xl); padding: 2rem; box-shadow: 0 4px 20px rgba(0,0,0,0.05);">
-                    <h3 style="font-size: 1.2rem; font-weight: 600; margin-bottom: 1.5rem; display: flex; align-items: center; gap: 0.5rem;">
-                        <i data-lucide="settings-2" class="text-primary"></i> Parameters
-                    </h3>
-                    <div class="form-group" style="margin-bottom: 1.5rem;">
-                        <label style="display: block; margin-bottom: 0.5rem; font-size: 0.9rem; color: var(--color-text-muted);">Initial Principal ($)</label>
-                        <input type="number" id="ci-principal" class="form-control" placeholder="e.g., 10000" style="width: 100%; padding: 0.75rem; border: 1px solid var(--color-border); border-radius: var(--radius-md); background: var(--color-background); color: var(--color-text);" oninput="calcCI()">
-                    </div>
-                    <div class="form-group" style="margin-bottom: 1.5rem;">
-                        <label style="display: block; margin-bottom: 0.5rem; font-size: 0.9rem; color: var(--color-text-muted);">Monthly Contribution ($)</label>
-                        <input type="number" id="ci-addition" class="form-control" placeholder="e.g., 500" style="width: 100%; padding: 0.75rem; border: 1px solid var(--color-border); border-radius: var(--radius-md); background: var(--color-background); color: var(--color-text);" oninput="calcCI()">
-                    </div>
-                    <div class="form-group" style="margin-bottom: 1.5rem;">
-                        <label style="display: block; margin-bottom: 0.5rem; font-size: 0.9rem; color: var(--color-text-muted);">Estimated Return Rate (%)</label>
-                        <input type="number" id="ci-rate" class="form-control" placeholder="e.g., 7" step="0.1" style="width: 100%; padding: 0.75rem; border: 1px solid var(--color-border); border-radius: var(--radius-md); background: var(--color-background); color: var(--color-text);" oninput="calcCI()">
-                    </div>
-                    <div class="form-group" style="margin-bottom: 1.5rem;">
-                        <label style="display: block; margin-bottom: 0.5rem; font-size: 0.9rem; color: var(--color-text-muted);">Time Period (Years)</label>
-                        <input type="number" id="ci-years" class="form-control" placeholder="e.g., 10" style="width: 100%; padding: 0.75rem; border: 1px solid var(--color-border); border-radius: var(--radius-md); background: var(--color-background); color: var(--color-text);" oninput="calcCI()">
-                    </div>
-                </div>
-
-                <!-- Results -->
-                <div class="calc-results" style="background: linear-gradient(135deg, var(--color-success), var(--color-success-dark, #059669)); border-radius: var(--radius-xl); padding: 2rem; color: white; box-shadow: 0 10px 30px rgba(16, 185, 129, 0.3); height: 100%; display: flex; flex-direction: column;">
-                    <h3 style="font-size: 1.2rem; font-weight: 600; margin-bottom: 2rem; opacity: 0.9; display: flex; align-items: center; gap: 0.5rem;">
-                        <i data-lucide="leaf"></i> Future Value
-                    </h3>
-                    <div style="font-size: 3.5rem; font-weight: 700; margin-bottom: 2rem; letter-spacing: -1px;">
-                        $<span id="ci-future">0.00</span>
-                    </div>
-                    <div style="flex: 1;"></div>
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; border-top: 1px solid rgba(255,255,255,0.2); padding-top: 1.5rem;">
-                        <div>
-                            <div style="font-size: 0.85rem; opacity: 0.8; margin-bottom: 0.25rem;">Total Contributions</div>
-                            <div style="font-size: 1.25rem; font-weight: 600;">$<span id="ci-principal-total">0.00</span></div>
-                        </div>
-                        <div>
-                            <div style="font-size: 0.85rem; opacity: 0.8; margin-bottom: 0.25rem;">Total Interest Earned</div>
-                            <div style="font-size: 1.25rem; font-weight: 600;">$<span id="ci-interest">0.00</span></div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- ROI Calculator Tab -->
-        <div id="tab-roi" class="tab-content" style="display: none; animation: slide-up 0.4s ease-out;">
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; align-items: start;">
-                 <!-- Inputs -->
-                 <div class="calc-form" style="background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-xl); padding: 2rem; box-shadow: 0 4px 20px rgba(0,0,0,0.05);">
-                    <h3 style="font-size: 1.2rem; font-weight: 600; margin-bottom: 1.5rem; display: flex; align-items: center; gap: 0.5rem;">
-                        <i data-lucide="settings-2" class="text-primary"></i> Parameters
-                    </h3>
-                    <div class="form-group" style="margin-bottom: 1.5rem;">
-                        <label style="display: block; margin-bottom: 0.5rem; font-size: 0.9rem; color: var(--color-text-muted);">Amount Invested ($)</label>
-                        <input type="number" id="roi-invested" class="form-control" placeholder="e.g., 5000" style="width: 100%; padding: 0.75rem; border: 1px solid var(--color-border); border-radius: var(--radius-md); background: var(--color-background); color: var(--color-text);" oninput="calcROI()">
-                    </div>
-                    <div class="form-group" style="margin-bottom: 1.5rem;">
-                        <label style="display: block; margin-bottom: 0.5rem; font-size: 0.9rem; color: var(--color-text-muted);">Amount Returned ($)</label>
-                        <input type="number" id="roi-returned" class="form-control" placeholder="e.g., 6500" style="width: 100%; padding: 0.75rem; border: 1px solid var(--color-border); border-radius: var(--radius-md); background: var(--color-background); color: var(--color-text);" oninput="calcROI()">
-                    </div>
-                    <div class="form-group" style="margin-bottom: 1.5rem;">
-                        <label style="display: block; margin-bottom: 0.5rem; font-size: 0.9rem; color: var(--color-text-muted);">Time Invested (Years - Optional)</label>
-                        <input type="number" id="roi-years" class="form-control" placeholder="e.g., 2" style="width: 100%; padding: 0.75rem; border: 1px solid var(--color-border); border-radius: var(--radius-md); background: var(--color-background); color: var(--color-text);" oninput="calcROI()">
-                    </div>
-                </div>
-
-                <!-- Results -->
-                <div id="roi-result-card" class="calc-results" style="background: linear-gradient(135deg, var(--color-primary), var(--color-primary-dark)); border-radius: var(--radius-xl); padding: 2rem; color: white; box-shadow: 0 10px 30px var(--color-primary-light); height: 100%; display: flex; flex-direction: column; transition: all 0.3s ease;">
-                    <h3 style="font-size: 1.2rem; font-weight: 600; margin-bottom: 2rem; opacity: 0.9; display: flex; align-items: center; gap: 0.5rem;">
-                        <i data-lucide="percent"></i> Return on Investment
-                    </h3>
-                    <div style="font-size: 3.5rem; font-weight: 700; margin-bottom: 2rem; letter-spacing: -1px;">
-                        <span id="roi-percentage">0.00</span>%
-                    </div>
-                    <div style="flex: 1;"></div>
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; border-top: 1px solid rgba(255,255,255,0.2); padding-top: 1.5rem;">
-                        <div>
-                            <div style="font-size: 0.85rem; opacity: 0.8; margin-bottom: 0.25rem;">Net Profit</div>
-                            <div style="font-size: 1.25rem; font-weight: 600;">$<span id="roi-profit">0.00</span></div>
-                        </div>
-                        <div>
-                            <div style="font-size: 0.85rem; opacity: 0.8; margin-bottom: 0.25rem;">Annualized ROI</div>
-                            <div style="font-size: 1.25rem; font-weight: 600;"><span id="roi-annual">0.00</span>%</div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
+      </div>
     </div>
+  </section>
+
+  <section id="panel-roi" class="panel">
+    <div class="grid">
+      <div class="card">
+        <h3><i data-lucide="settings-2"></i>ROI Inputs</h3>
+        <label>Amount invested</label><input id="roi-invested" type="number" min="0" step="100" placeholder="5000">
+        <label>Current value</label><input id="roi-current" type="number" min="0" step="100" placeholder="6500">
+        <label>Years (optional)</label><input id="roi-years" type="number" min="0" step="0.1" placeholder="2">
+      </div>
+      <div id="roi-card" class="card result primary">
+        <h3><i data-lucide="pie-chart"></i>ROI</h3>
+        <p class="big"><span id="roi-value">0.00</span>%</p>
+        <div class="stats">
+          <div><span>Net profit</span><strong id="roi-profit">0.00</strong></div>
+          <div><span>Annualized</span><strong><span id="roi-annual">-</span>%</strong></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="panel-savings" class="panel">
+    <div class="grid">
+      <div class="card">
+        <h3><i data-lucide="settings-2"></i>Savings Inputs</h3>
+        <label>Target amount</label><input id="sg-target" type="number" min="0" step="100" placeholder="50000">
+        <label>Current savings</label><input id="sg-current" type="number" min="0" step="100" placeholder="7000">
+        <label>Annual return (%)</label><input id="sg-rate" type="number" min="0" step="0.01" placeholder="5">
+        <label>Years to goal</label><input id="sg-years" type="number" min="0.1" step="0.1" placeholder="5">
+      </div>
+      <div class="card result warn">
+        <h3><i data-lucide="target"></i>Savings Plan</h3>
+        <p class="big" id="sg-monthly">0.00</p>
+        <div class="stats">
+          <div><span>Total deposits</span><strong id="sg-deposits">0.00</strong></div>
+          <div><span>Expected growth</span><strong id="sg-growth">0.00</strong></div>
+        </div>
+        <p class="note" id="sg-note"></p>
+      </div>
+    </div>
+  </section>
+
+  <section id="panel-debt" class="panel">
+    <div class="grid">
+      <div class="card">
+        <h3><i data-lucide="settings-2"></i>Debt Inputs</h3>
+        <label>Current balance</label><input id="debt-balance" type="number" min="0" step="100" placeholder="12000">
+        <label>Annual rate (%)</label><input id="debt-rate" type="number" min="0" step="0.01" placeholder="18">
+        <label>Monthly payment</label><input id="debt-payment" type="number" min="0" step="10" placeholder="400">
+      </div>
+      <div class="card result danger">
+        <h3><i data-lucide="timer"></i>Payoff Projection</h3>
+        <p class="big" id="debt-months">0</p>
+        <div class="stats">
+          <div><span>Payoff date</span><strong id="debt-date">-</strong></div>
+          <div><span>Total interest</span><strong id="debt-interest">0.00</strong></div>
+        </div>
+        <p class="note" id="debt-note"></p>
+      </div>
+    </div>
+  </section>
 </div>
 
 <style>
-    /* Styling rules for calculator specific items */
-    @keyframes slide-up {
-        from { opacity: 0; transform: translateY(20px); }
-        to { opacity: 1; transform: translateY(0); }
-    }
-    @keyframes fade-in {
-        from { opacity: 0; }
-        to { opacity: 1; }
-    }
-    .tab-btn.active {
-        color: var(--color-text) !important;
-    }
-    .tab-btn.active .tab-indicator {
-        transform: scaleX(1) !important;
-    }
-    .tab-btn:hover {
-        background: var(--color-surface-hover) !important;
-        border-radius: var(--radius-md) var(--radius-md) 0 0;
-    }
-    .calc-btn:hover {
-        filter: brightness(0.9);
-    }
-    [data-theme="dark"] .calc-btn:hover {
-        filter: brightness(1.2);
-    }
-    .calc-btn:active {
-        transform: scale(0.95);
-    }
-    input::-webkit-outer-spin-button,
-    input::-webkit-inner-spin-button {
-        -webkit-appearance: none;
-        margin: 0;
-    }
-    input[type=number] {
-        -moz-appearance: textfield;
-    }
-    .form-control:focus {
-        outline: none;
-        border-color: var(--color-primary) !important;
-        box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
-    }
-    @media (max-width: 768px) {
-        .calc-content > div > div {
-            grid-template-columns: 1fr !important;
-        }
-    }
+.calc-wrap{max-width:1200px;margin:0 auto;display:grid;gap:1rem;animation:fade .35s ease}
+.calc-hero{border:1px solid var(--color-border);border-radius:var(--radius-xl);padding:1.3rem;background:radial-gradient(900px 260px at 92% -20%,color-mix(in srgb,var(--color-primary) 24%,transparent),transparent 50%),var(--color-surface)}
+.eyebrow{margin:0 0 .4rem;font-size:.75rem;letter-spacing:.12em;text-transform:uppercase;font-weight:700;color:var(--color-primary)}
+.calc-hero h2{margin:0 0 .5rem;font-size:1.4rem;color:var(--color-text)}
+.calc-hero p{margin:0;color:var(--color-text-muted)}
+.tabs{display:grid;grid-template-columns:repeat(6,minmax(130px,1fr));gap:.55rem;overflow-x:auto;padding-bottom:.2rem}
+.tab{height:44px;border:1px solid var(--color-border);border-radius:var(--radius-lg);background:var(--color-surface);color:var(--color-text-muted);font-weight:600;display:flex;align-items:center;justify-content:center;gap:.4rem;cursor:pointer}
+.tab.active{color:var(--color-text);border-color:color-mix(in srgb,var(--color-primary) 65%,var(--color-border));box-shadow:0 8px 14px color-mix(in srgb,var(--color-primary) 22%,transparent)}
+.tab i{width:16px;height:16px}
+.panel{display:none;border:1px solid var(--color-border);border-radius:var(--radius-xl);padding:.9rem;background:var(--color-surface)}
+.panel.active{display:block}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:.9rem}
+.card{border:1px solid var(--color-border);border-radius:var(--radius-lg);padding:1rem;background:var(--color-background)}
+.card h3{margin:0 0 .8rem;font-size:1rem;display:flex;gap:.4rem;align-items:center}
+.card h3 i{width:16px;height:16px}
+.card label{display:block;margin:.6rem 0 .25rem;font-size:.85rem;color:var(--color-text-muted)}
+.card input{width:100%;height:40px;border:1px solid var(--color-border);border-radius:var(--radius-md);padding:0 .7rem;background:var(--color-surface);color:var(--color-text)}
+.card input:focus{outline:none;border-color:var(--color-primary);box-shadow:0 0 0 3px color-mix(in srgb,var(--color-primary) 20%,transparent)}
+.result{color:#f8fafc;border-color:transparent}
+.primary{background:linear-gradient(145deg,color-mix(in srgb,var(--color-primary) 80%,#0f172a),#1e293b)}
+.success{background:linear-gradient(145deg,#059669,#047857)}
+.warn{background:linear-gradient(145deg,#d97706,#b45309)}
+.danger{background:linear-gradient(145deg,#b91c1c,#7f1d1d)}
+.big{font-size:2.1rem;font-weight:700;letter-spacing:-.02em;margin:.2rem 0 1rem}
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:.5rem}
+.stats>div{border:1px solid rgba(255,255,255,.24);border-radius:var(--radius-md);padding:.55rem;background:rgba(15,23,42,.14);display:grid;gap:.2rem}
+.stats span{font-size:.75rem;text-transform:uppercase;letter-spacing:.06em;color:rgba(248,250,252,.72)}
+.stats strong{font-size:1rem}
+.note{margin:.7rem 0 0;padding:.55rem;border:1px solid rgba(255,255,255,.25);border-radius:var(--radius-md);background:rgba(15,23,42,.15);font-size:.82rem;min-height:2.5rem}
+.std-card{max-width:420px;margin:0 auto;display:grid;gap:.7rem}
+.std-display{border:1px solid var(--color-border);border-radius:var(--radius-lg);background:var(--color-background);padding:.8rem .9rem;min-height:104px;display:grid;align-content:space-between}
+.history{min-height:1rem;font-size:.88rem;color:var(--color-text-muted);text-align:right}
+.std-value{font-size:2.1rem;text-align:right;color:var(--color-text);overflow-wrap:anywhere}
+.keys{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:.5rem}
+.keys button{height:50px;border:1px solid var(--color-border);border-radius:var(--radius-md);background:var(--color-surface);color:var(--color-text);font-weight:600;cursor:pointer}
+.keys button:hover{background:var(--color-surface-hover)}
+.keys .op{color:var(--color-primary)}
+.keys .eq{background:var(--color-primary);border-color:transparent;color:#fff}
+.hint{margin:0;text-align:center;font-size:.8rem;color:var(--color-text-muted)}
+@keyframes fade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@media (max-width:920px){.grid{grid-template-columns:1fr}.tabs{grid-template-columns:repeat(6,150px)}}
+@media (max-width:640px){.stats{grid-template-columns:1fr}.keys button{height:46px}.big{font-size:1.8rem}}
 </style>
 
 <script>
-    // Tab Switching Logic
-    function switchTab(tabId) {
-        document.querySelectorAll('.tab-btn').forEach(btn => {
-            btn.classList.remove('active');
-            btn.querySelector('.tab-indicator').style.transform = 'scaleX(0)';
-        });
-        document.querySelectorAll('.tab-content').forEach(content => {
-            content.style.display = 'none';
-        });
+const tabBtns=[...document.querySelectorAll('.tab')],panels=[...document.querySelectorAll('.panel')];
+tabBtns.forEach(b=>b.addEventListener('click',()=>{tabBtns.forEach(x=>x.classList.toggle('active',x===b));panels.forEach(p=>p.classList.toggle('active',p.id===`panel-${b.dataset.tab}`));}));
+const money=n=>Number.isFinite(n)?n.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}):'0.00';
+const num=id=>parseFloat(document.getElementById(id)?.value);
 
-        const activeBtn = document.querySelector(`[data-tab="${tabId}"]`);
-        activeBtn.classList.add('active');
-        activeBtn.querySelector('.tab-indicator').style.transform = 'scaleX(1)';
-        document.getElementById(`tab-${tabId}`).style.display = 'block';
-    }
+let exp='',hist='';
+const show=v=>{document.getElementById('std-result').textContent=v??(exp||'0');document.getElementById('std-history').textContent=hist;};
+const isOp=c=>['+','-','*','/'].includes(c);
+function stdPush(t){const last=exp.slice(-1);if(isOp(t)){if(!exp&&t!=='-')return;exp=isOp(last)?exp.slice(0,-1)+t:exp+t;return show();}if(t==='.'&&((exp.split(/[+\-*/]/).pop()||'').includes('.')))return;exp=(exp==='0'&&t!=='.')?t:exp+t;show();}
+function stdBack(){exp=exp.slice(0,-1);show();}
+function stdClear(){exp='';hist='';show('0');}
+function stdCE(){exp=exp.replace(/[0-9.]+$/,'');show(exp?'':'0');}
+function stdSign(){const m=exp.match(/(-?\d*\.?\d+)$/);if(!m){exp='-';return show();}const v=m[0],s=exp.slice(0,-v.length);exp=s+(v.startsWith('-')?v.slice(1):`-${v}`);show();}
+function stdEval(){if(!exp)return;while(isOp(exp.slice(-1)))exp=exp.slice(0,-1);if(!exp)return;try{const s=exp.replace(/\s+/g,'');if(!/^[0-9+\-*/().]+$/.test(s))throw Error('bad');const r=Function(`"use strict";return (${s});`)();if(!Number.isFinite(r))throw Error('bad');hist=`${exp} =`;exp=String(parseFloat(r.toFixed(10)));show();}catch(_){show('Error');exp='';}}
+document.addEventListener('keydown',e=>{if(!document.getElementById('panel-standard').classList.contains('active'))return;if(['INPUT','TEXTAREA','SELECT'].includes((e.target?.tagName||'')))return;if(/^[0-9]$/.test(e.key)){stdPush(e.key);e.preventDefault();}else if(['+','-','*','/'].includes(e.key)){stdPush(e.key);e.preventDefault();}else if(e.key==='.'){stdPush('.');e.preventDefault();}else if(e.key==='Enter'||e.key==='='){stdEval();e.preventDefault();}else if(e.key==='Backspace'){stdBack();e.preventDefault();}else if(e.key==='Escape'){stdClear();e.preventDefault();}});
 
-    // Standard Calculator Logic
-    let stdCurrent = '0';
-    let stdPrev = '';
-    let stdOperator = null;
-    let stdHistory = '';
+function calcLoan(){const p=num('loan-amount'),r=num('loan-rate'),y=num('loan-years');if(!Number.isFinite(p)||!Number.isFinite(r)||!Number.isFinite(y)||p<=0||y<=0){document.getElementById('loan-monthly').textContent='0.00';document.getElementById('loan-total').textContent='0.00';document.getElementById('loan-interest').textContent='0.00';return;}const m=r/100/12,n=y*12,pay=m===0?p/n:p*(m*Math.pow(1+m,n))/(Math.pow(1+m,n)-1),tot=pay*n;document.getElementById('loan-monthly').textContent=money(pay);document.getElementById('loan-total').textContent=money(tot);document.getElementById('loan-interest').textContent=money(tot-p);}
+function calcCompound(){const p=num('ci-principal')||0,c=num('ci-contrib')||0,r=num('ci-rate'),y=num('ci-years');if(!Number.isFinite(r)||!Number.isFinite(y)||y<=0){document.getElementById('ci-future').textContent='0.00';document.getElementById('ci-total-contrib').textContent='0.00';document.getElementById('ci-growth').textContent='0.00';return;}const i=r/100/12,n=Math.round(y*12),fvP=p*Math.pow(1+i,n),fvC=i===0?c*n:c*((Math.pow(1+i,n)-1)/i),fv=fvP+fvC,tc=p+c*n;document.getElementById('ci-future').textContent=money(fv);document.getElementById('ci-total-contrib').textContent=money(tc);document.getElementById('ci-growth').textContent=money(fv-tc);}
+function calcROI(){const i=num('roi-invested'),v=num('roi-current'),y=num('roi-years');if(!Number.isFinite(i)||!Number.isFinite(v)||i<=0){document.getElementById('roi-value').textContent='0.00';document.getElementById('roi-profit').textContent='0.00';document.getElementById('roi-annual').textContent='-';document.getElementById('roi-card').classList.remove('danger');document.getElementById('roi-card').classList.add('primary');return;}const p=v-i,r=(p/i)*100;document.getElementById('roi-value').textContent=r.toFixed(2);document.getElementById('roi-profit').textContent=money(p);if(Number.isFinite(y)&&y>0&&v>0){const a=(Math.pow(v/i,1/y)-1)*100;document.getElementById('roi-annual').textContent=Number.isFinite(a)?a.toFixed(2):'-';}else{document.getElementById('roi-annual').textContent='-';}if(r<0){document.getElementById('roi-card').classList.remove('primary');document.getElementById('roi-card').classList.add('danger');}else{document.getElementById('roi-card').classList.remove('danger');document.getElementById('roi-card').classList.add('primary');}}
+function calcSavings(){const t=num('sg-target'),c=num('sg-current')||0,r=num('sg-rate'),y=num('sg-years');if(!Number.isFinite(t)||!Number.isFinite(r)||!Number.isFinite(y)||t<=0||y<=0){document.getElementById('sg-monthly').textContent='0.00';document.getElementById('sg-deposits').textContent='0.00';document.getElementById('sg-growth').textContent='0.00';document.getElementById('sg-note').textContent='Enter target, rate, and timeline to build a plan.';return;}const n=Math.round(y*12),i=r/100/12,futureCurrent=c*Math.pow(1+i,n);let m=i===0?(t-c)/n:(t-futureCurrent)*i/(Math.pow(1+i,n)-1);if(!Number.isFinite(m))m=0;if(m<=0){document.getElementById('sg-monthly').textContent='0.00';document.getElementById('sg-deposits').textContent=money(c);document.getElementById('sg-growth').textContent=money(Math.max(t-c,0));document.getElementById('sg-note').textContent='Current savings are already on track for this timeline.';return;}const d=c+m*n,g=t-d;document.getElementById('sg-monthly').textContent=money(m);document.getElementById('sg-deposits').textContent=money(d);document.getElementById('sg-growth').textContent=money(g);document.getElementById('sg-note').textContent=`Save about ${money(m)} monthly for ${n} months.`;}
+function calcDebt(){const b=num('debt-balance'),r=num('debt-rate'),pay=num('debt-payment');if(!Number.isFinite(b)||!Number.isFinite(r)||!Number.isFinite(pay)||b<=0||pay<=0||r<0){document.getElementById('debt-months').textContent='0';document.getElementById('debt-date').textContent='-';document.getElementById('debt-interest').textContent='0.00';document.getElementById('debt-note').textContent='Add balance, APR, and payment to estimate payoff.';return;}let rem=b,mr=r/100/12,int=0,m=0;while(rem>0&&m<1200){const monthInt=rem*mr;let principal=pay-monthInt;if(mr>0&&principal<=0){document.getElementById('debt-months').textContent='Never';document.getElementById('debt-date').textContent='-';document.getElementById('debt-interest').textContent='Infinite';document.getElementById('debt-note').textContent='Payment is too low to cover monthly interest.';return;}if(principal>rem)principal=rem;rem-=principal;int+=monthInt;m+=1;}if(m>=1200){document.getElementById('debt-months').textContent='1200+';document.getElementById('debt-date').textContent='-';document.getElementById('debt-interest').textContent=money(int);document.getElementById('debt-note').textContent='Timeline exceeds 100 years. Increase payment.';return;}const d=new Date();d.setMonth(d.getMonth()+m);document.getElementById('debt-months').textContent=String(m);document.getElementById('debt-date').textContent=d.toLocaleDateString('en-US',{month:'short',year:'numeric'});document.getElementById('debt-interest').textContent=money(int);const y=Math.floor(m/12),mo=m%12;document.getElementById('debt-note').textContent=y>0?`Approximate payoff in ${y} year(s) and ${mo} month(s).`:`Approximate payoff in ${mo} month(s).`;}
 
-    function updateStdDisplay() {
-        document.getElementById('std-result').innerText = stdCurrent;
-        document.getElementById('std-history').innerText = stdHistory;
-    }
-
-    function stdNum(num) {
-        if (stdCurrent === '0' && num !== '.') {
-            stdCurrent = num;
-        } else {
-            if (num === '.' && stdCurrent.includes('.')) return;
-            stdCurrent += num;
-        }
-        updateStdDisplay();
-    }
-
-    function stdOp(op) {
-        if (op === '%') {
-            stdCurrent = (parseFloat(stdCurrent) / 100).toString();
-            updateStdDisplay();
-            return;
-        }
-        if (stdOperator !== null) stdCalc();
-        stdPrev = stdCurrent;
-        stdCurrent = '0';
-        stdOperator = op;
-        stdHistory = `${stdPrev} ${stdOperator}`;
-        updateStdDisplay();
-    }
-
-    function stdCalc() {
-        if (stdOperator === null || stdPrev === '') return;
-        let p = parseFloat(stdPrev);
-        let c = parseFloat(stdCurrent);
-        let res = 0;
-        switch (stdOperator) {
-            case '+': res = p + c; break;
-            case '-': res = p - c; break;
-            case '*': res = p * c; break;
-            case '/': res = c !== 0 ? p / c : 'Error'; break;
-        }
-        stdCurrent = res.toString();
-        stdOperator = null;
-        stdPrev = '';
-        stdHistory = '';
-        updateStdDisplay();
-    }
-
-    function stdClear(mode) {
-        if (mode === 'C') {
-            stdCurrent = '0';
-            stdPrev = '';
-            stdOperator = null;
-            stdHistory = '';
-        } else if (mode === 'CE') {
-            stdCurrent = '0';
-        }
-        updateStdDisplay();
-    }
-
-    // Number formatting helper
-    function fmtCurrency(num) {
-        if (isNaN(num)) return '0.00';
-        return parseFloat(num).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-    }
-
-    // Loan Calculator Logic
-    function calcLoan() {
-        const principal = parseFloat(document.getElementById('loan-amount').value);
-        const rate = parseFloat(document.getElementById('loan-rate').value);
-        const years = parseFloat(document.getElementById('loan-term').value);
-
-        if (isNaN(principal) || isNaN(rate) || isNaN(years) || principal <= 0 || years <= 0) {
-            document.getElementById('loan-monthly').innerText = '0.00';
-            document.getElementById('loan-total').innerText = '0.00';
-            document.getElementById('loan-interest').innerText = '0.00';
-            return;
-        }
-
-        const monthlyRate = (rate / 100) / 12;
-        const totalPayments = years * 12;
-
-        let monthlyPayment;
-        if (monthlyRate === 0) {
-            monthlyPayment = principal / totalPayments;
-        } else {
-            monthlyPayment = principal * (monthlyRate * Math.pow(1 + monthlyRate, totalPayments)) / (Math.pow(1 + monthlyRate, totalPayments) - 1);
-        }
-
-        const totalCost = monthlyPayment * totalPayments;
-        const totalInterest = totalCost - principal;
-
-        document.getElementById('loan-monthly').innerText = fmtCurrency(monthlyPayment);
-        document.getElementById('loan-total').innerText = fmtCurrency(totalCost);
-        document.getElementById('loan-interest').innerText = fmtCurrency(totalInterest);
-    }
-
-    // Compound Interest Logic
-    function calcCI() {
-        const p = parseFloat(document.getElementById('ci-principal').value) || 0;
-        const pmt = parseFloat(document.getElementById('ci-addition').value) || 0;
-        const r = parseFloat(document.getElementById('ci-rate').value);
-        const t = parseFloat(document.getElementById('ci-years').value);
-
-        if (isNaN(r) || isNaN(t) || t <= 0) {
-            document.getElementById('ci-future').innerText = '0.00';
-            document.getElementById('ci-principal-total').innerText = '0.00';
-            document.getElementById('ci-interest').innerText = '0.00';
-            return;
-        }
-
-        const rateStr = r / 100;
-        const n = 12; // Compounded monthly
-        const totalMonths = t * 12;
-        
-        // P(1 + r/n)^(nt)
-        const principalGrowth = p * Math.pow(1 + rateStr/n, n*t);
-        
-        // PMT × {[(1 + r/n)^(nt) - 1] / (r/n)}
-        let additionGrowth = 0;
-        if (rateStr > 0) {
-            additionGrowth = pmt * (Math.pow(1 + rateStr/n, n*t) - 1) / (rateStr/n);
-        } else {
-            additionGrowth = pmt * totalMonths;
-        }
-
-        const futureValue = principalGrowth + additionGrowth;
-        const totalContributions = p + (pmt * totalMonths);
-        const totalInterest = futureValue - totalContributions;
-
-        document.getElementById('ci-future').innerText = fmtCurrency(futureValue);
-        document.getElementById('ci-principal-total').innerText = fmtCurrency(totalContributions);
-        document.getElementById('ci-interest').innerText = fmtCurrency(totalInterest);
-    }
-
-    // ROI Calculator Logic
-    function calcROI() {
-        const invested = parseFloat(document.getElementById('roi-invested').value);
-        const returned = parseFloat(document.getElementById('roi-returned').value);
-        const years = parseFloat(document.getElementById('roi-years').value);
-
-        if (isNaN(invested) || isNaN(returned) || invested <= 0) {
-            document.getElementById('roi-percentage').innerText = '0.00';
-            document.getElementById('roi-profit').innerText = '0.00';
-            document.getElementById('roi-annual').innerText = '0.00';
-            return;
-        }
-
-        const profit = returned - invested;
-        const roi = (profit / invested) * 100;
-
-        document.getElementById('roi-percentage').innerText = roi.toFixed(2);
-        document.getElementById('roi-profit').innerText = fmtCurrency(profit);
-
-        const cardStyle = document.getElementById('roi-result-card');
-        if (roi < 0) {
-            cardStyle.style.background = 'linear-gradient(135deg, var(--color-danger), #991b1b)';
-            cardStyle.style.boxShadow = '0 10px 30px rgba(220, 38, 38, 0.3)';
-        } else {
-            cardStyle.style.background = 'linear-gradient(135deg, var(--color-primary), var(--color-primary-dark))';
-            cardStyle.style.boxShadow = '0 10px 30px var(--color-primary-light)';
-        }
-
-        if (!isNaN(years) && years > 0) {
-            const annualROI = (Math.pow((returned / invested), (1 / years)) - 1) * 100;
-            document.getElementById('roi-annual').innerText = annualROI.toFixed(2);
-        } else {
-            document.getElementById('roi-annual').innerText = '-';
-        }
-    }
-
-    // Init display
-    updateStdDisplay();
+[['loan-amount','loan-rate','loan-years',calcLoan],['ci-principal','ci-contrib','ci-rate','ci-years',calcCompound],['roi-invested','roi-current','roi-years',calcROI],['sg-target','sg-current','sg-rate','sg-years',calcSavings],['debt-balance','debt-rate','debt-payment',calcDebt]].forEach(group=>{const fn=group[group.length-1];group.slice(0,-1).forEach(id=>document.getElementById(id)?.addEventListener('input',fn));});
+stdClear();calcLoan();calcCompound();calcROI();calcSavings();calcDebt();
+if(window.lucide){window.lucide.createIcons();}
 </script>
 {% endblock %}
