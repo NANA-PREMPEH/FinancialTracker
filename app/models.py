@@ -39,7 +39,7 @@ class Wallet(db.Model):
     wallet_type = db.Column(db.String(20), default='cash')  # cash, bank, crypto, ewallet
     account_number = db.Column(db.String(50), nullable=True)  # For bank accounts
     is_shared = db.Column(db.Boolean, default=False)
-    user = db.relationship('User', backref='wallets', lazy=True)
+    user = db.relationship('User', backref=db.backref('wallets', cascade='all, delete-orphan'), lazy=True)
     expenses = db.relationship('Expense', backref='wallet', lazy=True)
 
     def __repr__(self):
@@ -51,7 +51,7 @@ class Category(db.Model):
     name = db.Column(db.String(50), nullable=False)
     icon = db.Column(db.String(10), default='📝')
     is_custom = db.Column(db.Boolean, default=False)
-    user = db.relationship('User', backref='categories', lazy=True)
+    user = db.relationship('User', backref=db.backref('categories', cascade='all, delete-orphan'), lazy=True)
     expenses = db.relationship('Expense', backref='category', lazy=True)
     budgets = db.relationship('Budget', backref='category', lazy=True)
 
@@ -73,6 +73,8 @@ class Expense(db.Model):
     original_amount = db.Column(db.Float, nullable=True)
     original_currency = db.Column(db.String(10), nullable=True)
 
+    user = db.relationship('User', backref=db.backref('_user_expenses', cascade='all, delete-orphan'), lazy=True)
+
     def __repr__(self):
         return f'<Expense {self.amount} - {self.description}>'
 
@@ -88,6 +90,8 @@ class Budget(db.Model):
     notify_at_90 = db.Column(db.Boolean, default=True)
     notify_at_100 = db.Column(db.Boolean, default=True)
     is_active = db.Column(db.Boolean, default=True)
+
+    user = db.relationship('User', backref=db.backref('_user_budgets', cascade='all, delete-orphan'), lazy=True)
 
     def __repr__(self):
         return f'<Budget {self.category.name} - {self.amount}>'
@@ -111,6 +115,8 @@ class RecurringTransaction(db.Model):
     # Relationships
     category = db.relationship('Category', backref='recurring_transactions', lazy=True)
     wallet = db.relationship('Wallet', backref='recurring_transactions', lazy=True)
+
+    user = db.relationship('User', backref=db.backref('_user_recurringtransactions', cascade='all, delete-orphan'), lazy=True)
 
     def __repr__(self):
         return f'<RecurringTransaction {self.description} - {self.frequency}>'
@@ -140,6 +146,8 @@ class Project(db.Model):
     items = db.relationship('ProjectItem', backref='project', lazy=True, cascade='all, delete-orphan')
     wallet = db.relationship('Wallet', backref='projects', lazy=True)
     
+    user = db.relationship('User', backref=db.backref('_user_projects', cascade='all, delete-orphan'), lazy=True)
+
     def __repr__(self):
         return f'<Project {self.name}>'
     
@@ -206,6 +214,8 @@ class FinancialSummary(db.Model):
     notes = db.Column(db.Text, nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
+    user = db.relationship('User', backref=db.backref('_user_financialsummaries', cascade='all, delete-orphan'), lazy=True)
+
     def __repr__(self):
         period = f"{self.year}-{self.month}" if self.month else str(self.year)
         return f'<FinancialSummary {period}: +{self.total_income} / -{self.total_expense}>'
@@ -223,6 +233,8 @@ class WishlistItem(db.Model):
     # Relationship
     category = db.relationship('Category', backref='wishlist_items')
 
+    user = db.relationship('User', backref=db.backref('_user_wishlistitems', cascade='all, delete-orphan'), lazy=True)
+
     def __repr__(self):
         return f'<WishlistItem {self.name}: {self.amount}>'
 
@@ -238,6 +250,8 @@ class Creditor(db.Model):
     original_amount = db.Column(db.Float, nullable=True)
     due_date = db.Column(db.DateTime, nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    user = db.relationship('User', backref=db.backref('_user_creditors', cascade='all, delete-orphan'), lazy=True)
 
     def __repr__(self):
         return f'<Creditor {self.name}: {self.amount}>'
@@ -264,6 +278,8 @@ class Goal(db.Model):
         if self.target_amount <= 0:
             return 100
         return min(round((self.current_amount / self.target_amount) * 100, 1), 100)
+
+    user = db.relationship('User', backref=db.backref('_user_goals', cascade='all, delete-orphan'), lazy=True)
 
     def __repr__(self):
         return f'<Goal {self.name}: {self.current_amount}/{self.target_amount}>'
@@ -319,6 +335,8 @@ class Investment(db.Model):
             return 0
         return round(((self.current_value - self.amount_invested) / self.amount_invested) * 100, 2)
 
+    user = db.relationship('User', backref=db.backref('_user_investments', cascade='all, delete-orphan'), lazy=True)
+
     def __repr__(self):
         return f'<Investment {self.name}: {self.current_value}>'
 
@@ -347,6 +365,8 @@ class InsurancePolicy(db.Model):
     notes = db.Column(db.Text, nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
+    user = db.relationship('User', backref=db.backref('_user_insurancepolicies', cascade='all, delete-orphan'), lazy=True)
+
     def __repr__(self):
         return f'<InsurancePolicy {self.provider}: {self.policy_type}>'
 
@@ -362,6 +382,8 @@ class PensionScheme(db.Model):
     notes = db.Column(db.Text, nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
+    user = db.relationship('User', backref=db.backref('_user_pensionschemes', cascade='all, delete-orphan'), lazy=True)
+
     def __repr__(self):
         return f'<PensionScheme {self.name}: {self.balance}>'
 
@@ -376,6 +398,8 @@ class SSNITContribution(db.Model):
     employee_number = db.Column(db.String(50), nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
+    user = db.relationship('User', backref=db.backref('_user_ssnitcontributions', cascade='all, delete-orphan'), lazy=True)
+
     def __repr__(self):
         return f'<SSNITContribution {self.year}-{self.month}: {self.amount}>'
 
@@ -388,6 +412,8 @@ class NetWorthSnapshot(db.Model):
     total_liabilities = db.Column(db.Float, default=0.0)
     net_worth = db.Column(db.Float, default=0.0)
     breakdown_json = db.Column(db.Text, nullable=True)  # JSON string of detailed breakdown
+
+    user = db.relationship('User', backref=db.backref('_user_networthsnapshots', cascade='all, delete-orphan'), lazy=True)
 
     def __repr__(self):
         return f'<NetWorthSnapshot {self.date}: {self.net_worth}>'
@@ -407,6 +433,8 @@ class FixedAsset(db.Model):
     notes = db.Column(db.Text, nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
+    user = db.relationship('User', backref=db.backref('_user_fixedassets', cascade='all, delete-orphan'), lazy=True)
+
     def __repr__(self):
         return f'<FixedAsset {self.name}: {self.current_value}>'
 
@@ -424,6 +452,8 @@ class CashFlowProjection(db.Model):
     notes = db.Column(db.Text, nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
+    user = db.relationship('User', backref=db.backref('_user_cashflowprojections', cascade='all, delete-orphan'), lazy=True)
+
     def __repr__(self):
         return f'<CashFlowProjection {self.year}-{self.month}>'
 
@@ -436,6 +466,8 @@ class CashFlowAlert(db.Model):
     message = db.Column(db.String(300), nullable=True)
     is_active = db.Column(db.Boolean, default=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    user = db.relationship('User', backref=db.backref('_user_cashflowalerts', cascade='all, delete-orphan'), lazy=True)
 
     def __repr__(self):
         return f'<CashFlowAlert {self.alert_type}>'
@@ -450,6 +482,8 @@ class BudgetPeriod(db.Model):
     total_budget = db.Column(db.Float, default=0.0)
     notes = db.Column(db.Text, nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    user = db.relationship('User', backref=db.backref('_user_budgetperiods', cascade='all, delete-orphan'), lazy=True)
 
     def __repr__(self):
         return f'<BudgetPeriod {self.name}>'
@@ -470,6 +504,8 @@ class CalendarEvent(db.Model):
     color = db.Column(db.String(20), default='#6366f1')
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
+    user = db.relationship('User', backref=db.backref('_user_calendarevents', cascade='all, delete-orphan'), lazy=True)
+
     def __repr__(self):
         return f'<CalendarEvent {self.title}: {self.event_date}>'
 
@@ -486,6 +522,8 @@ class AutomationRule(db.Model):
     is_active = db.Column(db.Boolean, default=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
+    user = db.relationship('User', backref=db.backref('_user_automationrules', cascade='all, delete-orphan'), lazy=True)
+
     def __repr__(self):
         return f'<AutomationRule {self.name}>'
 
@@ -499,6 +537,8 @@ class WebhookEndpoint(db.Model):
     secret = db.Column(db.String(200), nullable=True)
     is_active = db.Column(db.Boolean, default=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    user = db.relationship('User', backref=db.backref('_user_webhookendpoints', cascade='all, delete-orphan'), lazy=True)
 
     def __repr__(self):
         return f'<WebhookEndpoint {self.name}>'
@@ -517,6 +557,8 @@ class BankReconciliation(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     wallet = db.relationship('Wallet', backref='reconciliations', lazy=True)
 
+    user = db.relationship('User', backref=db.backref('_user_bankreconciliations', cascade='all, delete-orphan'), lazy=True)
+
     def __repr__(self):
         return f'<BankReconciliation {self.date}: {self.status}>'
 
@@ -529,6 +571,8 @@ class ImportHistory(db.Model):
     records_imported = db.Column(db.Integer, default=0)
     status = db.Column(db.String(20), default='completed')  # completed, failed, partial
     notes = db.Column(db.Text, nullable=True)
+
+    user = db.relationship('User', backref=db.backref('_user_importhistories', cascade='all, delete-orphan'), lazy=True)
 
     def __repr__(self):
         return f'<ImportHistory {self.filename}: {self.records_imported}>'
@@ -544,6 +588,8 @@ class ChartOfAccount(db.Model):
     balance = db.Column(db.Float, default=0.0)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     children = db.relationship('ChartOfAccount', backref=db.backref('parent', remote_side='ChartOfAccount.id'), lazy=True)
+
+    user = db.relationship('User', backref=db.backref('_user_chartofaccounts', cascade='all, delete-orphan'), lazy=True)
 
     def __repr__(self):
         return f'<ChartOfAccount {self.code}: {self.name}>'
@@ -562,6 +608,8 @@ class JournalEntry(db.Model):
     debit_account = db.relationship('ChartOfAccount', foreign_keys=[debit_account_id], backref='debit_entries')
     credit_account = db.relationship('ChartOfAccount', foreign_keys=[credit_account_id], backref='credit_entries')
 
+    user = db.relationship('User', backref=db.backref('_user_journalentries', cascade='all, delete-orphan'), lazy=True)
+
     def __repr__(self):
         return f'<JournalEntry {self.date}: {self.amount}>'
 
@@ -579,6 +627,8 @@ class Commitment(db.Model):
     notes = db.Column(db.Text, nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
+    user = db.relationship('User', backref=db.backref('_user_commitments', cascade='all, delete-orphan'), lazy=True)
+
     def __repr__(self):
         return f'<Commitment {self.name}: {self.amount}>'
 
@@ -590,7 +640,7 @@ class DebtPayment(db.Model):
     date = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     notes = db.Column(db.String(200), nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    creditor = db.relationship('Creditor', backref='payments', lazy=True)
+    creditor = db.relationship('Creditor', backref=db.backref('payments', cascade='all, delete-orphan'), lazy=True)
 
     def __repr__(self):
         return f'<DebtPayment {self.amount}>'
@@ -606,6 +656,8 @@ class Notification(db.Model):
     is_read = db.Column(db.Boolean, default=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
+    user = db.relationship('User', backref=db.backref('_user_notifications', cascade='all, delete-orphan'), lazy=True)
+
     def __repr__(self):
         return f'<Notification {self.title}>'
 
@@ -615,6 +667,8 @@ class NotificationPreference(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
     notification_type = db.Column(db.String(50), nullable=False)
     enabled = db.Column(db.Boolean, default=True)
+
+    user = db.relationship('User', backref=db.backref('_user_notificationpreferences', cascade='all, delete-orphan'), lazy=True)
 
     def __repr__(self):
         return f'<NotificationPreference {self.notification_type}: {self.enabled}>'
@@ -629,6 +683,8 @@ class SecurityEvent(db.Model):
     details = db.Column(db.Text, nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
+    user = db.relationship('User', backref=db.backref('_user_securityevents', cascade='all, delete-orphan'), lazy=True)
+
     def __repr__(self):
         return f'<SecurityEvent {self.event_type}: {self.created_at}>'
 
@@ -641,6 +697,8 @@ class AuditLog(db.Model):
     record_id = db.Column(db.Integer, nullable=True)
     details = db.Column(db.Text, nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    user = db.relationship('User', backref=db.backref('_user_auditlogs', cascade='all, delete-orphan'), lazy=True)
 
     def __repr__(self):
         return f'<AuditLog {self.action}: {self.table_name}>'
@@ -656,6 +714,8 @@ class ApiKey(db.Model):
     is_active = db.Column(db.Boolean, default=True)
     last_used = db.Column(db.DateTime, nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    user = db.relationship('User', backref=db.backref('_user_apikeies', cascade='all, delete-orphan'), lazy=True)
 
     def __repr__(self):
         return f'<ApiKey {self.name}>'
@@ -676,6 +736,8 @@ class SMCContract(db.Model):
     notes = db.Column(db.Text, nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
+    user = db.relationship('User', backref=db.backref('_user_smccontracts', cascade='all, delete-orphan'), lazy=True)
+
     def __repr__(self):
         return f'<SMCContract {self.contract_number}>'
 
@@ -688,7 +750,7 @@ class ContractPayment(db.Model):
     payment_date = db.Column(db.DateTime, nullable=False)
     status = db.Column(db.String(20), default='pending')  # pending, paid, processing
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    contract = db.relationship('SMCContract', backref='payments', lazy=True)
+    contract = db.relationship('SMCContract', backref=db.backref('payments', cascade='all, delete-orphan'), lazy=True)
 
     def __repr__(self):
         return f'<ContractPayment {self.amount}>'
@@ -709,6 +771,8 @@ class ConstructionWork(db.Model):
     notes = db.Column(db.Text, nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
+    user = db.relationship('User', backref=db.backref('_user_constructionworks', cascade='all, delete-orphan'), lazy=True)
+
     def __repr__(self):
         return f'<ConstructionWork {self.project_name}>'
 
@@ -724,6 +788,8 @@ class GlobalEntity(db.Model):
     notes = db.Column(db.Text, nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
+    user = db.relationship('User', backref=db.backref('_user_globalentities', cascade='all, delete-orphan'), lazy=True)
+
     def __repr__(self):
         return f'<GlobalEntity {self.name}>'
 
@@ -735,10 +801,12 @@ class PasswordResetToken(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     expires_at = db.Column(db.DateTime, nullable=False)
     used = db.Column(db.Boolean, default=False)
-    user = db.relationship('User', backref='reset_tokens', lazy=True)
+    user = db.relationship('User', backref=db.backref('reset_tokens', cascade='all, delete-orphan'), lazy=True)
 
     def is_expired(self):
         return datetime.utcnow() > self.expires_at
+
+    user = db.relationship('User', backref=db.backref('_user_passwordresettokens', cascade='all, delete-orphan'), lazy=True)
 
     def __repr__(self):
         return f'<PasswordResetToken {self.id}>'
@@ -751,10 +819,12 @@ class EmailVerificationToken(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     expires_at = db.Column(db.DateTime, nullable=False)
     used = db.Column(db.Boolean, default=False)
-    user = db.relationship('User', backref='verification_tokens', lazy=True)
+    user = db.relationship('User', backref=db.backref('verification_tokens', cascade='all, delete-orphan'), lazy=True)
 
     def is_expired(self):
         return datetime.utcnow() > self.expires_at
+
+    user = db.relationship('User', backref=db.backref('_user_emailverificationtokens', cascade='all, delete-orphan'), lazy=True)
 
     def __repr__(self):
         return f'<EmailVerificationToken {self.id}>'
@@ -767,7 +837,9 @@ class PushSubscription(db.Model):
     p256dh = db.Column(db.String(256), nullable=False)
     auth = db.Column(db.String(256), nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    user = db.relationship('User', backref='push_subscriptions', lazy=True)
+    user = db.relationship('User', backref=db.backref('push_subscriptions', cascade='all, delete-orphan'), lazy=True)
+
+    user = db.relationship('User', backref=db.backref('_user_pushsubscriptions', cascade='all, delete-orphan'), lazy=True)
 
     def __repr__(self):
         return f'<PushSubscription {self.id}>'
