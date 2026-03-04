@@ -56,11 +56,21 @@ def investments_list():
     performance_labels = []
     performance_series = []
     today = datetime.today()
-    for i in range(5, -1, -1):
-        month_date = today.replace(day=1) - timedelta(days=30 * i)
+    
+    months_list = []
+    curr_y, curr_m = today.year, today.month
+    for _ in range(6):
+        months_list.append(datetime(curr_y, curr_m, 1))
+        curr_m -= 1
+        if curr_m == 0:
+            curr_m = 12
+            curr_y -= 1
+    months_list.reverse()
+
+    for i, month_date in enumerate(months_list):
         performance_labels.append(month_date.strftime('%b'))
         # Using mock historical variation based on today's value for demonstration
-        performance_series.append(total_portfolio_value * (1 - (0.015 * i)))
+        performance_series.append(total_portfolio_value * (1 - (0.015 * (5 - i))))
 
     return render_template(
         'investments.html',

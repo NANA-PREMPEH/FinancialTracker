@@ -1,91 +1,238 @@
 {% extends "base.html" %}
 
-{% block title %}Creditors - Financial Tracker{% endblock %}
+{% block title %}Debts - Financial Tracker{% endblock %}
+{% block header_title %}Creditors (Payables){% endblock %}
 
 {% block content %}
-<div class="card">
-    <div class="flex justify-between items-center mb-8">
-        <h1>My Creditors</h1>
-        <button onclick="showAddCreditorModal()" class="btn-primary">+ Add Creditor</button>
+<div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4">
+    <div>
+        <h1 class="text-2xl font-bold font-heading text-text m-0">My Debts</h1>
+        <p class="text-text-muted mt-1 text-sm">Track amounts you owe to others</p>
+    </div>
+    <button onclick="showAddCreditorModal()" class="btn-primary shadow-sm hover:shadow-md transition-all" style="display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; padding: 0.75rem 1.5rem; white-space: nowrap; border-radius: 0.75rem;">
+        <i data-lucide="plus" style="width: 18px; height: 18px;"></i> Add Debt
+    </button>
+</div>
+
+<!-- Dashboard Summary -->
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+    <div class="bg-surface p-6 rounded-2xl border border-border shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between group">
+        <div class="flex justify-between items-center mb-4">
+            <h3 class="text-sm font-medium text-text-muted m-0">Total Debt</h3>
+            <div class="bg-danger/10 p-2.5 rounded-full text-danger group-hover:scale-110 transition-transform">
+                <i data-lucide="trending-down" class="w-5 h-5"></i>
+            </div>
+        </div>
+        <p class="text-3xl font-bold font-heading text-danger m-0">GHS {{ "%.2f"|format(total_debt or 0) }}</p>
+    </div>
+    
+    <div class="bg-surface p-6 rounded-2xl border border-border shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between group">
+        <div class="flex justify-between items-center mb-4">
+            <h3 class="text-sm font-medium text-text-muted m-0">Paid This Month</h3>
+            <div class="bg-success/10 p-2.5 rounded-full text-success group-hover:scale-110 transition-transform">
+                <i data-lucide="check-circle-2" class="w-5 h-5"></i>
+            </div>
+        </div>
+        <p class="text-3xl font-bold font-heading text-success m-0">GHS {{ "%.2f"|format(paid_this_month or 0) }}</p>
     </div>
 
-    <div class="summary-cards" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); margin-bottom: 2rem;">
-        <div class="summary-card total-balance-card">
-            <h3>Total Debt</h3>
-            <p class="amount text-danger">GHS {{ "%.2f"|format(total_debt) }}</p>
+    <div class="bg-surface p-6 rounded-2xl border border-border shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between group">
+        <div class="flex justify-between items-center mb-4">
+            <h3 class="text-sm font-medium text-text-muted m-0">Monthly Due</h3>
+            <div class="bg-primary/10 p-2.5 rounded-full text-primary group-hover:scale-110 transition-transform">
+                <i data-lucide="calendar-clock" class="w-5 h-5"></i>
+            </div>
         </div>
-        <div class="summary-card">
-            <h3>Total Creditors</h3>
-            <p class="amount">{{ creditors|length }}</p>
-        </div>
+        <p class="text-3xl font-bold font-heading text-text m-0">GHS {{ "%.2f"|format(monthly_due or 0) }}</p>
     </div>
 
-    <div class="table-container">
-        {% if creditors %}
-        <table>
-            <thead>
-                <tr>
-                    <th>Name</th>
-                    <th>Description</th>
-                    <th>Amount Owed</th>
-                    <th>Date Added</th>
-                    <th>Actions</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for creditor in creditors %}
-                <tr id="creditor-{{ creditor.id }}">
-                    <td>{{ creditor.name }}</td>
-                    <td>{{ creditor.description or '-' }}</td>
-                    <td class="text-danger">{{ creditor.currency }} {{ "%.2f"|format(creditor.amount) }}</td>
-                    <td>{{ creditor.created_at.strftime('%Y-%m-%d') }}</td>
-                    <td class="flex gap-2">
-                        <button class="btn-success" 
-                                onclick="showPayCreditorModal('{{ creditor.id }}', '{{ creditor.name }}', '{{ creditor.amount }}')">
-                            💸 Pay
-                        </button>
-                        <button class="btn-edit" 
-                                onclick="showEditCreditorModal('{{ creditor.id }}', '{{ creditor.name }}', '{{ creditor.amount }}', '{{ creditor.description }}')">
-                            ✏️ Edit
-                        </button>
-                        <form action="{{ url_for('main.delete_creditor', id=creditor.id) }}" method="POST" style="display:inline;" onsubmit="return confirm('Are you sure you want to delete this creditor?');">
-                            <button type="submit" class="btn-delete">🗑️ Delete</button>
-                        </form>
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-        {% else %}
-        <p class="text-center text-muted">You have no creditors tracked properly. Good job!</p>
+    <div class="bg-surface p-6 rounded-2xl border border-border shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between group">
+        <div class="flex justify-between items-center mb-4">
+            <h3 class="text-sm font-medium text-text-muted m-0">Debts Profile</h3>
+            <div class="bg-surface-active p-2.5 rounded-full text-text-muted group-hover:scale-110 transition-transform">
+                <i data-lucide="pie-chart" class="w-5 h-5"></i>
+            </div>
+        </div>
+        <div class="flex justify-between items-center mt-2">
+            <div class="text-center">
+                <span class="text-2xl font-bold text-text block leading-none">{{ active_count }}</span>
+                <span class="text-xs text-text-muted mt-1 uppercase tracking-wider font-semibold">Active</span>
+            </div>
+            <div class="text-center">
+                <span class="text-2xl font-bold text-danger block leading-none">{{ overdue_count }}</span>
+                <span class="text-xs text-text-muted mt-1 uppercase tracking-wider font-semibold">Overdue</span>
+            </div>
+            <div class="text-center">
+                <span class="text-2xl font-bold text-success block leading-none">{{ paid_off_count }}</span>
+                <span class="text-xs text-text-muted mt-1 uppercase tracking-wider font-semibold">Paid</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Filters Section -->
+<div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
+    <h2 class="text-lg font-bold font-heading text-text m-0 flex items-center gap-2">
+        <i data-lucide="list" class="w-5 h-5 text-text-muted"></i> Creditor Accounts
+    </h2>
+    <form method="GET" class="flex flex-wrap gap-3 w-full sm:w-auto">
+        <select name="status" class="form-control text-sm py-2 px-3 border border-border rounded-lg bg-surface focus:ring-2 focus:ring-primary/20 w-full sm:w-auto" onchange="this.form.submit()">
+            <option value="all" {% if status_filter == 'all' %}selected{% endif %}>All Statuses</option>
+            <option value="active" {% if status_filter == 'active' %}selected{% endif %}>Active</option>
+            <option value="overdue" {% if status_filter == 'overdue' %}selected{% endif %}>Overdue</option>
+            <option value="paid_off" {% if status_filter == 'paid_off' %}selected{% endif %}>Paid Off</option>
+        </select>
+        <select name="sort" class="form-control text-sm py-2 px-3 border border-border rounded-lg bg-surface focus:ring-2 focus:ring-primary/20 w-full sm:w-auto" onchange="this.form.submit()">
+            <option value="amount_desc" {% if sort_by == 'amount_desc' %}selected{% endif %}>Highest Amount</option>
+            <option value="amount_asc" {% if sort_by == 'amount_asc' %}selected{% endif %}>Lowest Amount</option>
+            <option value="due_date" {% if sort_by == 'due_date' %}selected{% endif %}>Due Date</option>
+            <option value="priority" {% if sort_by == 'priority' %}selected{% endif %}>Priority</option>
+        </select>
+        <noscript><button type="submit" class="btn-secondary py-2 px-4 shadow-sm">Filter</button></noscript>
+    </form>
+</div>
+
+<!-- Debt Cards Grid -->
+{% if creditors %}
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+    {% for creditor in creditors %}
+    <div id="creditor-{{ creditor.id }}" class="bg-surface border border-border rounded-2xl overflow-hidden relative transition-all duration-300 hover:-translate-y-1 hover:shadow-lg group flex flex-col">
+        
+        <!-- Status Badge -->
+        {% if creditor.computed_status == 'overdue' %}
+        <div class="absolute top-0 right-0 bg-danger text-white px-3 py-1 text-xs font-bold rounded-bl-lg tracking-wider z-10 shadow-sm">OVERDUE</div>
+        {% elif creditor.computed_status == 'paid_off' %}
+        <div class="absolute top-0 right-0 bg-success text-white px-3 py-1 text-xs font-bold rounded-bl-lg tracking-wider z-10 shadow-sm">PAID OFF</div>
         {% endif %}
-    </div>
-</div>
 
+        <div class="p-6 flex-grow flex flex-col">
+            <div class="flex justify-between items-start mb-4 gap-4">
+                <div class="min-w-0 flex-1">
+                    <h3 class="font-bold text-lg text-text m-0 mb-1 truncate flex items-center gap-2" title="{{ creditor.name }}">
+                        {{ creditor.name }}
+                    </h3>
+                    <span class="inline-block text-xs font-medium text-text-muted bg-surface-active px-2.5 py-0.5 rounded-full border border-border">{{ creditor.debt_type }}</span>
+                </div>
+                <div class="text-right flex-shrink-0">
+                    <span class="block text-xl font-bold font-heading {% if creditor.amount > 0 %}text-danger{% else %}text-success{% endif %}">
+                        {{ creditor.currency }} {{ "%.2f"|format(creditor.amount or 0) }}
+                    </span>
+                    {% if creditor.original_amount and creditor.original_amount > creditor.amount %}
+                    <span class="text-xs text-text-muted line-through block mt-0.5">of {{ creditor.currency }} {{ "%.2f"|format(creditor.original_amount or 0) }}</span>
+                    {% endif %}
+                </div>
+            </div>
+
+            {% if creditor.description %}
+            <p class="text-sm text-text-muted mb-4 line-clamp-2">{{ creditor.description }}</p>
+            {% else %}
+            <div class="mb-4"></div>
+            {% endif %}
+
+            <!-- Progress Bar -->
+            {% if creditor.original_amount and creditor.original_amount > 0 %}
+            <div class="mb-5 mt-auto">
+                <div class="flex justify-between text-xs mb-1.5 text-text-muted">
+                    <span class="font-medium">Payoff Progress</span>
+                    <span class="font-bold {% if creditor.progress_percent == 100 %}text-success{% else %}text-primary{% endif %}">{{ creditor.progress_percent }}%</span>
+                </div>
+                <div class="h-2 bg-surface-active rounded-full overflow-hidden border border-border/50">
+                    <div class="h-full rounded-full transition-all duration-1000 ease-out {% if creditor.progress_percent == 100 %}bg-success{% else %}bg-gradient-to-r from-primary to-primary-light{% endif %}" style="width: {{ creditor.progress_percent }}%;"></div>
+                </div>
+            </div>
+            {% else %}
+            <div class="mt-auto"></div>
+            {% endif %}
+
+            <!-- Details Grid -->
+            <div class="grid grid-cols-2 gap-3 mb-5 text-sm text-text-muted bg-surface-active/50 rounded-xl p-3 border border-border/30">
+                <div class="flex items-center gap-2">
+                    <i data-lucide="calendar" class="w-4 h-4 opacity-70"></i> 
+                    {% if creditor.due_date %}
+                        <span class="truncate {% if creditor.days_until_due is not none and creditor.days_until_due <= 7 and creditor.amount > 0 %}text-danger font-bold{% endif %}">
+                            {{ creditor.due_date.strftime('%b %d, %Y') }}
+                        </span>
+                    {% else %}
+                        <span>No Due Date</span>
+                    {% endif %}
+                </div>
+                <div class="flex items-center gap-2">
+                    <i data-lucide="percent" class="w-4 h-4 opacity-70"></i>
+                    <span class="truncate">{{ "%.1f"|format(creditor.interest_rate or 0) }}% Rate</span>
+                </div>
+                {% if (creditor.minimum_payment or 0) > 0 %}
+                <div class="flex items-center gap-2 col-span-2 mt-1">
+                    <i data-lucide="clock-4" class="w-4 h-4 opacity-70"></i>
+                    <span class="truncate">Min: {{ creditor.currency }} {{ "%.2f"|format(creditor.minimum_payment or 0) }} / {{ creditor.payment_frequency or 'mo' }}</span>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="flex gap-2 pt-4 border-t border-border mt-auto">
+                {% if creditor.amount > 0 %}
+                <button class="flex-1 btn-success flex items-center justify-center gap-2 py-2 px-3 text-sm shadow-sm hover:shadow"
+                        onclick="showPayCreditorModal(`{{ creditor.id }}`, `{{ creditor.name | replace('`', '') }}`, `{{ creditor.amount }}`)">
+                    <i data-lucide="banknote" class="w-4 h-4"></i> Pay
+                </button>
+                {% endif %}
+                <button class="flex-1 btn-secondary flex items-center justify-center gap-2 py-2 px-3 text-sm shadow-sm hover:shadow"
+                        onclick="showEditCreditorModal(`{{ creditor.id }}`, `{{ creditor.name | replace('`', '') }}`, `{{ creditor.amount }}`, `{{ creditor.description | default('', true) | replace('`', '') }}`, `{{ creditor.original_amount or '' }}`)">
+                    <i data-lucide="pencil" class="w-4 h-4"></i> Edit
+                </button>
+                <form action="{{ url_for('main.delete_creditor', id=creditor.id) }}" method="POST" class="flex-shrink-0" onsubmit="return confirm('Delete this creditor record?');">
+                    <button type="submit" class="btn-delete flex items-center justify-center p-2.5 h-full rounded-xl shadow-sm hover:shadow" title="Delete">
+                        <i data-lucide="trash-2" class="w-4 h-4"></i>
+                    </button>
+                </form>
+            </div>
+        </div>
     </div>
+    {% endfor %}
 </div>
+{% else %}
+<div class="text-center py-16 px-6 bg-surface border border-dashed border-border rounded-2xl shadow-sm">
+    <div class="w-20 h-20 bg-success/10 rounded-full flex items-center justify-center mx-auto mb-4">
+        <i data-lucide="shield-check" class="w-10 h-10 text-success"></i>
+    </div>
+    <h3 class="text-xl font-bold text-text mb-2">No Debts Found!</h3>
+    <p class="text-text-muted mb-6 max-w-md mx-auto">You don't have any active debts tracked. Excellent financial health!</p>
+    <button onclick="showAddCreditorModal()" class="btn-primary shadow-sm hover:shadow-md transition-all" style="display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; padding: 0.75rem 1.5rem; white-space: nowrap; border-radius: 0.75rem;">
+        <i data-lucide="plus" style="width: 20px; height: 20px;"></i> Add a Debt
+    </button>
+</div>
+{% endif %}
 
 <!-- Payment History Section -->
 {% if payment_history %}
-<div class="card" style="margin-top: 2rem;">
-    <h2>Payment History</h2>
-    <div class="table-container">
-        <table>
+<div class="bg-surface rounded-2xl border border-border shadow-sm p-6 overflow-hidden mt-8">
+    <div class="flex items-center gap-3 mb-6">
+        <div class="p-2 bg-surface-active rounded-lg text-text">
+            <i data-lucide="history" class="w-5 h-5"></i>
+        </div>
+        <h2 class="text-xl font-bold font-heading m-0">Payment History</h2>
+    </div>
+    <div class="overflow-x-auto">
+        <table class="w-full text-left border-collapse">
             <thead>
-                <tr>
-                    <th>Date</th>
-                    <th>Description</th>
-                    <th>Amount</th>
-                    <th>Paid From</th>
+                <tr class="border-b border-border/60">
+                    <th class="py-3 px-4 font-semibold text-sm text-text-muted tracking-wider uppercase">Date</th>
+                    <th class="py-3 px-4 font-semibold text-sm text-text-muted tracking-wider uppercase">Description</th>
+                    <th class="py-3 px-4 font-semibold text-sm text-text-muted tracking-wider uppercase">Amount</th>
+                    <th class="py-3 px-4 font-semibold text-sm text-text-muted tracking-wider uppercase">Paid From</th>
                 </tr>
             </thead>
-            <tbody>
+            <tbody class="divide-y divide-border/40">
                 {% for payment in payment_history %}
-                <tr>
-                    <td>{{ payment.date.strftime('%Y-%m-%d') }}</td>
-                    <td>{{ payment.description }}</td>
-                    <td class="text-success">{{ payment.wallet.currency }} {{ "%.2f"|format(payment.amount) }}</td>
-                    <td>{{ payment.wallet.name }}</td>
+                <tr class="hover:bg-surface-hover/50 transition-colors">
+                    <td class="py-3 px-4 text-sm text-text">{{ payment.date.strftime('%b %d, %Y') }}</td>
+                    <td class="py-3 px-4 text-sm font-medium text-text">{{ payment.description }}</td>
+                    <td class="py-3 px-4 text-sm font-bold text-success">{{ payment.wallet.currency }} {{ "%.2f"|format(payment.amount or 0) }}</td>
+                    <td class="py-3 px-4">
+                        <span class="inline-flex items-center gap-1.5 text-xs font-medium text-text-muted bg-surface-active px-2.5 py-1 rounded-md border border-border">
+                            {{ payment.wallet.icon }} {{ payment.wallet.name }}
+                        </span>
+                    </td>
                 </tr>
                 {% endfor %}
             </tbody>
@@ -96,137 +243,189 @@
 
 <!-- Pay Creditor Modal -->
 <div id="payCreditorModal" class="modal-backdrop">
-    <div class="modal-content">
-        <h3>Record Payment</h3>
-        <p class="text-muted">Paying off debt to <span id="pay_creditor_name" style="font-weight: bold;"></span></p>
+    <div class="modal-content relative overflow-hidden">
+        <div class="absolute top-0 left-0 w-full h-1 bg-success"></div>
+        <div class="flex justify-between items-center mb-4">
+            <h3 class="text-xl font-bold font-heading m-0 flex items-center gap-2">
+                <i data-lucide="banknote" class="w-5 h-5 text-success"></i> Record Payment
+            </h3>
+            <button type="button" onclick="hidePayCreditorModal()" class="text-text-muted hover:text-text transition-colors"><i data-lucide="x" class="w-5 h-5"></i></button>
+        </div>
+        <p class="text-sm text-text-muted mb-6 bg-surface-active p-3 rounded-lg border border-border">Paying off debt to <span id="pay_creditor_name" class="font-bold text-text"></span></p>
         
-        <form id="payCreditorForm" method="POST">
-            <div class="form-group">
-                <label>Amount to Pay</label>
-                <input type="number" name="amount" id="pay_amount" step="0.01" class="form-control" required>
+        <form id="payCreditorForm" method="POST" class="space-y-4">
+            <div class="form-group mb-0">
+                <label class="text-sm font-semibold text-text mb-1 block">Amount to Pay</label>
+                <div class="relative">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <span class="text-text-muted font-medium font-heading">GHS</span>
+                    </div>
+                    <input type="number" name="amount" id="pay_amount" step="0.01" class="form-control rounded-xl border-border bg-surface focus:ring-2 focus:ring-success/50 transition-all font-heading font-bold text-lg" style="padding-left: 3.5rem !important;" required>
+                </div>
             </div>
             
-            <div class="form-group">
-                <label>Pay From Wallet</label>
-                <select name="wallet_id" class="form-control" required>
-                    {% for wallet in wallets %}
-                        <option value="{{ wallet.id }}">{{ wallet.name }} ({{ wallet.currency }} {{ "%.2f"|format(wallet.balance) }})</option>
-                    {% endfor %}
-                </select>
+            <div class="form-group mb-0">
+                <label class="text-sm font-semibold text-text mb-1 block">Pay From Wallet</label>
+                <div class="relative">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <i data-lucide="wallet" class="w-4 h-4 text-text-muted"></i>
+                    </div>
+                    <select name="wallet_id" class="form-control rounded-xl border-border bg-surface focus:ring-2 focus:ring-primary/50 transition-all" style="padding-left: 2.5rem !important;" required>
+                        {% for wallet in wallets %}
+                            <option value="{{ wallet.id }}">{{ wallet.name }} ({{ wallet.currency }} {{ "%.2f"|format(wallet.balance or 0) }})</option>
+                        {% endfor %}
+                    </select>
+                </div>
             </div>
             
-            <div class="form-group">
-                <label>Date</label>
-                <input type="date" name="date" value="{{ now_date }}" class="form-control" required>
+            <div class="form-group mb-0">
+                <label class="text-sm font-semibold text-text mb-1 block">Date</label>
+                <div class="relative">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <i data-lucide="calendar" class="w-4 h-4 text-text-muted"></i>
+                    </div>
+                    <input type="date" name="date" value="{{ now_date }}" class="form-control rounded-xl border-border bg-surface focus:ring-2 focus:ring-primary/50 transition-all" style="padding-left: 2.5rem !important;" required>
+                </div>
             </div>
             
-            <div class="flex gap-4 justify-end mt-4">
-                <button type="button" onclick="hidePayCreditorModal()" class="btn-secondary">Cancel</button>
-                <button type="submit" class="btn-success">Record Payment</button>
+            <div class="flex gap-3 justify-end pt-4 border-t border-border mt-6">
+                <button type="button" onclick="hidePayCreditorModal()" class="btn-secondary rounded-xl py-2 px-4 shadow-sm">Cancel</button>
+                <button type="submit" class="btn-success rounded-xl py-2 px-5 shadow-sm hover:shadow-md transition-all flex items-center gap-2">
+                    <i data-lucide="check" class="w-4 h-4"></i> Record Payment
+                </button>
             </div>
         </form>
     </div>
 </div>
 
-<!-- Add Creditor Modal -->
+<!-- Add Debt Modal -->
 <div id="addCreditorModal" class="modal-backdrop">
-    <div class="modal-content">
-        <h3>Add New Creditor</h3>
-        <form action="{{ url_for('main.add_creditor') }}" method="POST">
-            <div class="form-group">
-                <label>Name</label>
-                <input type="text" name="name" class="form-control" required placeholder="e.g. John Doe">
+    <div class="modal-content relative overflow-hidden">
+        <div class="absolute top-0 left-0 w-full h-1 bg-primary"></div>
+        <div class="flex justify-between items-center mb-6">
+            <h3 class="text-xl font-bold font-heading m-0 flex items-center gap-2">
+                <i data-lucide="plus-circle" class="w-5 h-5 text-primary"></i> Add New Debt
+            </h3>
+            <button type="button" onclick="hideAddCreditorModal()" class="text-text-muted hover:text-text transition-colors"><i data-lucide="x" class="w-5 h-5"></i></button>
+        </div>
+        <form action="{{ url_for('main.add_creditor') }}" method="POST" class="space-y-4">
+            <div class="form-group mb-0">
+                <label class="text-sm font-semibold text-text mb-1 block">Creditor Name</label>
+                <div class="relative">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <i data-lucide="user" class="w-4 h-4 text-text-muted"></i>
+                    </div>
+                    <input type="text" name="name" class="form-control rounded-xl border-border bg-surface focus:ring-2 focus:ring-primary/50 transition-all" style="padding-left: 2.5rem !important;" required placeholder="e.g. John Doe">
+                </div>
             </div>
-            <div class="form-group">
-                <label>Amount Owed</label>
-                <input type="number" name="amount" step="0.01" class="form-control" required placeholder="0.00">
+            <div class="form-group mb-0">
+                <label class="text-sm font-semibold text-text mb-1 block">Amount Owed</label>
+                <div class="relative">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <span class="text-text-muted font-medium font-heading">GHS</span>
+                    </div>
+                    <input type="number" name="amount" step="0.01" class="form-control rounded-xl border-border bg-surface focus:ring-2 focus:ring-primary/50 transition-all font-heading font-bold" style="padding-left: 3.5rem !important;" required placeholder="0.00">
+                </div>
             </div>
-            <div class="form-group">
-                <label>Description (Optional)</label>
-                <textarea name="description" class="form-control" rows="2"></textarea>
+            <div class="form-group mb-0">
+                <label class="text-sm font-semibold text-text mb-1 block">Description (Optional)</label>
+                <textarea name="description" class="form-control rounded-xl border-border bg-surface focus:ring-2 focus:ring-primary/50 transition-all resize-none" rows="3" placeholder="Additional details"></textarea>
             </div>
-            <div class="flex gap-4 justify-end mt-4">
-                <button type="button" onclick="hideAddCreditorModal()" class="btn-secondary">Cancel</button>
-                <button type="submit" class="btn-primary">Add Creditor</button>
+            <div class="flex gap-3 justify-end pt-4 border-t border-border mt-6">
+                <button type="button" onclick="hideAddCreditorModal()" class="btn-secondary rounded-xl py-2 px-4 shadow-sm">Cancel</button>
+                <button type="submit" class="btn-primary rounded-xl py-2 px-5 shadow-sm hover:shadow-md transition-all flex items-center gap-2">
+                    <i data-lucide="save" class="w-4 h-4"></i> Add Debt
+                </button>
             </div>
         </form>
     </div>
 </div>
 
-<!-- Edit Creditor Modal -->
+<!-- Edit Debt Modal -->
 <div id="editCreditorModal" class="modal-backdrop">
-    <div class="modal-content">
-        <h3>Edit Creditor</h3>
-        <form id="editCreditorForm" method="POST">
-            <div class="form-group">
-                <label>Name</label>
-                <input type="text" name="name" id="edit_name" class="form-control" required>
+    <div class="modal-content relative overflow-hidden">
+        <div class="absolute top-0 left-0 w-full h-1 bg-text-muted"></div>
+        <div class="flex justify-between items-center mb-6">
+            <h3 class="text-xl font-bold font-heading m-0 flex items-center gap-2">
+                <i data-lucide="pencil" class="w-5 h-5 text-text-muted"></i> Edit Debt
+            </h3>
+            <button type="button" onclick="hideEditCreditorModal()" class="text-text-muted hover:text-text transition-colors"><i data-lucide="x" class="w-5 h-5"></i></button>
+        </div>
+        <form id="editCreditorForm" method="POST" class="space-y-4">
+            <div class="form-group mb-0">
+                <label class="text-sm font-semibold text-text mb-1 block">Creditor Name</label>
+                <div class="relative">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <i data-lucide="user" class="w-4 h-4 text-text-muted"></i>
+                    </div>
+                    <input type="text" name="name" id="edit_name" class="form-control rounded-xl border-border bg-surface focus:ring-2 focus:ring-primary/50 transition-all" style="padding-left: 2.5rem !important;" required>
+                </div>
             </div>
-            <div class="form-group">
-                <label>Amount Owed</label>
-                <input type="number" name="amount" id="edit_amount" step="0.01" class="form-control" required>
+            <div class="form-group mb-0">
+                <label class="text-sm font-semibold text-text mb-1 block">Amount Owed</label>
+                <div class="relative">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <span class="text-text-muted font-medium font-heading">GHS</span>
+                    </div>
+                    <input type="number" name="amount" id="edit_amount" step="0.01" class="form-control rounded-xl border-border bg-surface focus:ring-2 focus:ring-primary/50 transition-all font-heading font-bold" style="padding-left: 3.5rem !important;" required>
+                </div>
             </div>
-            <div class="form-group">
-                <label>Description</label>
-                <textarea name="description" id="edit_description" class="form-control" rows="2"></textarea>
+            <div class="form-group mb-0">
+                <label class="text-sm font-semibold text-text mb-1 block">Description</label>
+                <textarea name="description" id="edit_description" class="form-control rounded-xl border-border bg-surface focus:ring-2 focus:ring-primary/50 transition-all resize-none" rows="2"></textarea>
             </div>
-            <div class="flex gap-4 justify-end mt-4">
-                <button type="button" onclick="hideEditCreditorModal()" class="btn-secondary">Cancel</button>
-                <button type="submit" class="btn-primary">Update Creditor</button>
+            <div class="form-group mb-0">
+                <label class="text-sm font-semibold text-text mb-1 flex items-center gap-2">
+                    Original Amount 
+                    <span class="group relative cursor-help">
+                        <i data-lucide="info" class="w-4 h-4 text-text-muted hover:text-primary transition-colors"></i>
+                        <span class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 p-2 bg-text text-surface text-xs rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all text-center z-10 shadow-lg">Used to calculate your payoff progress percentage</span>
+                    </span>
+                </label>
+                <div class="relative">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <span class="text-text-muted font-medium font-heading">GHS</span>
+                    </div>
+                    <input type="number" name="original_amount" id="edit_original_amount" step="0.01" class="form-control rounded-xl border-border bg-surface focus:ring-2 focus:ring-primary/50 transition-all font-heading" style="padding-left: 3.5rem !important;">
+                </div>
+            </div>
+            <div class="flex gap-3 justify-end pt-4 border-t border-border mt-6">
+                <button type="button" onclick="hideEditCreditorModal()" class="btn-secondary rounded-xl py-2 px-4 shadow-sm">Cancel</button>
+                <button type="submit" class="btn-primary rounded-xl py-2 px-5 shadow-sm hover:shadow-md transition-all flex items-center gap-2">
+                    <i data-lucide="save" class="w-4 h-4"></i> Update Debt
+                </button>
             </div>
         </form>
     </div>
 </div>
 
 <script>
-    const addModal = document.getElementById('addCreditorModal');
-    const editModal = document.getElementById('editCreditorModal');
-    const payModal = document.getElementById('payCreditorModal');
-    const editForm = document.getElementById('editCreditorForm');
-    const payForm = document.getElementById('payCreditorForm');
-
-    function showAddCreditorModal() {
-        addModal.style.display = 'flex';
-    }
-
-    function hideAddCreditorModal() {
-        addModal.style.display = 'none';
-    }
-    
-    function showPayCreditorModal(id, name, amount) {
-        document.getElementById('pay_creditor_name').textContent = name;
-        document.getElementById('pay_amount').value = amount; // Default to full amount? Or empty? Let's default to full.
-        payForm.action = `/creditors/pay/${id}`;
-        
-        // Set today's date default
-        const dateInput = payForm.querySelector('input[type="date"]');
-        if (!dateInput.value) {
-            dateInput.value = new Date().toISOString().split('T')[0];
-        }
-        
-        payModal.style.display = 'flex';
-    }
-
-    function hidePayCreditorModal() {
-        payModal.style.display = 'none';
-    }
-
-    function showEditCreditorModal(id, name, amount, description) {
-        document.getElementById('edit_name').value = name;
-        document.getElementById('edit_amount').value = amount;
-        document.getElementById('edit_description').value = description === 'None' ? '' : description;
-        editForm.action = `/creditors/edit/${id}`;
-        editModal.style.display = 'flex';
-    }
-
-    function hideEditCreditorModal() {
-        editModal.style.display = 'none';
-    }
-
     window.onclick = function(event) {
+        let addModal = document.getElementById('addCreditorModal');
+        let editModal = document.getElementById('editCreditorModal');
+        let payModal = document.getElementById('payCreditorModal');
         if (event.target == addModal) hideAddCreditorModal();
         if (event.target == editModal) hideEditCreditorModal();
         if (event.target == payModal) hidePayCreditorModal();
     }
+
+    function showAddCreditorModal() { document.getElementById('addCreditorModal').style.display = 'flex'; }
+    function hideAddCreditorModal() { document.getElementById('addCreditorModal').style.display = 'none'; }
+    function showEditCreditorModal(id, name, amount, desc, original) {
+        document.getElementById('edit_name').value = name;
+        document.getElementById('edit_amount').value = amount;
+        document.getElementById('edit_description').value = desc;
+        document.getElementById('edit_original_amount').value = original || amount;
+        document.getElementById('editCreditorForm').action = `/creditor/edit/${id}`;
+        document.getElementById('editCreditorModal').style.display = 'flex';
+    }
+    function hideEditCreditorModal() { document.getElementById('editCreditorModal').style.display = 'none'; }
+    function showPayCreditorModal(id, name, amount) {
+        document.getElementById('pay_creditor_name').innerText = name;
+        document.getElementById('pay_amount').value = amount;
+        document.getElementById('payCreditorForm').action = `/creditor/pay/${id}`;
+        document.getElementById('payCreditorModal').style.display = 'flex';
+    }
+    function hidePayCreditorModal() { document.getElementById('payCreditorModal').style.display = 'none'; }
 </script>
 {% endblock %}

@@ -245,16 +245,90 @@ class Creditor(db.Model):
     amount = db.Column(db.Float, nullable=False, default=0.0)
     currency = db.Column(db.String(10), default='GHS')
     description = db.Column(db.String(200), nullable=True)
-    debt_type = db.Column(db.String(50), default='Personal Loan')  # Personal Loan, Bank Loan, Credit Card, Mortgage, Student Loan, Custom
+    debt_type = db.Column(db.String(50), default='Personal Loan')
     interest_rate = db.Column(db.Float, default=0.0)
     original_amount = db.Column(db.Float, nullable=True)
     due_date = db.Column(db.DateTime, nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    status = db.Column(db.String(20), default='active')
+    payment_frequency = db.Column(db.String(20), nullable=True)
+    minimum_payment = db.Column(db.Float, default=0.0)
+    contact_info = db.Column(db.String(200), nullable=True)
+    priority = db.Column(db.Integer, default=3)
+    notes = db.Column(db.Text, nullable=True)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     user = db.relationship('User', backref=db.backref('_user_creditors', cascade='all, delete-orphan'), lazy=True)
 
+    @property
+    def computed_status(self):
+        if self.amount <= 0:
+            return 'paid_off'
+        if self.due_date and self.due_date < datetime.utcnow():
+            return 'overdue'
+        return self.status or 'active'
+
+    @property
+    def progress_percent(self):
+        if not self.original_amount or self.original_amount <= 0:
+            return 0
+        paid = self.original_amount - self.amount
+        return min(round((paid / self.original_amount) * 100, 1), 100)
+
+    @property
+    def days_until_due(self):
+        if not self.due_date:
+            return None
+        return (self.due_date - datetime.utcnow()).days
+
     def __repr__(self):
         return f'<Creditor {self.name}: {self.amount}>'
+
+class Debtor(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
+    name = db.Column(db.String(100), nullable=False)
+    amount = db.Column(db.Float, nullable=False, default=0.0)
+    currency = db.Column(db.String(10), default='GHS')
+    description = db.Column(db.String(200), nullable=True)
+    debt_type = db.Column(db.String(50), default='Money Lent')
+    interest_rate = db.Column(db.Float, default=0.0)
+    original_amount = db.Column(db.Float, nullable=True)
+    due_date = db.Column(db.DateTime, nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    status = db.Column(db.String(20), default='active')
+    payment_frequency = db.Column(db.String(20), nullable=True)
+    minimum_payment = db.Column(db.Float, default=0.0)
+    contact_info = db.Column(db.String(200), nullable=True)
+    priority = db.Column(db.Integer, default=3)
+    notes = db.Column(db.Text, nullable=True)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    user = db.relationship('User', backref=db.backref('_user_debtors', cascade='all, delete-orphan'), lazy=True)
+
+    @property
+    def computed_status(self):
+        if self.amount <= 0:
+            return 'paid_off'
+        if self.due_date and self.due_date < datetime.utcnow():
+            return 'overdue'
+        return self.status or 'active'
+
+    @property
+    def progress_percent(self):
+        if not self.original_amount or self.original_amount <= 0:
+            return 0
+        collected = self.original_amount - self.amount
+        return min(round((collected / self.original_amount) * 100, 1), 100)
+
+    @property
+    def days_until_due(self):
+        if not self.due_date:
+            return None
+        return (self.due_date - datetime.utcnow()).days
+
+    def __repr__(self):
+        return f'<Debtor {self.name}: {self.amount}>'
 
 
 # ===== PHASE 2: Financial Goals =====
@@ -644,6 +718,19 @@ class DebtPayment(db.Model):
 
     def __repr__(self):
         return f'<DebtPayment {self.amount}>'
+
+
+class DebtorPayment(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    debtor_id = db.Column(db.Integer, db.ForeignKey('debtor.id'), nullable=False)
+    amount = db.Column(db.Float, nullable=False)
+    date = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    notes = db.Column(db.String(200), nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    debtor = db.relationship('Debtor', backref=db.backref('payments', cascade='all, delete-orphan'), lazy=True)
+
+    def __repr__(self):
+        return f'<DebtorPayment {self.amount}>'
 
 
 # ===== PHASE 9: Notifications =====

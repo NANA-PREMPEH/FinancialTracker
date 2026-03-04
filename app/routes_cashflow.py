@@ -19,9 +19,17 @@ def cash_flow():
 
     # Build monthly data for last 6 months
     monthly_data = []
-    for i in range(5, -1, -1):
-        dt = now - timedelta(days=30 * i)
-        y, m = dt.year, dt.month
+    months_list = []
+    curr_y, curr_m = now.year, now.month
+    for _ in range(6):
+        months_list.append((curr_y, curr_m))
+        curr_m -= 1
+        if curr_m == 0:
+            curr_m = 12
+            curr_y -= 1
+    months_list.reverse()
+
+    for y, m in months_list:
         month_start = datetime(y, m, 1)
         if m == 12:
             month_end = datetime(y + 1, 1, 1)

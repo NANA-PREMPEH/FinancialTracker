@@ -178,7 +178,11 @@
                     <div class="nav-label">Management</div>
                     <a href="{{ url_for('main.creditors') }}" class="nav-item {% if request.endpoint == 'main.creditors' %}active{% endif %}">
                         <i data-lucide="credit-card"></i>
-                        <span>Debts</span>
+                        <span>Creditors (Payables)</span>
+                    </a>
+                    <a href="{{ url_for('main.debtors') }}" class="nav-item {% if request.endpoint == 'main.debtors' %}active{% endif %}">
+                        <i data-lucide="users"></i>
+                        <span>Debtors (Receivables)</span>
                     </a>
                     <a href="{{ url_for('commitments.commitments_list') }}" class="nav-item {% if request.blueprint == 'commitments' %}active{% endif %}">
                         <i data-lucide="handshake"></i>
