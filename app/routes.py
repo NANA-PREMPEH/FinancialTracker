@@ -1,7 +1,7 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify, send_file, Response
 from flask_login import login_required, current_user
 from . import db
-from .models import Expense, Category, Wallet, Budget, RecurringTransaction, ExchangeRate, Project, ProjectItem, ProjectItemPayment, FinancialSummary, WishlistItem, Creditor, DebtPayment
+from .models import Expense, Category, Wallet, Budget, RecurringTransaction, ExchangeRate, Project, ProjectItem, ProjectItemPayment, FinancialSummary, WishlistItem, Creditor, DebtPayment, Debtor
 from .utils import get_exchange_rate
 from datetime import datetime, timedelta
 from dateutil.relativedelta import relativedelta
@@ -146,6 +146,11 @@ def dashboard():
     total_debt = sum(c.amount for c in creditors)
     net_wallet_balance = total_wallet_balance - total_debt
 
+    # Calculate actual monthly trend
+    debtors = Debtor.query.filter_by(user_id=current_user.id).all()
+    total_debtors = sum(d.amount or 0 for d in debtors)
+    actual_monthly_trend = monthly_expenses - total_debtors
+
     # Category spending data for doughnut chart (current month)
     category_spending = db.session.query(
         Category.name, Category.icon, func.sum(Expense.amount)
@@ -179,13 +184,22 @@ def dashboard():
             Expense.date < m_end,
             ~transfer_filter
         ).scalar() or 0
+
+        m_debtors = db.session.query(func.sum(Debtor.amount)).filter(
+            Debtor.user_id == current_user.id,
+            Debtor.created_at >= m_start,
+            Debtor.created_at < m_end
+        ).scalar() or 0
+
         monthly_trend.append({
             'label': m_start.strftime('%b'),
-            'amount': float(m_total)
+            'amount': float(m_total),
+            'actual_amount': float(m_total) - float(m_debtors)
         })
 
     trend_labels = [m['label'] for m in monthly_trend]
     trend_amounts = [m['amount'] for m in monthly_trend]
+    actual_trend_amounts = [m['actual_amount'] for m in monthly_trend]
 
     return render_template('dashboard.html',
                          wallets=wallets,
@@ -197,6 +211,7 @@ def dashboard():
                          total_income=total_income,
                          monthly_expenses=monthly_expenses,
                          yearly_expenses=yearly_expenses,
+                         actual_monthly_trend=actual_monthly_trend,
                          total_wallet_balance=total_wallet_balance,
                          current_date=now,
                          oldest_date=oldest_date,
@@ -204,7 +219,8 @@ def dashboard():
                          chart_categories=chart_categories,
                          chart_amounts=chart_amounts,
                          trend_labels=trend_labels,
-                         trend_amounts=trend_amounts)
+                         trend_amounts=trend_amounts,
+                         actual_trend_amounts=actual_trend_amounts)
 
 # ===== TRANSACTIONS =====
 @main.route('/add', methods=['GET', 'POST'])

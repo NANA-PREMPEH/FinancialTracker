@@ -94,6 +94,20 @@
                 <i data-lucide="arrow-left-right" class="w-4 h-4"></i> Convert
             </button>
         </div>
+
+        <!-- Actual Monthly Trend Card -->
+        <div class="bg-surface rounded-2xl p-6 border border-border shadow-sm hover:shadow-md transition-all duration-300">
+            <div class="flex justify-between items-start mb-4">
+                <div>
+                    <h3 class="font-heading font-bold text-text mb-1">Actual Monthly Trend</h3>
+                    <p class="text-xs text-text-muted">Monthly Expenses - Debtors {% if current_date %}• <span class="font-medium">{{ current_date.strftime('%b %Y') }}</span>{% endif %}</p>
+                </div>
+                <div class="p-2 bg-primary/10 rounded-lg text-primary">
+                    <i data-lucide="bar-chart-2"></i>
+                </div>
+            </div>
+            <div class="amount-value text-2xl font-bold text-text" data-amount="GHS {{ '{:,.2f}'.format(actual_monthly_trend) }}">GHS {{ "{:,.2f}".format(actual_monthly_trend) }}</div>
+        </div>
     </div>
 </div>
 
@@ -129,7 +143,7 @@
 
 <!-- Dashboard Charts -->
 {% if chart_categories %}
-<div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
     <div class="bg-surface rounded-2xl p-6 border border-border shadow-sm hover:shadow-md transition-all duration-300">
         <h3 class="font-heading font-bold text-lg text-text mb-1">Spending by Category</h3>
         <p class="text-xs text-text-muted mb-6">Current month</p>
@@ -142,6 +156,13 @@
         <p class="text-xs text-text-muted mb-6">Last 6 months</p>
         <div class="relative w-full">
             <canvas id="trendChart"></canvas>
+        </div>
+    </div>
+    <div class="bg-surface rounded-2xl p-6 border border-border shadow-sm hover:shadow-md transition-all duration-300">
+        <h3 class="font-heading font-bold text-lg text-text mb-1">Actual Monthly Trend</h3>
+        <p class="text-xs text-text-muted mb-6">Last 6 months</p>
+        <div class="relative w-full">
+            <canvas id="actualTrendChart"></canvas>
         </div>
     </div>
 </div>
@@ -413,6 +434,50 @@ document.addEventListener('DOMContentLoaded', function() {
                         label: 'Expenses',
                         data: trendAmounts,
                         backgroundColor: '#6366f1',
+                        borderRadius: 6,
+                        borderSkipped: false
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: {
+                                color: 'rgba(128,128,128,0.1)'
+                            },
+                            ticks: {
+                                color: getComputedStyle(document.documentElement).getPropertyValue('--color-text-muted').trim() || '#888'
+                            }
+                        },
+                        x: {
+                            grid: { display: false },
+                            ticks: {
+                                color: getComputedStyle(document.documentElement).getPropertyValue('--color-text-muted').trim() || '#888'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+    }
+
+    var actualTrendAmounts = {{ actual_trend_amounts|tojson }};
+
+    if (trendLabels.length > 0) {
+        var actualTrendCtx = document.getElementById('actualTrendChart');
+        if (actualTrendCtx) {
+            new Chart(actualTrendCtx, {
+                type: 'bar',
+                data: {
+                    labels: trendLabels,
+                    datasets: [{
+                        label: 'Actual Trend',
+                        data: actualTrendAmounts,
+                        backgroundColor: '#10b981',
                         borderRadius: 6,
                         borderSkipped: false
                     }]
