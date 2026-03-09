@@ -14,7 +14,7 @@
 </div>
 
 <!-- Dashboard Summary -->
-<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
     <div class="bg-surface rounded-2xl p-6 border border-border shadow-sm hover:shadow-md transition-all duration-300 flex flex-col justify-between group hover:-translate-y-1">
         <div class="flex justify-between items-center mb-4">
             <h3 class="text-sm font-medium text-text-muted m-0">Total Expected</h3>
@@ -24,7 +24,7 @@
         </div>
         <p class="text-3xl font-bold font-heading text-success m-0">GHS {{ "%.2f"|format(total_expected or 0) }}</p>
     </div>
-    
+
     <div class="bg-surface rounded-2xl p-6 border border-border shadow-sm hover:shadow-md transition-all duration-300 flex flex-col justify-between group hover:-translate-y-1">
         <div class="flex justify-between items-center mb-4">
             <h3 class="text-sm font-medium text-text-muted m-0">Collected This Month</h3>
@@ -43,6 +43,30 @@
             </div>
         </div>
         <p class="text-3xl font-bold font-heading text-text m-0">GHS {{ "%.2f"|format(monthly_expected or 0) }}</p>
+    </div>
+
+    <!-- Bad Debt Summary Card -->
+    <div class="bg-surface rounded-2xl p-6 border border-border shadow-sm hover:shadow-md transition-all duration-300 flex flex-col justify-between group hover:-translate-y-1">
+        <div class="flex justify-between items-center mb-4">
+            <h3 class="text-sm font-medium text-text-muted m-0">Bad Debt</h3>
+            <div class="bg-warning/10 p-2.5 rounded-xl text-warning group-hover:scale-110 transition-transform">
+                <i data-lucide="alert-triangle" class="w-5 h-5"></i>
+            </div>
+        </div>
+        <p class="text-2xl font-bold font-heading text-warning m-0 mb-1">GHS {{ "%.2f"|format(total_bad_debt or 0) }}</p>
+        <div class="flex justify-between items-center text-xs text-text-muted mt-1">
+            <span>{{ bad_debt_count }} written off</span>
+            <span class="text-success font-semibold">
+                {% if (total_bad_debt or 0) > 0 %}
+                    {{ "%.0f"|format(((total_recovered or 0) / total_bad_debt) * 100) }}% recovered
+                {% else %}
+                    0% recovered
+                {% endif %}
+            </span>
+        </div>
+        {% if (total_recovered or 0) > 0 %}
+        <p class="text-xs text-success font-medium mt-1 m-0">Recovered: GHS {{ "%.2f"|format(total_recovered) }}</p>
+        {% endif %}
     </div>
 
     <div class="bg-surface rounded-2xl p-6 border border-border shadow-sm hover:shadow-md transition-all duration-300 flex flex-col justify-between group hover:-translate-y-1">
@@ -81,6 +105,7 @@
                 <option value="active" {% if status_filter == 'active' %}selected{% endif %}>Active</option>
                 <option value="overdue" {% if status_filter == 'overdue' %}selected{% endif %}>Overdue</option>
                 <option value="paid_off" {% if status_filter == 'paid_off' %}selected{% endif %}>Fully Paid</option>
+                <option value="bad_debt" {% if status_filter == 'bad_debt' %}selected{% endif %}>Bad Debt</option>
             </select>
             <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-text-muted">
                 <i data-lucide="chevron-down" class="w-4 h-4"></i>
@@ -115,6 +140,10 @@
         {% elif debtor.computed_status == 'paid_off' %}
         <div class="absolute top-0 right-0 bg-success text-white px-3 py-1 text-xs font-bold tracking-wider rounded-bl-lg z-10 shadow-sm flex items-center gap-1.5 backdrop-blur-md bg-opacity-90">
             <i data-lucide="check-circle-2" class="w-3 h-3"></i> FULLY PAID
+        </div>
+        {% elif debtor.computed_status == 'bad_debt' %}
+        <div class="absolute top-0 right-0 bg-warning text-white px-3 py-1 text-xs font-bold tracking-wider rounded-bl-lg z-10 shadow-sm flex items-center gap-1.5 backdrop-blur-md bg-opacity-90">
+            <i data-lucide="alert-triangle" class="w-3 h-3"></i> WRITTEN OFF
         </div>
         {% endif %}
 
@@ -187,7 +216,12 @@
 
             <!-- Action Buttons -->
             <div class="flex gap-2 pt-4 border-t border-border mt-auto">
-                {% if debtor.amount > 0 %}
+                {% if debtor.computed_status == 'bad_debt' %}
+                <button class="flex-1 btn-success flex items-center justify-center gap-2 py-2 px-3 text-sm shadow-sm hover:shadow"
+                        onclick="showRecoverModal(`{{ debtor.id }}`, `{{ debtor.name|replace('`', '') }}`)">
+                    <i data-lucide="rotate-ccw" class="w-4 h-4"></i> Recover
+                </button>
+                {% elif debtor.amount > 0 %}
                 <button class="flex-1 btn-success flex items-center justify-center gap-2 py-2 px-3 text-sm shadow-sm hover:shadow"
                         onclick="showCollectDebtorModal(`{{ debtor.id }}`, `{{ debtor.name|replace('`', '') }}`, `{{ debtor.amount }}`)">
                     <i data-lucide="banknote" class="w-4 h-4"></i> Collect
@@ -197,6 +231,14 @@
                         onclick="showEditDebtorModal(`{{ debtor.id }}`, `{{ debtor.name|replace('`', '') }}`, `{{ debtor.amount }}`, `{{ debtor.description|default('', true)|replace('`', '') }}`, `{{ debtor.original_amount or '' }}`)">
                     <i data-lucide="pencil" class="w-4 h-4"></i> Edit
                 </button>
+
+                {% if debtor.amount > 0 and debtor.computed_status != 'bad_debt' %}
+                <button class="btn-secondary flex items-center justify-center p-2.5 rounded-xl shadow-sm hover:shadow border-warning/30 hover:bg-warning/10 flex-shrink-0" title="Write Off as Bad Debt"
+                        onclick="showBadDebtModal(`{{ debtor.id }}`, `{{ debtor.name|replace('`', '') }}`, `{{ debtor.amount }}`)">
+                    <i data-lucide="alert-octagon" class="w-4 h-4 text-warning"></i>
+                </button>
+                {% endif %}
+
                 <form action="{{ url_for('main.delete_debtor', id=debtor.id) }}" method="POST" class="flex-shrink-0" onsubmit="return confirm('Delete this debtor record?');">
                     <button type="submit" class="btn-delete flex items-center justify-center p-2.5 h-full rounded-xl shadow-sm hover:shadow" title="Delete">
                         <i data-lucide="trash-2" class="w-4 h-4"></i>
@@ -429,10 +471,146 @@
     </div>
 </div>
 
+<!-- Bad Debt Write-off Modal -->
+<div id="badDebtModal" class="modal-backdrop">
+    <div class="modal-content relative overflow-hidden">
+        <div class="absolute top-0 left-0 w-full h-1 bg-warning"></div>
+        <div class="flex justify-between items-center mb-4">
+            <h3 class="text-xl font-bold font-heading m-0 flex items-center gap-2">
+                <i data-lucide="alert-octagon" class="w-5 h-5 text-warning"></i> Write Off Bad Debt
+            </h3>
+            <button type="button" onclick="hideBadDebtModal()" class="text-text-muted hover:text-text transition-colors"><i data-lucide="x" class="w-5 h-5"></i></button>
+        </div>
+        <p class="text-sm text-text-muted mb-6 bg-warning/10 p-3 rounded-lg border border-warning/30">
+            Writing off debt for <span id="bad_debt_name" class="font-bold text-text"></span>. This records the amount as an expense (loss).
+        </p>
+
+        <form id="badDebtForm" method="POST" class="space-y-4">
+            <div class="form-group mb-0">
+                <label class="text-sm font-semibold text-text mb-1 block">Write-off Amount</label>
+                <div class="relative">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <span class="text-text-muted font-medium font-heading">GHS</span>
+                    </div>
+                    <input type="number" name="amount" id="bad_debt_amount" step="0.01" min="0.01" class="form-control rounded-xl border-border bg-surface focus:ring-2 focus:ring-warning/50 transition-all font-heading font-bold text-lg" style="padding-left: 3.5rem !important;" required>
+                </div>
+                <p class="text-xs text-text-muted mt-1">Enter partial amount or leave as full balance to write off completely.</p>
+            </div>
+
+            <div class="form-group mb-0">
+                <label class="text-sm font-semibold text-text mb-1 block">Associate with Wallet</label>
+                <div class="relative">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <i data-lucide="wallet" class="w-4 h-4 text-text-muted"></i>
+                    </div>
+                    <select name="wallet_id" class="form-control rounded-xl border-border bg-surface focus:ring-2 focus:ring-primary/50 transition-all" style="padding-left: 2.5rem !important;" required>
+                        {% for wallet in wallets %}
+                            <option value="{{ wallet.id }}">{{ wallet.name }} ({{ wallet.currency }} {{ "%.2f"|format(wallet.balance or 0) }})</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-group mb-0">
+                <label class="text-sm font-semibold text-text mb-1 block">Expense Category</label>
+                <div class="relative">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <i data-lucide="tag" class="w-4 h-4 text-text-muted"></i>
+                    </div>
+                    <select name="category_id" class="form-control rounded-xl border-border bg-surface focus:ring-2 focus:ring-primary/50 transition-all" style="padding-left: 2.5rem !important;">
+                        <option value="">Bad Debt (Default)</option>
+                        {% for cat in categories %}
+                            <option value="{{ cat.id }}">{{ cat.icon }} {{ cat.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-group mb-0">
+                <label class="text-sm font-semibold text-text mb-1 block">Date</label>
+                <div class="relative">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <i data-lucide="calendar" class="w-4 h-4 text-text-muted"></i>
+                    </div>
+                    <input type="date" name="date" value="{{ now_date }}" class="form-control rounded-xl border-border bg-surface focus:ring-2 focus:ring-primary/50 transition-all" style="padding-left: 2.5rem !important;" required>
+                </div>
+            </div>
+
+            <div class="flex gap-3 justify-end pt-4 border-t border-border mt-6">
+                <button type="button" onclick="hideBadDebtModal()" class="btn-secondary rounded-xl py-2 px-4 shadow-sm">Cancel</button>
+                <button type="submit" class="rounded-xl py-2 px-5 shadow-sm hover:shadow-md transition-all flex items-center gap-2 text-white font-semibold" style="background: var(--warning, #f59e0b);">
+                    <i data-lucide="alert-octagon" class="w-4 h-4"></i> Write Off
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Bad Debt Recovery Modal -->
+<div id="recoverModal" class="modal-backdrop">
+    <div class="modal-content relative overflow-hidden">
+        <div class="absolute top-0 left-0 w-full h-1 bg-success"></div>
+        <div class="flex justify-between items-center mb-4">
+            <h3 class="text-xl font-bold font-heading m-0 flex items-center gap-2">
+                <i data-lucide="rotate-ccw" class="w-5 h-5 text-success"></i> Recover Bad Debt
+            </h3>
+            <button type="button" onclick="hideRecoverModal()" class="text-text-muted hover:text-text transition-colors"><i data-lucide="x" class="w-5 h-5"></i></button>
+        </div>
+        <p class="text-sm text-text-muted mb-6 bg-success/10 p-3 rounded-lg border border-success/30">
+            Recording recovery payment from <span id="recover_name" class="font-bold text-text"></span>. This adds funds back to your wallet.
+        </p>
+
+        <form id="recoverForm" method="POST" class="space-y-4">
+            <div class="form-group mb-0">
+                <label class="text-sm font-semibold text-text mb-1 block">Recovery Amount</label>
+                <div class="relative">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <span class="text-text-muted font-medium font-heading">GHS</span>
+                    </div>
+                    <input type="number" name="amount" id="recover_amount" step="0.01" min="0.01" class="form-control rounded-xl border-border bg-surface focus:ring-2 focus:ring-success/50 transition-all font-heading font-bold text-lg" style="padding-left: 3.5rem !important;" required>
+                </div>
+            </div>
+
+            <div class="form-group mb-0">
+                <label class="text-sm font-semibold text-text mb-1 block">Add to Wallet</label>
+                <div class="relative">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <i data-lucide="wallet" class="w-4 h-4 text-text-muted"></i>
+                    </div>
+                    <select name="wallet_id" class="form-control rounded-xl border-border bg-surface focus:ring-2 focus:ring-primary/50 transition-all" style="padding-left: 2.5rem !important;" required>
+                        {% for wallet in wallets %}
+                            <option value="{{ wallet.id }}">{{ wallet.name }} ({{ wallet.currency }} {{ "%.2f"|format(wallet.balance or 0) }})</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-group mb-0">
+                <label class="text-sm font-semibold text-text mb-1 block">Date</label>
+                <div class="relative">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <i data-lucide="calendar" class="w-4 h-4 text-text-muted"></i>
+                    </div>
+                    <input type="date" name="date" value="{{ now_date }}" class="form-control rounded-xl border-border bg-surface focus:ring-2 focus:ring-primary/50 transition-all" style="padding-left: 2.5rem !important;" required>
+                </div>
+            </div>
+
+            <div class="flex gap-3 justify-end pt-4 border-t border-border mt-6">
+                <button type="button" onclick="hideRecoverModal()" class="btn-secondary rounded-xl py-2 px-4 shadow-sm">Cancel</button>
+                <button type="submit" class="btn-success rounded-xl py-2 px-5 shadow-sm hover:shadow-md transition-all flex items-center gap-2">
+                    <i data-lucide="rotate-ccw" class="w-4 h-4"></i> Record Recovery
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
 <script>
     const addModal = document.getElementById('addDebtorModal');
     const editModal = document.getElementById('editDebtorModal');
     const collectModal = document.getElementById('collectDebtorModal');
+    const badDebtModal = document.getElementById('badDebtModal');
+    const recoverModalEl = document.getElementById('recoverModal');
     const editForm = document.getElementById('editDebtorForm');
     const collectForm = document.getElementById('collectDebtorForm');
 
@@ -478,10 +656,38 @@
         editModal.style.display = 'none';
     }
 
+    const badDebtForm = document.getElementById('badDebtForm');
+    const recoverForm = document.getElementById('recoverForm');
+
+    function showBadDebtModal(id, name, amount) {
+        document.getElementById('bad_debt_name').textContent = name;
+        document.getElementById('bad_debt_amount').value = amount;
+        document.getElementById('bad_debt_amount').max = amount;
+        badDebtForm.action = `/debtors/bad_debt/${id}`;
+        badDebtModal.style.display = 'flex';
+    }
+
+    function hideBadDebtModal() {
+        badDebtModal.style.display = 'none';
+    }
+
+    function showRecoverModal(id, name) {
+        document.getElementById('recover_name').textContent = name;
+        document.getElementById('recover_amount').value = '';
+        recoverForm.action = `/debtors/recover/${id}`;
+        recoverModalEl.style.display = 'flex';
+    }
+
+    function hideRecoverModal() {
+        recoverModalEl.style.display = 'none';
+    }
+
     window.onclick = function(event) {
         if (event.target == addModal) hideAddDebtorModal();
         if (event.target == editModal) hideEditDebtorModal();
         if (event.target == collectModal) hideCollectDebtorModal();
+        if (event.target == badDebtModal) hideBadDebtModal();
+        if (event.target == recoverModalEl) hideRecoverModal();
     }
 </script>
 {% endblock %}

@@ -308,6 +308,8 @@ class Debtor(db.Model):
 
     @property
     def computed_status(self):
+        if self.status == 'bad_debt':
+            return 'bad_debt'
         if self.amount <= 0:
             return 'paid_off'
         if self.due_date and self.due_date < datetime.utcnow():

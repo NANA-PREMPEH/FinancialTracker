@@ -298,6 +298,15 @@
                             pointBorderColor: '#ef4444',
                         },
                         {
+                            label: 'Actual Expenses',
+                            data: [{% for item in monthly_data %}{{ item.actual_expense }}{% if not loop.last %}, {% endif %}{% endfor %}],
+                            borderColor: '#8b5cf6',
+                            backgroundColor: 'transparent',
+                            fill: false,
+                            pointBorderColor: '#8b5cf6',
+                            borderDash: [5, 5]
+                        },
+                        {
                             label: 'Income',
                             data: [{% for item in monthly_data %}{{ item.income }}{% if not loop.last %}, {% endif %}{% endfor %}],
                             borderColor: '#10b981',
@@ -336,6 +345,15 @@
                             backgroundColor: expenseGradientYr,
                             fill: true,
                             pointBorderColor: '#ef4444',
+                        },
+                        {
+                            label: 'Actual Expenses',
+                            data: [{% for item in yearly_data %}{{ item.actual_expense }}{% if not loop.last %}, {% endif %}{% endfor %}],
+                            borderColor: '#8b5cf6',
+                            backgroundColor: 'transparent',
+                            fill: false,
+                            pointBorderColor: '#8b5cf6',
+                            borderDash: [5, 5]
                         },
                         {
                             label: 'Income',

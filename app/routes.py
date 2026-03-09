@@ -147,9 +147,17 @@ def dashboard():
     net_wallet_balance = total_wallet_balance - total_debt
 
     # Calculate actual monthly trend
-    debtors = Debtor.query.filter_by(user_id=current_user.id).all()
-    total_debtors = sum(d.amount or 0 for d in debtors)
-    actual_monthly_trend = monthly_expenses - total_debtors
+    debt_lent_cat = Category.query.filter_by(name='Money Lent', user_id=current_user.id).first()
+    debt_lent_id = debt_lent_cat.id if debt_lent_cat else -1
+    
+    monthly_lent = db.session.query(func.sum(Expense.amount)).filter(
+        Expense.user_id == current_user.id,
+        Expense.transaction_type == 'expense',
+        Expense.date >= month_start,
+        or_(Expense.category_id == debt_lent_id, Expense.tags.ilike('%debt_lent%'))
+    ).scalar() or 0
+    
+    actual_monthly_trend = monthly_expenses - monthly_lent
 
     # Category spending data for doughnut chart (current month)
     category_spending = db.session.query(
@@ -185,16 +193,18 @@ def dashboard():
             ~transfer_filter
         ).scalar() or 0
 
-        m_debtors = db.session.query(func.sum(Debtor.amount)).filter(
-            Debtor.user_id == current_user.id,
-            Debtor.created_at >= m_start,
-            Debtor.created_at < m_end
+        m_lent = db.session.query(func.sum(Expense.amount)).filter(
+            Expense.user_id == current_user.id,
+            Expense.transaction_type == 'expense',
+            Expense.date >= m_start,
+            Expense.date < m_end,
+            or_(Expense.category_id == debt_lent_id, Expense.tags.ilike('%debt_lent%'))
         ).scalar() or 0
 
         monthly_trend.append({
             'label': m_start.strftime('%b'),
             'amount': float(m_total),
-            'actual_amount': float(m_total) - float(m_debtors)
+            'actual_amount': float(m_total) - float(m_lent)
         })
 
     trend_labels = [m['label'] for m in monthly_trend]
@@ -915,6 +925,9 @@ def analytics():
     transfer_cat = Category.query.filter_by(name='Transfer').first()
     transfer_id = transfer_cat.id if transfer_cat else -1
     
+    debt_lent_cat = Category.query.filter_by(name='Money Lent', user_id=current_user.id).first()
+    debt_lent_id = debt_lent_cat.id if debt_lent_cat else -1
+    
     category_data = db.session.query(
         Category.name, Category.icon, func.sum(Expense.amount)
     ).join(Expense).filter(
@@ -963,9 +976,19 @@ def analytics():
             expense_total += hist_summary.total_expense
             income_total += hist_summary.total_income
         
+        # Get Money Lent (Live)
+        m_lent = db.session.query(func.sum(Expense.amount)).filter(
+            Expense.user_id == current_user.id,
+            Expense.transaction_type == 'expense',
+            Expense.date >= month_start,
+            Expense.date < month_end,
+            or_(Expense.category_id == debt_lent_id, Expense.tags.ilike('%debt_lent%'))
+        ).scalar() or 0
+        
         monthly_data.append({
             'month': month_start.strftime('%b'),
             'expense': expense_total,
+            'actual_expense': expense_total - m_lent,
             'income': income_total
         })
     
@@ -1007,9 +1030,19 @@ def analytics():
             expense_total += hist_summary.total_expense
             income_total += hist_summary.total_income
         
+        # Get Money Lent (Live)
+        m_lent = db.session.query(func.sum(Expense.amount)).filter(
+            Expense.user_id == current_user.id,
+            Expense.transaction_type == 'expense',
+            Expense.date >= month_start,
+            Expense.date < month_end,
+            or_(Expense.category_id == debt_lent_id, Expense.tags.ilike('%debt_lent%'))
+        ).scalar() or 0
+        
         yearly_data.append({
             'month': month_start.strftime('%b %Y'),
             'expense': expense_total,
+            'actual_expense': expense_total - m_lent,
             'income': income_total
         })
         
@@ -1262,6 +1295,40 @@ def add_creditor():
             notes=notes
         )
         db.session.add(creditor)
+
+        # Handle wallet balance update if a wallet was selected
+        wallet_id = request.form.get('wallet_id')
+        if wallet_id:
+            try:
+                wallet_id = int(wallet_id)
+                wallet = Wallet.query.filter_by(id=wallet_id, user_id=current_user.id).first()
+                if wallet:
+                    wallet.balance += amount
+                    
+                    # Ensure a 'Loan Received' category exists
+                    loan_cat = Category.query.filter_by(name='Loan Received', user_id=current_user.id).first()
+                    if not loan_cat:
+                        loan_cat = Category(name='Loan Received', icon='📥', is_custom=True, user_id=current_user.id)
+                        db.session.add(loan_cat)
+                        db.session.flush()
+                    
+                    # Record the income transaction
+                    income_expense = Expense(
+                        user_id=current_user.id,
+                        amount=amount,
+                        description=f"Loan from {name}",
+                        category_id=loan_cat.id,
+                        wallet_id=wallet.id,
+                        date=datetime.utcnow(),
+                        transaction_type='income',
+                        tags='loan_received',
+                        notes=f"Creditor ID: {creditor.id}"
+                    )
+                    db.session.add(income_expense)
+                    flash(f'Added GHS {amount:.2f} to {wallet.name}.', 'success')
+            except (TypeError, ValueError):
+                pass
+
         db.session.commit()
         flash('Debt added successfully!', 'success')
         return redirect(_safe_return_url())
@@ -1447,14 +1514,29 @@ def debtors():
     active_debts = [d for d in all_debtors if d.computed_status == 'active']
     overdue_debts = [d for d in all_debtors if d.computed_status == 'overdue']
     paid_off_debts = [d for d in all_debtors if d.computed_status == 'paid_off']
-    total_expected = sum(d.amount for d in all_debtors if d.computed_status != 'paid_off')
+    total_expected = sum(d.amount for d in all_debtors if d.computed_status not in ('paid_off', 'bad_debt'))
     monthly_expected = sum(d.minimum_payment or 0 for d in active_debts + overdue_debts)
 
-    from .models import DebtorPayment
+    from .models import DebtorPayment, Category
     collected_this_month = db.session.query(func.sum(DebtorPayment.amount)).join(Debtor).filter(
         Debtor.user_id == current_user.id,
         DebtorPayment.date >= month_start
     ).scalar() or 0
+
+    # Bad debt stats
+    bad_debt_debtors = [d for d in all_debtors if d.computed_status == 'bad_debt']
+    bad_debt_count = len(bad_debt_debtors)
+    total_bad_debt = db.session.query(func.sum(Expense.amount)).filter(
+        Expense.user_id == current_user.id,
+        Expense.tags.like('%bad_debt%'),
+        ~Expense.tags.like('%bad_debt_recovery%')
+    ).scalar() or 0
+    total_recovered = db.session.query(func.sum(Expense.amount)).filter(
+        Expense.user_id == current_user.id,
+        Expense.tags.like('%bad_debt_recovery%')
+    ).scalar() or 0
+
+    categories = Category.query.filter_by(user_id=current_user.id).order_by(Category.name).all()
 
     # Filters
     type_filter = request.args.get('type', 'all')
@@ -1498,7 +1580,11 @@ def debtors():
         now_date=datetime.utcnow().strftime('%Y-%m-%d'),
         type_filter=type_filter,
         status_filter=status_filter,
-        sort_by=sort_by
+        sort_by=sort_by,
+        bad_debt_count=bad_debt_count,
+        total_bad_debt=total_bad_debt,
+        total_recovered=total_recovered,
+        categories=categories
     )
 
 @main.route('/debtors/add', methods=['GET', 'POST'])
@@ -1770,6 +1856,153 @@ def collect_debtor(id):
     db.session.commit()
 
     flash(f'Collected {wallet.currency} {amount:.2f} from {debtor.name}!', 'success')
+    return redirect(_safe_return_url_debtors())
+
+@main.route('/debtors/bad_debt/<int:id>', methods=['POST'])
+@login_required
+def bad_debt_debtor(id):
+    from .models import Wallet, Category, Expense
+    debtor = _debtor_for_current_user_or_404(id)
+
+    if debtor.amount <= 0:
+        flash('Debtor has no remaining balance to mark as bad debt.', 'error')
+        return redirect(_safe_return_url_debtors())
+
+    # Partial or full write-off amount
+    try:
+        amount = float(request.form.get('amount', debtor.amount))
+    except (ValueError, TypeError):
+        amount = debtor.amount
+    amount = min(amount, debtor.amount)
+    if amount <= 0:
+        flash('Write-off amount must be positive.', 'error')
+        return redirect(_safe_return_url_debtors())
+
+    # Wallet selection (no balance deduction — money already left)
+    wallet_id = request.form.get('wallet_id')
+    if wallet_id:
+        wallet = Wallet.query.filter_by(id=wallet_id, user_id=current_user.id).first()
+    else:
+        wallet = Wallet.query.filter_by(user_id=current_user.id).first()
+    if not wallet:
+        flash('You need at least one wallet to record bad debt expenses.', 'error')
+        return redirect(_safe_return_url_debtors())
+
+    # Category selection
+    category_id = request.form.get('category_id')
+    if category_id:
+        bd_cat = Category.query.filter_by(id=category_id, user_id=current_user.id).first()
+    else:
+        bd_cat = None
+    if not bd_cat:
+        bd_cat = Category.query.filter_by(name='Bad Debt', user_id=current_user.id).first()
+        if not bd_cat:
+            bd_cat = Category(name='Bad Debt', icon='⚠️', is_custom=True, user_id=current_user.id)
+            db.session.add(bd_cat)
+            db.session.flush()
+
+    # Date
+    write_off_date = _parse_due_date(request.form.get('date')) or datetime.utcnow()
+
+    expense = Expense(
+        user_id=current_user.id,
+        amount=amount,
+        description=f"Bad Debt Write-off: {debtor.name}",
+        category_id=bd_cat.id,
+        wallet_id=wallet.id,
+        date=write_off_date,
+        transaction_type='expense',
+        tags='bad_debt'
+    )
+
+    debtor.amount = max(debtor.amount - amount, 0)
+    if debtor.amount <= 0:
+        debtor.status = 'bad_debt'
+
+    db.session.add(expense)
+    db.session.commit()
+
+    if debtor.status == 'bad_debt':
+        flash(f'Wrote off {wallet.currency} {amount:.2f} for {debtor.name}. Fully written off as bad debt.', 'success')
+    else:
+        flash(f'Wrote off {wallet.currency} {amount:.2f} for {debtor.name}. Remaining: {wallet.currency} {debtor.amount:.2f}', 'success')
+    return redirect(_safe_return_url_debtors())
+
+
+@main.route('/debtors/recover/<int:id>', methods=['POST'])
+@login_required
+def recover_bad_debt(id):
+    from .models import Wallet, Category, Expense
+    debtor = _debtor_for_current_user_or_404(id)
+
+    if debtor.status != 'bad_debt':
+        flash('This debtor is not marked as bad debt.', 'error')
+        return redirect(_safe_return_url_debtors())
+
+    try:
+        amount = float(request.form.get('amount', 0))
+    except (ValueError, TypeError):
+        amount = 0
+    if amount <= 0:
+        flash('Recovery amount must be positive.', 'error')
+        return redirect(_safe_return_url_debtors())
+
+    # Get total written off for this debtor
+    total_written_off = db.session.query(func.sum(Expense.amount)).filter(
+        Expense.user_id == current_user.id,
+        Expense.tags.like('%bad_debt%'),
+        ~Expense.tags.like('%bad_debt_recovery%'),
+        Expense.description.like(f'%{debtor.name}%')
+    ).scalar() or 0
+    total_already_recovered = db.session.query(func.sum(Expense.amount)).filter(
+        Expense.user_id == current_user.id,
+        Expense.tags.like('%bad_debt_recovery%'),
+        Expense.description.like(f'%{debtor.name}%')
+    ).scalar() or 0
+    max_recoverable = total_written_off - total_already_recovered
+    if amount > max_recoverable and max_recoverable > 0:
+        amount = max_recoverable
+
+    wallet_id = request.form.get('wallet_id')
+    wallet = Wallet.query.filter_by(id=wallet_id, user_id=current_user.id).first() if wallet_id else None
+    if not wallet:
+        wallet = Wallet.query.filter_by(user_id=current_user.id).first()
+    if not wallet:
+        flash('You need at least one wallet to record recovery.', 'error')
+        return redirect(_safe_return_url_debtors())
+
+    recovery_date = _parse_due_date(request.form.get('date')) or datetime.utcnow()
+
+    # Create/get recovery category
+    rec_cat = Category.query.filter_by(name='Bad Debt Recovery', user_id=current_user.id).first()
+    if not rec_cat:
+        rec_cat = Category(name='Bad Debt Recovery', icon='💰', is_custom=True, user_id=current_user.id)
+        db.session.add(rec_cat)
+        db.session.flush()
+
+    # Add money back to wallet
+    wallet.balance += amount
+
+    expense = Expense(
+        user_id=current_user.id,
+        amount=amount,
+        description=f"Bad Debt Recovery: {debtor.name}",
+        category_id=rec_cat.id,
+        wallet_id=wallet.id,
+        date=recovery_date,
+        transaction_type='income',
+        tags='bad_debt_recovery'
+    )
+    db.session.add(expense)
+
+    # If fully recovered, mark as paid off
+    new_total_recovered = total_already_recovered + amount
+    if new_total_recovered >= total_written_off and total_written_off > 0:
+        debtor.status = 'paid_off'
+
+    db.session.commit()
+
+    flash(f'Recovered {wallet.currency} {amount:.2f} from {debtor.name}!', 'success')
     return redirect(_safe_return_url_debtors())
 
 
