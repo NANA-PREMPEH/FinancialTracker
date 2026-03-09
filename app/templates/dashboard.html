@@ -62,6 +62,10 @@
                 </div>
             </div>
             <div class="amount-value text-2xl font-bold text-success-text" data-amount="GHS {{ '{:,.2f}'.format(total_income) }}">GHS {{ "{:,.2f}".format(total_income) }}</div>
+            <div class="mt-2 pt-2 border-t border-border/50">
+                <p class="text-[10px] uppercase tracking-wider text-text-muted font-bold mb-1">Actual Income</p>
+                <div class="amount-value text-sm font-semibold text-success-text" data-amount="GHS {{ '{:,.2f}'.format(actual_total_income) }}">GHS {{ "{:,.2f}".format(actual_total_income) }}</div>
+            </div>
         </div>
 
         <!-- Total Expenses Card -->
@@ -76,20 +80,27 @@
                 </div>
             </div>
             <div class="amount-value text-2xl font-bold text-danger-text" data-amount="GHS {{ '{:,.2f}'.format(total_expenses) }}">GHS {{ "{:,.2f}".format(total_expenses) }}</div>
+            <div class="mt-2 pt-2 border-t border-border/50">
+                <p class="text-[10px] uppercase tracking-wider text-text-muted font-bold mb-1">Actual Expenses</p>
+                <div class="amount-value text-sm font-semibold text-danger-text" data-amount="GHS {{ '{:,.2f}'.format(actual_total_expenses) }}">GHS {{ "{:,.2f}".format(actual_total_expenses) }}</div>
+            </div>
         </div>
 
         <!-- Net Income Card -->
         <div class="bg-gradient-to-br from-primary to-primary-dark rounded-2xl p-6 shadow-md hover:shadow-lg transition-all duration-300 text-white border-0">
             <div class="flex justify-between items-start mb-4">
                 <div>
-                    <h3 class="font-heading font-bold mb-1 text-white/90">Net Income</h3>
+                    <h3 class="font-heading font-bold mb-1 text-white/90">Actual Net Income</h3>
                     <p class="text-xs text-white/70 font-medium">Income - Expenses {% if oldest_date %}• <span class="text-white/90">Since {{ oldest_date.strftime('%d %b %Y') }}</span>{% endif %}</p>
                 </div>
                 <div class="p-2 bg-white/20 rounded-lg text-white">
                     <i data-lucide="pie-chart"></i>
                 </div>
             </div>
-            <div class="amount-value text-2xl font-bold text-white relative z-10" data-amount="GHS {{ '{:,.2f}'.format(total_income - total_expenses) }}">GHS {{ "{:,.2f}".format(total_income - total_expenses) }}</div>
+            <div class="amount-value text-2xl font-bold text-white relative z-10" data-amount="GHS {{ '{:,.2f}'.format(actual_total_income - actual_total_expenses) }}">GHS {{ "{:,.2f}".format(actual_total_income - actual_total_expenses) }}</div>
+            <div class="mt-2 pt-2 border-t border-white/20">
+                <p class="text-[10px] uppercase tracking-wider text-white/70 font-bold mb-1">Gross Net: GHS {{ "{:,.2f}".format(total_income - total_expenses) }}</p>
+            </div>
             <button onclick="convertCurrency()" class="mt-4 w-full py-2 bg-white/10 hover:bg-white/20 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2">
                 <i data-lucide="arrow-left-right" class="w-4 h-4"></i> Convert
             </button>

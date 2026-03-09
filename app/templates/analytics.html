@@ -54,9 +54,10 @@
                 <thead>
                     <tr class="bg-surface-active/50 border-b border-border">
                         <th class="p-4 text-sm font-semibold text-text-muted">Year</th>
-                        <th class="p-4 text-sm font-semibold text-text-muted text-right">Total Income</th>
-                        <th class="p-4 text-sm font-semibold text-text-muted text-right">Total Expenses</th>
+                        <th class="p-4 text-sm font-semibold text-text-muted text-right">Income</th>
+                        <th class="p-4 text-sm font-semibold text-text-muted text-right">Expenses</th>
                         <th class="p-4 text-sm font-semibold text-text-muted text-right">Net Flow</th>
+                        <th class="p-4 text-sm font-semibold text-text-muted text-right">Actual Net</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-border">
@@ -64,15 +65,27 @@
                     <tr class="hover:bg-surface-hover/50 transition-colors">
                         <td class="p-4 font-bold text-text">{{ year_data.year }}</td>
                         <td class="p-4 font-medium text-success text-right whitespace-nowrap">
-                            GHS {{ "{:,.2f}".format(year_data.income) }}
+                            <div class="flex flex-col items-end">
+                                <span>GHS {{ "{:,.2f}".format(year_data.income) }}</span>
+                                <span class="text-[10px] text-text-muted italic">Act: {{ "{:,.2f}".format(year_data.actual_income) }}</span>
+                            </div>
                         </td>
                         <td class="p-4 font-medium text-danger text-right whitespace-nowrap">
-                            GHS {{ "{:,.2f}".format(year_data.expense) }}
+                            <div class="flex flex-col items-end">
+                                <span>GHS {{ "{:,.2f}".format(year_data.expense) }}</span>
+                                <span class="text-[10px] text-text-muted italic">Act: {{ "{:,.2f}".format(year_data.actual_expense) }}</span>
+                            </div>
                         </td>
                         <td class="p-4 text-right whitespace-nowrap">
                             {% set diff = year_data.income - year_data.expense %}
-                            <span class="inline-flex items-center px-2.5 py-1 rounded-md text-sm font-bold {{ 'bg-success/10 text-success' if diff >= 0 else 'bg-danger/10 text-danger' }}">
+                            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium {{ 'bg-success/10 text-success' if diff >= 0 else 'bg-danger/10 text-danger' }}">
                                 {{ "{:,.2f}".format(diff) }}
+                            </span>
+                        </td>
+                        <td class="p-4 text-right whitespace-nowrap">
+                            {% set actual_diff = year_data.actual_income - year_data.actual_expense %}
+                            <span class="inline-flex items-center px-2.5 py-1 rounded-md text-sm font-bold {{ 'bg-success/10 text-success' if actual_diff >= 0 else 'bg-danger/10 text-danger' }}">
+                                {{ "{:,.2f}".format(actual_diff) }}
                             </span>
                         </td>
                     </tr>
@@ -313,6 +326,15 @@
                             backgroundColor: incomeGradient,
                             fill: true,
                             pointBorderColor: '#10b981',
+                        },
+                        {
+                            label: 'Actual Income',
+                            data: [{% for item in monthly_data %}{{ item.actual_income }}{% if not loop.last %}, {% endif %}{% endfor %}],
+                            borderColor: '#06b6d4',
+                            backgroundColor: 'transparent',
+                            fill: false,
+                            pointBorderColor: '#06b6d4',
+                            borderDash: [5, 5]
                         }
                     ]
                 },
@@ -362,6 +384,15 @@
                             backgroundColor: incomeGradientYr,
                             fill: true,
                             pointBorderColor: '#10b981',
+                        },
+                        {
+                            label: 'Actual Income',
+                            data: [{% for item in yearly_data %}{{ item.actual_income }}{% if not loop.last %}, {% endif %}{% endfor %}],
+                            borderColor: '#06b6d4',
+                            backgroundColor: 'transparent',
+                            fill: false,
+                            pointBorderColor: '#06b6d4',
+                            borderDash: [5, 5]
                         }
                     ]
                 },

@@ -55,6 +55,36 @@ def dashboard():
     total_expenses += hist_expenses
     total_income += hist_income
     
+    # Get all-time Money Lent (Live)
+    debt_lent_cat = Category.query.filter_by(name='Money Lent', user_id=current_user.id).first()
+    debt_lent_id = debt_lent_cat.id if debt_lent_cat else -1
+    total_money_lent = db.session.query(func.sum(Expense.amount)).filter(
+        Expense.user_id == current_user.id,
+        Expense.transaction_type == 'expense',
+        or_(Expense.category_id == debt_lent_id, Expense.tags.ilike('%debt_lent%')),
+        ~transfer_filter
+    ).scalar() or 0
+    
+    # Get all-time Debt Recoveries/Collections (Live)
+    coll_cat = Category.query.filter_by(name='Debt Collection', user_id=current_user.id).first()
+    coll_id = coll_cat.id if coll_cat else -1
+    rec_cat = Category.query.filter_by(name='Bad Debt Recovery', user_id=current_user.id).first()
+    rec_id = rec_cat.id if rec_cat else -1
+    
+    total_m_recovered = db.session.query(func.sum(Expense.amount)).filter(
+        Expense.user_id == current_user.id,
+        Expense.transaction_type == 'income',
+        or_(
+            Expense.category_id.in_([coll_id, rec_id]),
+            Expense.tags.ilike('%debt_collection%'),
+            Expense.tags.ilike('%bad_debt_recovery%')
+        ),
+        ~transfer_filter
+    ).scalar() or 0
+    
+    actual_total_expenses = total_expenses - total_money_lent
+    actual_total_income = total_income - total_m_recovered
+    
     # Get the oldest date for Total Expenses context
     oldest_expense = db.session.query(func.min(Expense.date)).filter(
         Expense.user_id == current_user.id,
@@ -107,6 +137,16 @@ def dashboard():
     ).scalar() or 0
     
     yearly_expenses += hist_yearly_expenses
+    
+    # Calculate yearly money lent
+    yearly_money_lent = db.session.query(func.sum(Expense.amount)).filter(
+        Expense.user_id == current_user.id,
+        Expense.transaction_type == 'expense',
+        Expense.date >= year_start,
+        or_(Expense.category_id == debt_lent_id, Expense.tags.ilike('%debt_lent%')),
+        ~transfer_filter
+    ).scalar() or 0
+    actual_yearly_expenses = yearly_expenses - yearly_money_lent
     
     # Budget alerts
     budgets = Budget.query.filter_by(user_id=current_user.id, is_active=True).all()
@@ -218,9 +258,12 @@ def dashboard():
                          net_wallet_balance=net_wallet_balance,
                          recent_expenses=recent_expenses,
                          total_expenses=total_expenses,
+                         actual_total_expenses=actual_total_expenses,
                          total_income=total_income,
+                         actual_total_income=actual_total_income,
                          monthly_expenses=monthly_expenses,
                          yearly_expenses=yearly_expenses,
+                         actual_yearly_expenses=actual_yearly_expenses,
                          actual_monthly_trend=actual_monthly_trend,
                          total_wallet_balance=total_wallet_balance,
                          current_date=now,
@@ -985,11 +1028,30 @@ def analytics():
             or_(Expense.category_id == debt_lent_id, Expense.tags.ilike('%debt_lent%'))
         ).scalar() or 0
         
+        # Get Debt Recoveries (Live)
+        coll_cat = Category.query.filter_by(name='Debt Collection', user_id=current_user.id).first()
+        coll_id = coll_cat.id if coll_cat else -1
+        rec_cat = Category.query.filter_by(name='Bad Debt Recovery', user_id=current_user.id).first()
+        rec_id = rec_cat.id if rec_cat else -1
+        
+        m_recovered = db.session.query(func.sum(Expense.amount)).filter(
+            Expense.user_id == current_user.id,
+            Expense.transaction_type == 'income',
+            Expense.date >= month_start,
+            Expense.date < month_end,
+            or_(
+                Expense.category_id.in_([coll_id, rec_id]),
+                Expense.tags.ilike('%debt_collection%'),
+                Expense.tags.ilike('%bad_debt_recovery%')
+            )
+        ).scalar() or 0
+        
         monthly_data.append({
             'month': month_start.strftime('%b'),
             'expense': expense_total,
             'actual_expense': expense_total - m_lent,
-            'income': income_total
+            'income': income_total,
+            'actual_income': income_total - m_recovered
         })
     
     # Yearly trend (Last 12 Months)
@@ -1039,11 +1101,25 @@ def analytics():
             or_(Expense.category_id == debt_lent_id, Expense.tags.ilike('%debt_lent%'))
         ).scalar() or 0
         
+        # Get Debt Recoveries (Live)
+        m_recovered = db.session.query(func.sum(Expense.amount)).filter(
+            Expense.user_id == current_user.id,
+            Expense.transaction_type == 'income',
+            Expense.date >= month_start,
+            Expense.date < month_end,
+            or_(
+                Expense.category_id.in_([coll_id, rec_id]),
+                Expense.tags.ilike('%debt_collection%'),
+                Expense.tags.ilike('%bad_debt_recovery%')
+            )
+        ).scalar() or 0
+        
         yearly_data.append({
             'month': month_start.strftime('%b %Y'),
             'expense': expense_total,
             'actual_expense': expense_total - m_lent,
-            'income': income_total
+            'income': income_total,
+            'actual_income': income_total - m_recovered
         })
         
     # Annual Overview (All Years)
@@ -1071,9 +1147,34 @@ def analytics():
         ).scalar() or 0
         
         live_income = db.session.query(func.sum(Expense.amount)).filter(
+            Expense.user_id == current_user.id,
             Expense.transaction_type == 'income',
             Expense.date >= year_start,
             Expense.date < year_end,
+            Expense.category_id != transfer_id
+        ).scalar() or 0
+        
+        # Live Money Lent (Live)
+        live_money_lent = db.session.query(func.sum(Expense.amount)).filter(
+            Expense.user_id == current_user.id,
+            Expense.transaction_type == 'expense',
+            Expense.date >= year_start,
+            Expense.date < year_end,
+            or_(Expense.category_id == debt_lent_id, Expense.tags.ilike('%debt_lent%')),
+            Expense.category_id != transfer_id
+        ).scalar() or 0
+        
+        # Live Debt Recoveries/Collections (Live)
+        live_m_recovered = db.session.query(func.sum(Expense.amount)).filter(
+            Expense.user_id == current_user.id,
+            Expense.transaction_type == 'income',
+            Expense.date >= year_start,
+            Expense.date < year_end,
+            or_(
+                Expense.category_id.in_([coll_id, rec_id]),
+                Expense.tags.ilike('%debt_collection%'),
+                Expense.tags.ilike('%bad_debt_recovery%')
+            ),
             Expense.category_id != transfer_id
         ).scalar() or 0
         
@@ -1085,7 +1186,9 @@ def analytics():
         annual_data.append({
             'year': year,
             'expense': live_expense + hist_expense,
-            'income': live_income + hist_income
+            'actual_expense': live_expense + hist_expense - live_money_lent,
+            'income': live_income + hist_income,
+            'actual_income': live_income + hist_income - live_m_recovered
         })
 
     return render_template('analytics.html', 
