@@ -37,8 +37,7 @@ def budget_planning():
             Expense.transaction_type == 'expense',
             Expense.date >= month_start
         ).scalar() or 0
-        # alias amount to limit for template
-        b.limit = b.amount
+        b.remaining = b.amount - b.spent
 
     return render_template('budget_planning.html', periods=periods, budgets=budgets,
                            monthly_income=monthly_income, monthly_expenses=monthly_expenses,

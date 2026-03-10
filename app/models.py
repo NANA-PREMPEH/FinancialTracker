@@ -895,8 +895,6 @@ class PasswordResetToken(db.Model):
     def is_expired(self):
         return datetime.utcnow() > self.expires_at
 
-    user = db.relationship('User', backref=db.backref('_user_passwordresettokens', cascade='all, delete-orphan'), lazy=True)
-
     def __repr__(self):
         return f'<PasswordResetToken {self.id}>'
 
@@ -913,8 +911,6 @@ class EmailVerificationToken(db.Model):
     def is_expired(self):
         return datetime.utcnow() > self.expires_at
 
-    user = db.relationship('User', backref=db.backref('_user_emailverificationtokens', cascade='all, delete-orphan'), lazy=True)
-
     def __repr__(self):
         return f'<EmailVerificationToken {self.id}>'
 
@@ -927,8 +923,6 @@ class PushSubscription(db.Model):
     auth = db.Column(db.String(256), nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     user = db.relationship('User', backref=db.backref('push_subscriptions', cascade='all, delete-orphan'), lazy=True)
-
-    user = db.relationship('User', backref=db.backref('_user_pushsubscriptions', cascade='all, delete-orphan'), lazy=True)
 
     def __repr__(self):
         return f'<PushSubscription {self.id}>'
