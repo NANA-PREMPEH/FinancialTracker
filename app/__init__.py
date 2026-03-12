@@ -61,7 +61,9 @@ def create_app(config_name=None):
     from .routes_advanced import advanced_bp
     from .routes_calculator import calculator_bp
     from .api import api_bp
+    from .api.auth import auth_bp
     from .routes_push import push_bp
+    from .routes_shared_wallets import shared_wallets_bp
 
     app.register_blueprint(main)
     app.register_blueprint(auth)
@@ -88,7 +90,9 @@ def create_app(config_name=None):
     app.register_blueprint(advanced_bp)
     app.register_blueprint(calculator_bp)
     app.register_blueprint(api_bp)
+    app.register_blueprint(auth_bp)
     app.register_blueprint(push_bp)
+    app.register_blueprint(shared_wallets_bp)
 
     # Serve service worker from root scope
     @app.route('/sw.js')
@@ -97,5 +101,9 @@ def create_app(config_name=None):
             'Content-Type': 'application/javascript',
             'Service-Worker-Allowed': '/'
         }
+
+    # Register management CLI commands
+    from .management import db_commands
+    app.cli.add_command(db_commands)
 
     return app

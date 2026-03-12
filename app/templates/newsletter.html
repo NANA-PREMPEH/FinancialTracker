@@ -1,21 +1,164 @@
 {% extends "base.html" %}
 
-{% block title %}Newsletter - Financial Tracker{% endblock %}
-{% block header_title %}Newsletter{% endblock %}
+{% block title %}Financial Newsletter - Financial Tracker{% endblock %}
+{% block header_title %}Financial Newsletter{% endblock %}
 
 {% block content %}
-<div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8 bg-surface p-6 rounded-2xl border border-border shadow-sm">
-    <div>
-        <h1 class="text-2xl font-bold font-heading text-text m-0">Newsletter</h1>
-        <p class="text-text-muted mt-1 text-sm">Weekly financial insights and market updates.</p>
+<div class="max-w-5xl mx-auto space-y-6">
+    <!-- Header -->
+    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-surface p-6 rounded-2xl border border-border">
+        <div>
+            <h1 class="text-2xl font-bold text-text m-0 flex items-center gap-2">
+                <i data-lucide="newspaper" class="w-6 h-6 text-primary"></i> Financial Newsletter
+            </h1>
+            <p class="text-sm text-text-muted m-0 mt-1">Generate, download, or email your personalized financial report.</p>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Preferences -->
+        <div class="bg-surface border border-border rounded-2xl p-6">
+            <h2 class="text-lg font-bold text-text mb-4 flex items-center gap-2">
+                <i data-lucide="settings" class="w-5 h-5 text-text-muted"></i> Preferences
+            </h2>
+            <form method="POST" action="{{ url_for('newsletter.newsletter_preferences') }}" class="space-y-5">
+                <div>
+                    <label class="text-sm font-bold text-text block mb-2">Frequency</label>
+                    <div class="space-y-2">
+                        <label class="flex items-center gap-3 p-3 border border-border rounded-xl cursor-pointer hover:bg-surface-hover transition-colors">
+                            <input type="radio" name="frequency" value="weekly" {{ 'checked' if prefs.frequency == 'weekly' }}
+                                class="w-4 h-4 accent-primary">
+                            <div>
+                                <div class="font-semibold text-text text-sm">Weekly</div>
+                                <div class="text-xs text-text-muted">7-day summary</div>
+                            </div>
+                        </label>
+                        <label class="flex items-center gap-3 p-3 border border-border rounded-xl cursor-pointer hover:bg-surface-hover transition-colors">
+                            <input type="radio" name="frequency" value="monthly" {{ 'checked' if prefs.frequency == 'monthly' }}
+                                class="w-4 h-4 accent-primary">
+                            <div>
+                                <div class="font-semibold text-text text-sm">Monthly</div>
+                                <div class="text-xs text-text-muted">30-day summary</div>
+                            </div>
+                        </label>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="text-sm font-bold text-text block mb-2">Sections to Include</label>
+                    <div class="space-y-2">
+                        {% set sections = [
+                            ('summary', 'Financial Summary', 'Income, expenses, net savings, savings rate'),
+                            ('categories', 'Top Categories', 'Top spending categories breakdown'),
+                            ('budgets', 'Budget Adherence', 'Budget vs actual spending'),
+                            ('goals', 'Goal Progress', 'Active goals and completion status'),
+                            ('debts', 'Debt Status', 'Outstanding creditors and amounts'),
+                            ('investments', 'Investments', 'Portfolio value summary'),
+                            ('trends', 'Spending Trends', 'Weekly spending patterns'),
+                        ] %}
+                        {% for key, label, desc in sections %}
+                        <label class="flex items-start gap-3 p-2.5 border border-border rounded-xl cursor-pointer hover:bg-surface-hover transition-colors">
+                            <input type="checkbox" name="sections" value="{{ key }}"
+                                {{ 'checked' if key in prefs.sections }}
+                                class="w-4 h-4 accent-primary mt-0.5">
+                            <div>
+                                <div class="font-semibold text-text text-sm">{{ label }}</div>
+                                <div class="text-xs text-text-muted">{{ desc }}</div>
+                            </div>
+                        </label>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <button type="submit" class="w-full px-4 py-2.5 bg-surface-active/50 border border-border text-text font-bold rounded-xl hover:bg-surface-hover transition-colors text-sm">
+                    Save Preferences
+                </button>
+            </form>
+        </div>
+
+        <!-- Actions -->
+        <div class="lg:col-span-2 space-y-6">
+            <!-- Quick Actions -->
+            <div class="bg-surface border border-border rounded-2xl p-6">
+                <h2 class="text-lg font-bold text-text mb-4 flex items-center gap-2">
+                    <i data-lucide="zap" class="w-5 h-5 text-warning"></i> Generate Report
+                </h2>
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <!-- Preview -->
+                    <form method="POST" action="{{ url_for('newsletter.generate_newsletter') }}">
+                        <button type="submit" class="w-full p-5 bg-background border border-border rounded-xl hover:border-primary/50 hover:shadow-md transition-all text-left group">
+                            <div class="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center mb-3 group-hover:bg-primary/20 transition-colors">
+                                <i data-lucide="eye" class="w-5 h-5 text-primary"></i>
+                            </div>
+                            <div class="font-bold text-text text-sm">Preview</div>
+                            <div class="text-xs text-text-muted mt-1">View report in browser</div>
+                        </button>
+                    </form>
+
+                    <!-- Download PDF -->
+                    <a href="{{ url_for('newsletter.newsletter_download') }}" class="block p-5 bg-background border border-border rounded-xl hover:border-danger/50 hover:shadow-md transition-all text-left group no-underline">
+                        <div class="w-10 h-10 rounded-lg bg-danger/10 flex items-center justify-center mb-3 group-hover:bg-danger/20 transition-colors">
+                            <i data-lucide="file-down" class="w-5 h-5 text-danger"></i>
+                        </div>
+                        <div class="font-bold text-text text-sm">Download PDF</div>
+                        <div class="text-xs text-text-muted mt-1">Save as PDF file</div>
+                    </a>
+
+                    <!-- Email -->
+                    <form method="POST" action="{{ url_for('newsletter.newsletter_email') }}">
+                        <button type="submit" class="w-full p-5 bg-background border border-border rounded-xl hover:border-success/50 hover:shadow-md transition-all text-left group">
+                            <div class="w-10 h-10 rounded-lg bg-success/10 flex items-center justify-center mb-3 group-hover:bg-success/20 transition-colors">
+                                <i data-lucide="mail" class="w-5 h-5 text-success"></i>
+                            </div>
+                            <div class="font-bold text-text text-sm">Email Report</div>
+                            <div class="text-xs text-text-muted mt-1">Send to {{ current_user.email }}</div>
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- What's Included -->
+            <div class="bg-surface border border-border rounded-2xl p-6">
+                <h2 class="text-lg font-bold text-text mb-4 flex items-center gap-2">
+                    <i data-lucide="list-checks" class="w-5 h-5 text-success"></i> Report Contents
+                </h2>
+                <p class="text-sm text-text-muted mb-4">Your {{ prefs.frequency }} report includes the following sections:</p>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {% set section_icons = {
+                        'summary': 'bar-chart-3', 'categories': 'pie-chart', 'budgets': 'clipboard-check',
+                        'goals': 'target', 'debts': 'credit-card', 'investments': 'trending-up', 'trends': 'activity'
+                    } %}
+                    {% set section_labels = {
+                        'summary': 'Financial Summary', 'categories': 'Top Spending Categories',
+                        'budgets': 'Budget Adherence', 'goals': 'Goal Progress',
+                        'debts': 'Debt Status', 'investments': 'Investment Portfolio', 'trends': 'Spending Trends'
+                    } %}
+                    {% for s in prefs.sections %}
+                    <div class="flex items-center gap-3 p-3 bg-background border border-border rounded-xl">
+                        <i data-lucide="{{ section_icons.get(s, 'check') }}" class="w-4 h-4 text-primary shrink-0"></i>
+                        <span class="text-sm font-semibold text-text">{{ section_labels.get(s, s) }}</span>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Report Info -->
+            <div class="bg-surface border border-border rounded-2xl p-6">
+                <h2 class="text-lg font-bold text-text mb-3 flex items-center gap-2">
+                    <i data-lucide="info" class="w-5 h-5 text-primary"></i> About Reports
+                </h2>
+                <div class="space-y-3 text-sm text-text-muted">
+                    <p class="m-0"><strong class="text-text">Preview</strong> opens the report in your browser with print-friendly formatting.</p>
+                    <p class="m-0"><strong class="text-text">PDF Download</strong> generates a professional report with tables for income, expenses, categories, budgets, goals, and debts.</p>
+                    <p class="m-0"><strong class="text-text">Email</strong> sends the HTML report to your inbox with the PDF attached. Requires mail server configuration.</p>
+                    <p class="m-0">Data covers the last {{ '7 days' if prefs.frequency == 'weekly' else '30 days' }} based on your frequency preference, with comparison to the prior period.</p>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
 
-<div class="bg-surface rounded-2xl border border-border shadow-sm p-8 text-center">
-    <div class="w-16 h-16 bg-surface-active rounded-full flex items-center justify-center mx-auto mb-4 border border-border">
-        <i data-lucide="newspaper" class="w-8 h-8 text-text-muted"></i>
-    </div>
-    <h3 class="text-lg font-bold text-text mb-2">Coming soon!</h3>
-    <p class="text-text-muted max-w-sm mx-auto">Subscribe to our customized market updates tailored to your investment portfolio.</p>
-</div>
+<script>
+document.addEventListener('DOMContentLoaded', () => { if(window.lucide) lucide.createIcons(); });
+</script>
 {% endblock %}

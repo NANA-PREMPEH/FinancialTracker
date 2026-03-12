@@ -19,6 +19,13 @@ class User(UserMixin, db.Model):
     totp_enabled = db.Column(db.Boolean, default=False)
     oauth_provider = db.Column(db.String(20), nullable=True)
     oauth_id = db.Column(db.String(200), nullable=True)
+    push_prefs = db.Column(db.JSON, default=lambda: {
+        'budget_alerts': True,
+        'goal_milestones': True,
+        'large_transactions': True,
+        'payment_due': True,
+        'recurring_processed': True,
+    })
 
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
@@ -44,6 +51,24 @@ class Wallet(db.Model):
 
     def __repr__(self):
         return f'<Wallet {self.name}>'
+
+
+class WalletShare(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    wallet_id = db.Column(db.Integer, db.ForeignKey('wallet.id'), nullable=False)
+    owner_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    shared_with_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    permission = db.Column(db.String(20), default='view')  # view, contribute, manage
+    accepted = db.Column(db.Boolean, default=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    wallet = db.relationship('Wallet', backref=db.backref('shares', cascade='all, delete-orphan', lazy=True))
+    owner = db.relationship('User', foreign_keys=[owner_id], backref=db.backref('wallet_shares_sent', lazy=True))
+    shared_with = db.relationship('User', foreign_keys=[shared_with_id], backref=db.backref('wallet_shares_received', lazy=True))
+
+    def __repr__(self):
+        return f'<WalletShare wallet={self.wallet_id} to user={self.shared_with_id} ({self.permission})>'
+
 
 class Category(db.Model):
     id = db.Column(db.Integer, primary_key=True)

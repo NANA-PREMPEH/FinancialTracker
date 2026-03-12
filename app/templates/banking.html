@@ -4,18 +4,422 @@
 {% block header_title %}Banking{% endblock %}
 
 {% block content %}
-<div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8 bg-surface p-6 rounded-2xl border border-border shadow-sm">
-    <div>
-        <h1 class="text-2xl font-bold font-heading text-text m-0">Banking</h1>
-        <p class="text-text-muted mt-1 text-sm">Manage your bank connections and import transactions.</p>
+<div class="max-w-6xl mx-auto space-y-8">
+
+    <!-- Header -->
+    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-surface p-6 rounded-2xl border border-border shadow-sm">
+        <div>
+            <h1 class="text-2xl font-bold font-heading text-text m-0">Banking</h1>
+            <p class="text-text-muted mt-1 text-sm">Import transactions, reconcile accounts, and manage bank data.</p>
+        </div>
+        <div class="flex items-center gap-2 flex-wrap">
+            <a href="{{ url_for('banking.export_reconciliation_csv') }}" class="inline-flex items-center gap-2 px-4 py-2.5 bg-surface border border-border rounded-xl text-sm font-bold text-text hover:bg-surface-hover transition-colors no-underline">
+                <i data-lucide="download" class="w-4 h-4"></i> Export CSV
+            </a>
+        </div>
     </div>
+
+    <!-- Stats Cards -->
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+        <div class="bg-surface rounded-2xl border border-border p-5 text-center">
+            <div class="text-xs font-bold text-text-muted uppercase tracking-wider mb-1">Total Imported</div>
+            <div class="text-2xl font-extrabold text-primary">{{ total_imported }}</div>
+            <div class="text-xs text-text-muted mt-0.5">transactions</div>
+        </div>
+        <div class="bg-surface rounded-2xl border border-border p-5 text-center">
+            <div class="text-xs font-bold text-text-muted uppercase tracking-wider mb-1">Import Jobs</div>
+            <div class="text-2xl font-extrabold text-text">{{ total_imports }}</div>
+            <div class="text-xs text-text-muted mt-0.5">{% if failed_imports %}<span class="text-danger">{{ failed_imports }} failed</span>{% else %}all successful{% endif %}</div>
+        </div>
+        <div class="bg-surface rounded-2xl border border-border p-5 text-center">
+            <div class="text-xs font-bold text-text-muted uppercase tracking-wider mb-1">Reconciliations</div>
+            <div class="text-2xl font-extrabold text-success">{{ reconciled_count }}</div>
+            <div class="text-xs text-text-muted mt-0.5">of {{ total_recons }} matched</div>
+        </div>
+        <div class="bg-surface rounded-2xl border border-border p-5 text-center">
+            <div class="text-xs font-bold text-text-muted uppercase tracking-wider mb-1">Discrepancies</div>
+            <div class="text-2xl font-extrabold {{ 'text-danger' if discrepancy_count else 'text-success' }}">{{ discrepancy_count }}</div>
+            <div class="text-xs text-text-muted mt-0.5">{{ 'needs attention' if discrepancy_count else 'all clear' }}</div>
+        </div>
+    </div>
+
+    <!-- Two Column Layout: Import + Reconcile -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+        <!-- Import Transactions -->
+        <div class="bg-surface rounded-2xl border border-border shadow-sm overflow-hidden text-text">
+            <div class="p-6 border-b border-border bg-surface-active/30 flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
+                    <i data-lucide="upload" class="w-5 h-5"></i>
+                </div>
+                <div>
+                    <h2 class="text-lg font-bold font-heading m-0">Import Transactions</h2>
+                    <p class="text-xs text-text-muted m-0 mt-0.5">Upload CSV or Excel (.xlsx) bank statements.</p>
+                </div>
+            </div>
+            <div class="p-6">
+                <form method="POST" action="{{ url_for('banking.import_transactions') }}" enctype="multipart/form-data" class="space-y-4" id="importForm">
+                    <div class="space-y-2">
+                        <label class="block text-sm font-semibold text-text">Target Wallet</label>
+                        <select name="wallet_id" required class="w-full h-11 px-4 bg-surface border border-border rounded-xl text-text focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors">
+                            {% for w in wallets %}
+                            <option value="{{ w.id }}">{{ w.name }} ({{ w.currency }} {{ "{:,.2f}".format(w.balance) }})</option>
+                            {% endfor %}
+                            {% if not wallets %}
+                            <option value="" disabled>No wallets found</option>
+                            {% endif %}
+                        </select>
+                    </div>
+
+                    <div class="space-y-2">
+                        <label class="block text-sm font-semibold text-text">Bank Statement File</label>
+                        <div class="relative">
+                            <input type="file" name="file" accept=".csv,.xlsx" required id="importFile"
+                                class="w-full h-11 px-4 bg-surface border border-border rounded-xl text-text text-sm file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-bold file:bg-primary/10 file:text-primary hover:file:bg-primary/20 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors">
+                        </div>
+                        <p class="text-xs text-text-muted">Supported: CSV, Excel (.xlsx). Columns: Date, Description/Narration, Amount.</p>
+                    </div>
+
+                    <label class="flex items-center gap-3 p-3 border border-border rounded-xl cursor-pointer hover:bg-surface-hover transition-colors">
+                        <input type="checkbox" name="skip_duplicates" checked class="w-4 h-4 accent-primary">
+                        <div>
+                            <div class="font-semibold text-text text-sm">Skip Duplicates</div>
+                            <div class="text-xs text-text-muted">Detect and skip transactions already in your account.</div>
+                        </div>
+                    </label>
+
+                    <!-- Smart categorization info -->
+                    <div class="p-3 bg-primary/5 border border-primary/20 rounded-xl text-xs text-primary">
+                        <strong>Smart Categorization:</strong> Transactions are automatically categorized based on description keywords matching your existing categories.
+                    </div>
+
+                    <button type="submit" class="w-full inline-flex items-center justify-center gap-2 px-6 py-3 bg-primary text-primary-content font-bold rounded-xl hover:bg-primary-hover transition-colors text-sm" {% if not wallets %}disabled{% endif %}>
+                        <i data-lucide="upload" class="w-4 h-4"></i> Import Transactions
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Reconcile Account -->
+        <div class="bg-surface rounded-2xl border border-border shadow-sm overflow-hidden text-text">
+            <div class="p-6 border-b border-border bg-surface-active/30 flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-success/10 flex items-center justify-center text-success">
+                    <i data-lucide="check-square" class="w-5 h-5"></i>
+                </div>
+                <div>
+                    <h2 class="text-lg font-bold font-heading m-0">Reconcile Account</h2>
+                    <p class="text-xs text-text-muted m-0 mt-0.5">Compare your bank statement balance with the app.</p>
+                </div>
+            </div>
+            <div class="p-6">
+                <form method="POST" action="{{ url_for('banking.reconcile') }}" class="space-y-4">
+                    <div class="space-y-2">
+                        <label class="block text-sm font-semibold text-text">Wallet to Reconcile</label>
+                        <select name="wallet_id" required id="reconWallet" class="w-full h-11 px-4 bg-surface border border-border rounded-xl text-text focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors">
+                            {% for w in wallets %}
+                            <option value="{{ w.id }}" data-balance="{{ w.balance }}">{{ w.name }} ({{ w.currency }} {{ "{:,.2f}".format(w.balance) }})</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="p-4 bg-surface-active/30 border border-border rounded-xl">
+                        <div class="text-xs font-bold text-text-muted uppercase tracking-wider mb-1">Current App Balance</div>
+                        <div class="text-xl font-extrabold text-text" id="appBalance">
+                            {% if wallets %}GHS {{ "{:,.2f}".format(wallets[0].balance) }}{% else %}--{% endif %}
+                        </div>
+                    </div>
+
+                    <div class="space-y-2">
+                        <label class="block text-sm font-semibold text-text">Statement Balance</label>
+                        <input type="number" name="statement_balance" step="0.01" required placeholder="Enter balance from bank statement"
+                            class="w-full h-11 px-4 bg-surface border border-border rounded-xl text-text focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors">
+                    </div>
+
+                    <div class="space-y-2">
+                        <label class="block text-sm font-semibold text-text">Notes (optional)</label>
+                        <input type="text" name="notes" placeholder="e.g. March statement, MTN MoMo"
+                            class="w-full h-11 px-4 bg-surface border border-border rounded-xl text-text focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors">
+                    </div>
+
+                    <button type="submit" class="w-full inline-flex items-center justify-center gap-2 px-6 py-3 bg-success text-white font-bold rounded-xl hover:bg-success/90 transition-colors text-sm" {% if not wallets %}disabled{% endif %}>
+                        <i data-lucide="check-square" class="w-4 h-4"></i> Reconcile
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Reconciliation History Chart -->
+    {% if reconciliations %}
+    <div class="bg-surface rounded-2xl border border-border shadow-sm overflow-hidden text-text">
+        <div class="p-6 border-b border-border bg-surface-active/30 flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl bg-warning/10 flex items-center justify-center text-warning">
+                <i data-lucide="bar-chart-3" class="w-5 h-5"></i>
+            </div>
+            <div>
+                <h2 class="text-lg font-bold font-heading m-0">Reconciliation Trends</h2>
+                <p class="text-xs text-text-muted m-0 mt-0.5">Balance discrepancy trends over time.</p>
+            </div>
+        </div>
+        <div class="p-6">
+            <canvas id="reconChart" height="220"></canvas>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Reconciliation History Table -->
+    {% if reconciliations %}
+    <div class="bg-surface rounded-2xl border border-border shadow-sm overflow-hidden text-text">
+        <div class="p-6 border-b border-border bg-surface-active/30 flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
+                <i data-lucide="history" class="w-5 h-5"></i>
+            </div>
+            <h2 class="text-lg font-bold font-heading m-0">Reconciliation History</h2>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+                <thead>
+                    <tr class="border-b border-border bg-surface-active/20">
+                        <th class="text-left p-4 font-bold text-text-muted uppercase text-xs tracking-wider">Date</th>
+                        <th class="text-left p-4 font-bold text-text-muted uppercase text-xs tracking-wider">Wallet</th>
+                        <th class="text-right p-4 font-bold text-text-muted uppercase text-xs tracking-wider">Statement</th>
+                        <th class="text-right p-4 font-bold text-text-muted uppercase text-xs tracking-wider">App Balance</th>
+                        <th class="text-right p-4 font-bold text-text-muted uppercase text-xs tracking-wider">Difference</th>
+                        <th class="text-center p-4 font-bold text-text-muted uppercase text-xs tracking-wider">Status</th>
+                        <th class="text-left p-4 font-bold text-text-muted uppercase text-xs tracking-wider">Notes</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for r in reconciliations %}
+                    <tr class="border-b border-border hover:bg-surface-hover/50 transition-colors">
+                        <td class="p-4 text-text whitespace-nowrap">{{ r.date.strftime('%d %b %Y') }}</td>
+                        <td class="p-4 text-text font-semibold">{{ r.wallet.name if r.wallet else 'Unknown' }}</td>
+                        <td class="p-4 text-text text-right font-mono">{{ "{:,.2f}".format(r.statement_balance) }}</td>
+                        <td class="p-4 text-text text-right font-mono">{{ "{:,.2f}".format(r.reconciled_balance or 0) }}</td>
+                        {% set diff = (r.statement_balance - (r.reconciled_balance or 0))|abs %}
+                        <td class="p-4 text-right font-mono {{ 'text-danger font-bold' if diff > 0.01 else 'text-success' }}">
+                            {{ "{:,.2f}".format(diff) }}
+                        </td>
+                        <td class="p-4 text-center">
+                            {% if r.status == 'reconciled' %}
+                            <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold bg-success/10 text-success">
+                                <i data-lucide="check-circle" class="w-3 h-3"></i> Matched
+                            </span>
+                            {% else %}
+                            <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold bg-danger/10 text-danger">
+                                <i data-lucide="alert-triangle" class="w-3 h-3"></i> Discrepancy
+                            </span>
+                            {% endif %}
+                        </td>
+                        <td class="p-4 text-text-muted text-xs max-w-[150px] truncate">{{ r.notes or '—' }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Import History Table -->
+    {% if imports %}
+    <div class="bg-surface rounded-2xl border border-border shadow-sm overflow-hidden text-text">
+        <div class="p-6 border-b border-border bg-surface-active/30 flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
+                <i data-lucide="file-up" class="w-5 h-5"></i>
+            </div>
+            <h2 class="text-lg font-bold font-heading m-0">Import History</h2>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+                <thead>
+                    <tr class="border-b border-border bg-surface-active/20">
+                        <th class="text-left p-4 font-bold text-text-muted uppercase text-xs tracking-wider">Date</th>
+                        <th class="text-left p-4 font-bold text-text-muted uppercase text-xs tracking-wider">File</th>
+                        <th class="text-right p-4 font-bold text-text-muted uppercase text-xs tracking-wider">Records</th>
+                        <th class="text-center p-4 font-bold text-text-muted uppercase text-xs tracking-wider">Status</th>
+                        <th class="text-left p-4 font-bold text-text-muted uppercase text-xs tracking-wider">Details</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for imp in imports %}
+                    <tr class="border-b border-border hover:bg-surface-hover/50 transition-colors">
+                        <td class="p-4 text-text whitespace-nowrap">{{ imp.date.strftime('%d %b %Y %H:%M') }}</td>
+                        <td class="p-4 text-text font-semibold">
+                            <div class="flex items-center gap-2">
+                                {% if imp.filename.endswith('.xlsx') %}
+                                <i data-lucide="file-spreadsheet" class="w-4 h-4 text-success shrink-0"></i>
+                                {% else %}
+                                <i data-lucide="file-text" class="w-4 h-4 text-primary shrink-0"></i>
+                                {% endif %}
+                                <span class="truncate max-w-[200px]">{{ imp.filename }}</span>
+                            </div>
+                        </td>
+                        <td class="p-4 text-text text-right font-bold">{{ imp.records_imported }}</td>
+                        <td class="p-4 text-center">
+                            {% if imp.status == 'completed' %}
+                            <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold bg-success/10 text-success">
+                                <i data-lucide="check-circle" class="w-3 h-3"></i> Completed
+                            </span>
+                            {% elif imp.status == 'partial' %}
+                            <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold bg-warning/10 text-warning">
+                                <i data-lucide="alert-circle" class="w-3 h-3"></i> Partial
+                            </span>
+                            {% else %}
+                            <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold bg-danger/10 text-danger">
+                                <i data-lucide="x-circle" class="w-3 h-3"></i> Failed
+                            </span>
+                            {% endif %}
+                        </td>
+                        <td class="p-4 text-text-muted text-xs max-w-[200px] truncate">{{ imp.notes or '—' }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Recent Imported Transactions -->
+    {% if recent_imports %}
+    <div class="bg-surface rounded-2xl border border-border shadow-sm overflow-hidden text-text">
+        <div class="p-6 border-b border-border bg-surface-active/30 flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl bg-warning/10 flex items-center justify-center text-warning">
+                <i data-lucide="list" class="w-5 h-5"></i>
+            </div>
+            <div>
+                <h2 class="text-lg font-bold font-heading m-0">Recent Imported Transactions</h2>
+                <p class="text-xs text-text-muted m-0 mt-0.5">Last 50 transactions tagged as imported.</p>
+            </div>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+                <thead>
+                    <tr class="border-b border-border bg-surface-active/20">
+                        <th class="text-left p-4 font-bold text-text-muted uppercase text-xs tracking-wider">Date</th>
+                        <th class="text-left p-4 font-bold text-text-muted uppercase text-xs tracking-wider">Description</th>
+                        <th class="text-left p-4 font-bold text-text-muted uppercase text-xs tracking-wider">Category</th>
+                        <th class="text-center p-4 font-bold text-text-muted uppercase text-xs tracking-wider">Type</th>
+                        <th class="text-right p-4 font-bold text-text-muted uppercase text-xs tracking-wider">Amount</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for txn in recent_imports %}
+                    <tr class="border-b border-border hover:bg-surface-hover/50 transition-colors">
+                        <td class="p-4 text-text whitespace-nowrap">{{ txn.date.strftime('%d %b %Y') }}</td>
+                        <td class="p-4 text-text font-semibold max-w-[250px] truncate">{{ txn.description }}</td>
+                        <td class="p-4 text-text-muted">{{ txn.category.name if txn.category else '—' }}</td>
+                        <td class="p-4 text-center">
+                            {% if txn.transaction_type == 'income' %}
+                            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-xs font-bold bg-success/10 text-success">
+                                <i data-lucide="arrow-up-right" class="w-3 h-3"></i> Income
+                            </span>
+                            {% else %}
+                            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-xs font-bold bg-danger/10 text-danger">
+                                <i data-lucide="arrow-down-right" class="w-3 h-3"></i> Expense
+                            </span>
+                            {% endif %}
+                        </td>
+                        <td class="p-4 text-right font-mono font-bold {{ 'text-success' if txn.transaction_type == 'income' else 'text-danger' }}">
+                            GHS {{ "{:,.2f}".format(txn.amount) }}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Empty State -->
+    {% if not reconciliations and not imports and not recent_imports %}
+    <div class="bg-surface rounded-2xl border border-border shadow-sm p-12 text-center">
+        <div class="w-16 h-16 bg-surface-active rounded-full flex items-center justify-center mx-auto mb-4 border border-border">
+            <i data-lucide="landmark" class="w-8 h-8 text-text-muted/50"></i>
+        </div>
+        <h3 class="text-lg font-bold text-text mb-2">No banking activity yet</h3>
+        <p class="text-text-muted max-w-md mx-auto text-sm">Upload a bank statement (CSV or Excel) to import transactions, or reconcile a wallet against your bank balance.</p>
+    </div>
+    {% endif %}
+
 </div>
 
-<div class="bg-surface rounded-2xl border border-border shadow-sm p-8 text-center">
-    <div class="w-16 h-16 bg-surface-active rounded-full flex items-center justify-center mx-auto mb-4 border border-border">
-        <i data-lucide="landmark" class="w-8 h-8 text-text-muted"></i>
-    </div>
-    <h3 class="text-lg font-bold text-text mb-2">Banking features coming soon</h3>
-    <p class="text-text-muted max-w-sm mx-auto">Connect your bank accounts for automatic transaction imports and reconciliation.</p>
-</div>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    if (window.lucide) lucide.createIcons();
+
+    // Reconciliation wallet selector — update displayed balance
+    const reconWallet = document.getElementById('reconWallet');
+    const appBalance = document.getElementById('appBalance');
+    if (reconWallet && appBalance) {
+        reconWallet.addEventListener('change', () => {
+            const opt = reconWallet.options[reconWallet.selectedIndex];
+            const bal = parseFloat(opt.dataset.balance || 0);
+            appBalance.textContent = 'GHS ' + bal.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+        });
+    }
+
+    // Reconciliation chart
+    const reconCanvas = document.getElementById('reconChart');
+    if (reconCanvas) {
+        const reconData = JSON.parse('{{ recon_chart | safe }}');
+        if (reconData.length > 0) {
+            const isDark = document.documentElement.classList.contains('dark') ||
+                (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches &&
+                 !document.documentElement.classList.contains('light'));
+            const gridColor = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)';
+            const textColor = isDark ? 'rgba(255,255,255,0.6)' : 'rgba(0,0,0,0.5)';
+
+            new Chart(reconCanvas, {
+                type: 'bar',
+                data: {
+                    labels: reconData.map(d => d.date),
+                    datasets: [
+                        {
+                            label: 'Statement Balance',
+                            data: reconData.map(d => d.statement),
+                            backgroundColor: 'rgba(59,130,246,0.6)',
+                            borderRadius: 6,
+                            barPercentage: 0.4,
+                        },
+                        {
+                            label: 'App Balance',
+                            data: reconData.map(d => d.app),
+                            backgroundColor: 'rgba(34,197,94,0.6)',
+                            borderRadius: 6,
+                            barPercentage: 0.4,
+                        },
+                        {
+                            label: 'Discrepancy',
+                            data: reconData.map(d => d.diff),
+                            type: 'line',
+                            borderColor: 'rgba(239,68,68,0.8)',
+                            backgroundColor: 'rgba(239,68,68,0.1)',
+                            borderWidth: 2,
+                            pointRadius: 4,
+                            pointBackgroundColor: reconData.map(d => d.status === 'reconciled' ? 'rgba(34,197,94,0.8)' : 'rgba(239,68,68,0.8)'),
+                            fill: true,
+                            tension: 0.3,
+                            yAxisID: 'y1',
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: { mode: 'index', intersect: false },
+                    plugins: {
+                        legend: { labels: { color: textColor, font: { size: 11, weight: 'bold' }, usePointStyle: true, pointStyle: 'rectRounded' } },
+                    },
+                    scales: {
+                        x: { grid: { display: false }, ticks: { color: textColor, font: { size: 10 } } },
+                        y: { grid: { color: gridColor }, ticks: { color: textColor, font: { size: 10 } }, title: { display: true, text: 'Balance (GHS)', color: textColor, font: { size: 11 } } },
+                        y1: { position: 'right', grid: { display: false }, ticks: { color: 'rgba(239,68,68,0.6)', font: { size: 10 } }, title: { display: true, text: 'Discrepancy', color: 'rgba(239,68,68,0.6)', font: { size: 11 } } },
+                    }
+                }
+            });
+        }
+    }
+});
+</script>
 {% endblock %}

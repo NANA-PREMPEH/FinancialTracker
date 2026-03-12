@@ -1,0 +1,257 @@
+{% extends "base.html" %}
+
+{% block title %}Shared Wallets - Financial Tracker{% endblock %}
+{% block header_title %}Shared Wallets{% endblock %}
+
+{% block content %}
+<div class="max-w-5xl mx-auto space-y-8">
+
+    <!-- Header -->
+    <div class="bg-surface p-6 rounded-2xl border border-border shadow-sm flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div>
+            <h1 class="text-2xl font-bold font-heading text-text m-0">Shared Wallets</h1>
+            <p class="text-text-muted mt-1 text-sm">Manage wallets shared with you and wallets you've shared with others.</p>
+        </div>
+        <a href="{{ url_for('main.wallets') }}" class="inline-flex items-center gap-2 px-4 py-2.5 bg-surface border border-border rounded-xl text-sm font-bold text-text hover:bg-surface-hover transition-colors no-underline">
+            <i data-lucide="arrow-left" class="w-4 h-4"></i> Back to Wallets
+        </a>
+    </div>
+
+    <!-- Stats -->
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+        <div class="bg-surface rounded-2xl border border-border p-5 text-center">
+            <div class="text-xs font-bold text-text-muted uppercase tracking-wider mb-1">Shared With Me</div>
+            <div class="text-2xl font-extrabold text-primary">{{ received|length }}</div>
+        </div>
+        <div class="bg-surface rounded-2xl border border-border p-5 text-center">
+            <div class="text-xs font-bold text-text-muted uppercase tracking-wider mb-1">I've Shared</div>
+            <div class="text-2xl font-extrabold text-success">{{ sent|length }}</div>
+        </div>
+        <div class="bg-surface rounded-2xl border border-border p-5 text-center">
+            <div class="text-xs font-bold text-text-muted uppercase tracking-wider mb-1">Pending Invites</div>
+            <div class="text-2xl font-extrabold {{ 'text-warning' if pending else 'text-text-muted' }}">{{ pending|length }}</div>
+        </div>
+        <div class="bg-surface rounded-2xl border border-border p-5 text-center">
+            <div class="text-xs font-bold text-text-muted uppercase tracking-wider mb-1">Activity</div>
+            <div class="text-2xl font-extrabold text-text">{{ activity|length }}</div>
+            <div class="text-xs text-text-muted mt-0.5">recent transactions</div>
+        </div>
+    </div>
+
+    <!-- Pending Invites -->
+    {% if pending %}
+    <div class="bg-warning/5 border border-warning/20 rounded-2xl overflow-hidden">
+        <div class="p-6 border-b border-warning/20 flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl bg-warning/10 flex items-center justify-center text-warning">
+                <i data-lucide="mail" class="w-5 h-5"></i>
+            </div>
+            <div>
+                <h2 class="text-lg font-bold font-heading m-0 text-text">Pending Invitations</h2>
+                <p class="text-xs text-text-muted m-0 mt-0.5">People have invited you to join their wallets.</p>
+            </div>
+        </div>
+        <div class="divide-y divide-warning/10">
+            {% for share in pending %}
+            <div class="p-5 flex items-center gap-4">
+                <div class="w-12 h-12 rounded-xl bg-surface flex items-center justify-center text-2xl border border-border shrink-0">
+                    {{ share.wallet.icon }}
+                </div>
+                <div class="flex-1 min-w-0">
+                    <div class="font-bold text-text">{{ share.wallet.name }}</div>
+                    <div class="text-xs text-text-muted mt-0.5">
+                        From <strong>{{ share.owner.name }}</strong> ({{ share.owner.email }})
+                    </div>
+                    <div class="flex items-center gap-2 mt-1">
+                        <span class="inline-flex items-center px-2 py-0.5 rounded-lg text-xs font-bold
+                            {% if share.permission == 'manage' %}bg-danger/10 text-danger
+                            {% elif share.permission == 'contribute' %}bg-success/10 text-success
+                            {% else %}bg-primary/10 text-primary{% endif %}">
+                            {{ share.permission|title }}
+                        </span>
+                        <span class="text-xs text-text-muted">{{ share.wallet.currency }} {{ "{:,.2f}".format(share.wallet.balance) }}</span>
+                    </div>
+                </div>
+                <div class="flex items-center gap-2 shrink-0">
+                    <form method="POST" action="{{ url_for('shared_wallets.accept_invite', id=share.id) }}">
+                        <button type="submit" class="inline-flex items-center gap-1.5 px-4 py-2 bg-success text-white font-bold rounded-xl hover:bg-success/90 transition-colors text-sm">
+                            <i data-lucide="check" class="w-4 h-4"></i> Accept
+                        </button>
+                    </form>
+                    <form method="POST" action="{{ url_for('shared_wallets.decline_invite', id=share.id) }}">
+                        <button type="submit" class="inline-flex items-center gap-1.5 px-4 py-2 bg-surface border border-border text-text font-bold rounded-xl hover:bg-surface-hover transition-colors text-sm">
+                            <i data-lucide="x" class="w-4 h-4"></i> Decline
+                        </button>
+                    </form>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Wallets Shared With Me -->
+    <div class="bg-surface rounded-2xl border border-border shadow-sm overflow-hidden">
+        <div class="p-6 border-b border-border bg-surface-active/30 flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
+                <i data-lucide="users" class="w-5 h-5"></i>
+            </div>
+            <h2 class="text-lg font-bold font-heading m-0 text-text">Shared With Me</h2>
+        </div>
+        {% if received %}
+        <div class="divide-y divide-border">
+            {% for share in received %}
+            <div class="p-5 flex items-center gap-4">
+                <div class="w-12 h-12 rounded-xl bg-surface-active/50 flex items-center justify-center text-2xl border border-border shrink-0">
+                    {{ share.wallet.icon }}
+                </div>
+                <div class="flex-1 min-w-0">
+                    <div class="font-bold text-text">{{ share.wallet.name }}</div>
+                    <div class="text-xs text-text-muted mt-0.5">
+                        Owner: <strong>{{ share.owner.name }}</strong>
+                    </div>
+                    <div class="flex items-center gap-2 mt-1 flex-wrap">
+                        <span class="inline-flex items-center px-2 py-0.5 rounded-lg text-xs font-bold
+                            {% if share.permission == 'manage' %}bg-danger/10 text-danger
+                            {% elif share.permission == 'contribute' %}bg-success/10 text-success
+                            {% else %}bg-primary/10 text-primary{% endif %}">
+                            <i data-lucide="{{ 'shield' if share.permission == 'manage' else 'pen-line' if share.permission == 'contribute' else 'eye' }}" class="w-3 h-3 mr-1"></i>
+                            {{ share.permission|title }}
+                        </span>
+                        <span class="text-xs font-mono text-text-muted">{{ share.wallet.currency }} {{ "{:,.2f}".format(share.wallet.balance) }}</span>
+                    </div>
+                </div>
+                <form method="POST" action="{{ url_for('shared_wallets.revoke_share', id=share.id) }}" onsubmit="return confirm('Leave this shared wallet?');">
+                    <button type="submit" class="inline-flex items-center gap-1.5 px-3 py-2 bg-surface border border-border text-text-muted font-bold rounded-xl hover:bg-danger/10 hover:text-danger hover:border-danger/20 transition-colors text-xs">
+                        <i data-lucide="log-out" class="w-3.5 h-3.5"></i> Leave
+                    </button>
+                </form>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="p-8 text-center">
+            <div class="w-12 h-12 bg-surface-active rounded-full flex items-center justify-center mx-auto mb-3">
+                <i data-lucide="user-x" class="w-6 h-6 text-text-muted/50"></i>
+            </div>
+            <p class="text-sm text-text-muted m-0">No wallets have been shared with you yet.</p>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Wallets I've Shared -->
+    <div class="bg-surface rounded-2xl border border-border shadow-sm overflow-hidden">
+        <div class="p-6 border-b border-border bg-surface-active/30 flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl bg-success/10 flex items-center justify-center text-success">
+                <i data-lucide="share-2" class="w-5 h-5"></i>
+            </div>
+            <h2 class="text-lg font-bold font-heading m-0 text-text">Wallets I've Shared</h2>
+        </div>
+        {% if sent %}
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+                <thead>
+                    <tr class="border-b border-border bg-surface-active/20">
+                        <th class="text-left p-4 font-bold text-text-muted uppercase text-xs tracking-wider">Wallet</th>
+                        <th class="text-left p-4 font-bold text-text-muted uppercase text-xs tracking-wider">Shared With</th>
+                        <th class="text-center p-4 font-bold text-text-muted uppercase text-xs tracking-wider">Permission</th>
+                        <th class="text-center p-4 font-bold text-text-muted uppercase text-xs tracking-wider">Status</th>
+                        <th class="text-right p-4 font-bold text-text-muted uppercase text-xs tracking-wider">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-border">
+                    {% for share in sent %}
+                    <tr class="hover:bg-surface-hover/50 transition-colors">
+                        <td class="p-4">
+                            <div class="flex items-center gap-2">
+                                <span class="text-lg">{{ share.wallet.icon }}</span>
+                                <span class="font-bold text-text">{{ share.wallet.name }}</span>
+                            </div>
+                        </td>
+                        <td class="p-4">
+                            <div class="font-semibold text-text">{{ share.shared_with.name }}</div>
+                            <div class="text-xs text-text-muted">{{ share.shared_with.email }}</div>
+                        </td>
+                        <td class="p-4 text-center">
+                            <form method="POST" action="{{ url_for('shared_wallets.update_permission', id=share.id) }}" class="inline-block">
+                                <select name="permission" onchange="this.form.submit()"
+                                    class="px-2 py-1 bg-surface border border-border rounded-lg text-xs font-bold text-text focus:outline-none focus:border-primary">
+                                    <option value="view" {{ 'selected' if share.permission == 'view' }}>View</option>
+                                    <option value="contribute" {{ 'selected' if share.permission == 'contribute' }}>Contribute</option>
+                                    <option value="manage" {{ 'selected' if share.permission == 'manage' }}>Manage</option>
+                                </select>
+                            </form>
+                        </td>
+                        <td class="p-4 text-center">
+                            {% if share.accepted %}
+                            <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold bg-success/10 text-success">
+                                <i data-lucide="check-circle" class="w-3 h-3"></i> Accepted
+                            </span>
+                            {% else %}
+                            <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold bg-warning/10 text-warning">
+                                <i data-lucide="clock" class="w-3 h-3"></i> Pending
+                            </span>
+                            {% endif %}
+                        </td>
+                        <td class="p-4 text-right">
+                            <form method="POST" action="{{ url_for('shared_wallets.revoke_share', id=share.id) }}" onsubmit="return confirm('Revoke access for {{ share.shared_with.name }}?');" class="inline-block">
+                                <button type="submit" class="inline-flex items-center gap-1 px-3 py-1.5 bg-danger/10 text-danger border border-danger/20 rounded-xl hover:bg-danger hover:text-white transition-colors text-xs font-bold">
+                                    <i data-lucide="user-minus" class="w-3.5 h-3.5"></i> Revoke
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="p-8 text-center">
+            <div class="w-12 h-12 bg-surface-active rounded-full flex items-center justify-center mx-auto mb-3">
+                <i data-lucide="share" class="w-6 h-6 text-text-muted/50"></i>
+            </div>
+            <p class="text-sm text-text-muted m-0">You haven't shared any wallets yet. Use the Share button on the wallets page.</p>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Activity Feed -->
+    {% if activity %}
+    <div class="bg-surface rounded-2xl border border-border shadow-sm overflow-hidden">
+        <div class="p-6 border-b border-border bg-surface-active/30 flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl bg-warning/10 flex items-center justify-center text-warning">
+                <i data-lucide="activity" class="w-5 h-5"></i>
+            </div>
+            <div>
+                <h2 class="text-lg font-bold font-heading m-0 text-text">Shared Wallet Activity</h2>
+                <p class="text-xs text-text-muted m-0 mt-0.5">Recent transactions on wallets shared with you.</p>
+            </div>
+        </div>
+        <div class="divide-y divide-border">
+            {% for txn in activity %}
+            <div class="p-4 flex items-center gap-3">
+                <div class="w-8 h-8 rounded-lg flex items-center justify-center shrink-0
+                    {{ 'bg-success/10 text-success' if txn.transaction_type == 'income' else 'bg-danger/10 text-danger' }}">
+                    <i data-lucide="{{ 'arrow-up-right' if txn.transaction_type == 'income' else 'arrow-down-right' }}" class="w-4 h-4"></i>
+                </div>
+                <div class="flex-1 min-w-0">
+                    <div class="font-semibold text-text text-sm truncate">{{ txn.description }}</div>
+                    <div class="text-xs text-text-muted">
+                        {{ txn.wallet.name if txn.wallet else 'Unknown' }} &middot; {{ txn.date.strftime('%d %b %Y') }}
+                        {% if txn.user %} &middot; by {{ txn.user.name if txn.user_id != current_user.id else 'You' }}{% endif %}
+                    </div>
+                </div>
+                <div class="font-bold font-mono text-sm {{ 'text-success' if txn.transaction_type == 'income' else 'text-danger' }}">
+                    {{ '+' if txn.transaction_type == 'income' else '-' }}GHS {{ "{:,.2f}".format(txn.amount) }}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => { if (window.lucide) lucide.createIcons(); });
+</script>
+{% endblock %}

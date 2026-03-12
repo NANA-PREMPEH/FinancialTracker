@@ -33,6 +33,8 @@ pywebpush = "==2.3.0"
 authlib = "==1.6.8"
 python-dateutil = "*"
 python-dotenv = "*"
+pandas = "*"
+pyjwt = "*"
 
 [dev-packages]
 

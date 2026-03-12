@@ -6,16 +6,101 @@
 {% block content %}
 <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8 bg-surface p-6 rounded-2xl border border-border shadow-sm">
     <div>
-        <h1 class="text-2xl font-bold font-heading text-text m-0">Global Finance entities</h1>
+        <h1 class="text-2xl font-bold font-heading text-text m-0">Global Finance Entities</h1>
         <p class="text-text-muted mt-1 text-sm">Monitor international investments and foreign currency accounts.</p>
     </div>
-    <div class="flex gap-3 w-full sm:w-auto">
-        <button class="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-primary text-primary-content font-bold rounded-xl hover:bg-primary-hover transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-primary/50 text-sm">
-            <i data-lucide="plus" class="w-4 h-4"></i> Add Entity
-        </button>
+    <button onclick="document.getElementById('addEntityModal').showModal()" class="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-primary text-primary-content font-bold rounded-xl hover:bg-primary-hover transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-primary/50 text-sm">
+        <i data-lucide="plus" class="w-4 h-4"></i> Add Entity
+    </button>
+</div>
+
+{% if entities %}
+<!-- Summary Cards -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+    <div class="bg-surface rounded-xl border border-border p-5 shadow-sm">
+        <div class="flex items-center gap-3">
+            <div class="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
+                <i data-lucide="Globe" class="w-6 h-6 text-primary"></i>
+            </div>
+            <div>
+                <p class="text-sm text-text-muted">Total Portfolio Value</p>
+                <p class="text-xl font-bold text-text">{{ total_value | round(2) }}</p>
+            </div>
+        </div>
+    </div>
+    <div class="bg-surface rounded-xl border border-border p-5 shadow-sm">
+        <div class="flex items-center gap-3">
+            <div class="w-12 h-12 rounded-xl bg-success/10 flex items-center justify-center">
+                <i data-lucide="Building2" class="w-6 h-6 text-success"></i>
+            </div>
+            <div>
+                <p class="text-sm text-text-muted">Total Entities</p>
+                <p class="text-xl font-bold text-text">{{ entities | length }}</p>
+            </div>
+        </div>
     </div>
 </div>
 
+<!-- Ownership Distribution -->
+{% set entity_types = {} %}
+{% for entity in entities %}
+    {% if entity.entity_type not in entity_types %}
+        {% set _ = entity_types.update({entity.entity_type: 0}) %}
+    {% endif %}
+    {% set _ = entity_types.update({entity.entity_type: entity_types[entity.entity_type] + entity.value}) %}
+{% endfor %}
+
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+    {% for etype, evalue in entity_types.items() %}
+    <div class="bg-surface rounded-xl border border-border p-4 shadow-sm">
+        <p class="text-sm text-text-muted">{{ etype }}</p>
+        <p class="text-lg font-bold text-text">{{ evalue | round(2) }}</p>
+    </div>
+    {% endfor %}
+</div>
+
+<!-- Entities Table -->
+<div class="bg-surface rounded-2xl border border-border shadow-sm overflow-hidden">
+    <div class="overflow-x-auto">
+        <table class="w-full">
+            <thead>
+                <tr class="border-b border-border bg-surface-active/50">
+                    <th class="text-left p-4 text-sm font-semibold text-text-muted">Entity</th>
+                    <th class="text-left p-4 text-sm font-semibold text-text-muted">Type</th>
+                    <th class="text-right p-4 text-sm font-semibold text-text-muted">Ownership %</th>
+                    <th class="text-right p-4 text-sm font-semibold text-text-muted">Value</th>
+                    <th class="text-left p-4 text-sm font-semibold text-text-muted">Currency</th>
+                    <th class="text-right p-4 text-sm font-semibold text-text-muted">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for entity in entities %}
+                <tr class="border-b border-border hover:bg-surface-active/30">
+                    <td class="p-4">
+                        <p class="font-medium text-text">{{ entity.name }}</p>
+                    </td>
+                    <td class="p-4">
+                        <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-medium bg-primary/10 text-primary">
+                            {{ entity.entity_type }}
+                        </span>
+                    </td>
+                    <td class="p-4 text-right text-text">{{ entity.ownership_percent }}%</td>
+                    <td class="p-4 text-right font-medium text-text">{{ entity.value | round(2) }}</td>
+                    <td class="p-4 text-text-muted">{{ entity.currency or 'USD' }}</td>
+                    <td class="p-4 text-right">
+                        <form method="POST" action="{{ url_for('domain.delete_entity', id=entity.id) }}" onsubmit="return confirm('Delete this entity?')">
+                            <button type="submit" class="p-2 hover:bg-error/10 rounded-lg transition-colors" title="Delete">
+                                <i data-lucide="Trash2" class="w-4 h-4 text-error"></i>
+                            </button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% else %}
 <div class="bg-surface rounded-2xl border border-border shadow-sm p-8 text-center">
     <div class="w-16 h-16 bg-surface-active rounded-full flex items-center justify-center mx-auto mb-4 border border-border">
         <i data-lucide="globe" class="w-8 h-8 text-text-muted"></i>
@@ -23,4 +108,59 @@
     <h3 class="text-lg font-bold text-text mb-2">No global finance entities setup</h3>
     <p class="text-text-muted max-w-sm mx-auto">Manage corporate holding structures, partnerships, and offshore assets.</p>
 </div>
+{% endif %}
+
+<!-- Add Entity Modal -->
+<dialog id="addEntityModal" class="modal modal-bottom sm:modal-middle">
+    <div class="modal-box bg-surface border border-border">
+        <h3 class="font-bold text-lg text-text mb-4">Add New Global Entity</h3>
+        <form method="POST" action="{{ url_for('domain.add_entity') }}">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="form-control col-span-2">
+                    <label class="label"><span class="label-text text-text">Entity Name</span></label>
+                    <input type="text" name="name" class="input input-bordered bg-surface border-border text-text" required>
+                </div>
+                <div class="form-control">
+                    <label class="label"><span class="label-text text-text">Entity Type</span></label>
+                    <select name="entity_type" class="select select-bordered bg-surface border-border text-text">
+                        <option value="Business">Business</option>
+                        <option value="Partnership">Partnership</option>
+                        <option value="Shareholding">Shareholding</option>
+                        <option value="Offshore">Offshore Account</option>
+                        <option value="Property">Property</option>
+                        <option value="Other">Other</option>
+                    </select>
+                </div>
+                <div class="form-control">
+                    <label class="label"><span class="label-text text-text">Ownership %</span></label>
+                    <input type="number" name="ownership_percent" step="0.1" value="100" class="input input-bordered bg-surface border-border text-text">
+                </div>
+                <div class="form-control">
+                    <label class="label"><span class="label-text text-text">Value</span></label>
+                    <input type="number" name="value" step="0.01" class="input input-bordered bg-surface border-border text-text" required>
+                </div>
+                <div class="form-control">
+                    <label class="label"><span class="label-text text-text">Currency</span></label>
+                    <select name="currency" class="select select-bordered bg-surface border-border text-text">
+                        <option value="USD">USD - US Dollar</option>
+                        <option value="EUR">EUR - Euro</option>
+                        <option value="GBP">GBP - British Pound</option>
+                        <option value="GHS">GHS - Ghana Cedi</option>
+                        <option value="NGN">NGN - Nigerian Naira</option>
+                        <option value="ZAR">ZAR - South African Rand</option>
+                    </select>
+                </div>
+            </div>
+            <div class="form-control mt-4">
+                <label class="label"><span class="label-text text-text">Notes</span></label>
+                <textarea name="notes" class="textarea textarea-bordered bg-surface border-border text-text" rows="2"></textarea>
+            </div>
+            <div class="modal-action">
+                <button type="button" class="btn btn-ghost" onclick="document.getElementById('addEntityModal').close()">Cancel</button>
+                <button type="submit" class="btn btn-primary">Add Entity</button>
+            </div>
+        </form>
+    </div>
+    <form method="dialog" class="modal-backdrop"><button>close</button></form>
+</dialog>
 {% endblock %}

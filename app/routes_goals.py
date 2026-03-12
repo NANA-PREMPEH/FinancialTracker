@@ -2,6 +2,7 @@ from flask import Blueprint, render_template, request, redirect, url_for, flash
 from flask_login import login_required, current_user
 from . import db
 from .models import Goal, Wallet, GoalTask, GoalMilestone
+from .push_events import check_goal_milestone
 from datetime import datetime, timedelta
 
 goals_bp = Blueprint('goals', __name__)
@@ -207,6 +208,13 @@ def contribute_to_goal(id):
         flash(f'GHS {amount:.2f} contributed to "{goal.name}".', 'success')
 
     db.session.commit()
+
+    # Push notification for goal milestones
+    try:
+        check_goal_milestone(current_user.id, goal)
+    except Exception:
+        pass
+
     return redirect(url_for('goals.goals'))
 
 @goals_bp.route('/goals/<int:id>/tasks', methods=['POST'])

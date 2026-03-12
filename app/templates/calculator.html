@@ -16,6 +16,7 @@
     <button class="tab" data-tab="roi"><i data-lucide="percent"></i>ROI</button>
     <button class="tab" data-tab="savings"><i data-lucide="target"></i>Savings Goal</button>
     <button class="tab" data-tab="debt"><i data-lucide="wallet-cards"></i>Debt Payoff</button>
+    <button class="tab" data-tab="networth"><i data-lucide="bar-chart-3"></i>Net Worth</button>
   </div>
 
   <section id="panel-standard" class="panel active">
@@ -57,6 +58,7 @@
         <label>Loan amount</label><input id="loan-amount" type="number" min="0" step="100" placeholder="250000">
         <label>Annual rate (%)</label><input id="loan-rate" type="number" min="0" step="0.01" placeholder="6.5">
         <label>Term (years)</label><input id="loan-years" type="number" min="1" step="1" placeholder="30">
+        <button class="btn-schedule" onclick="fetchLoanSchedule()"><i data-lucide="table"></i> View Amortization Schedule</button>
       </div>
       <div class="card result primary">
         <h3><i data-lucide="receipt-text"></i>Loan Result</h3>
@@ -65,6 +67,15 @@
           <div><span>Total payment</span><strong id="loan-total">0.00</strong></div>
           <div><span>Total interest</span><strong id="loan-interest">0.00</strong></div>
         </div>
+      </div>
+    </div>
+    <div id="loan-schedule" class="breakdown-table" style="display:none">
+      <h3><i data-lucide="table"></i> Amortization Schedule</h3>
+      <div class="table-scroll">
+        <table>
+          <thead><tr><th>Month</th><th>Payment</th><th>Principal</th><th>Interest</th><th>Balance</th></tr></thead>
+          <tbody id="loan-schedule-body"></tbody>
+        </table>
       </div>
     </div>
   </section>
@@ -77,6 +88,7 @@
         <label>Monthly contribution</label><input id="ci-contrib" type="number" min="0" step="10" placeholder="500">
         <label>Annual return (%)</label><input id="ci-rate" type="number" min="0" step="0.01" placeholder="8">
         <label>Years</label><input id="ci-years" type="number" min="1" step="1" placeholder="10">
+        <button class="btn-schedule" onclick="fetchCompoundBreakdown()"><i data-lucide="table"></i> View Yearly Breakdown</button>
       </div>
       <div class="card result success">
         <h3><i data-lucide="sparkles"></i>Future Value</h3>
@@ -85,6 +97,15 @@
           <div><span>Contributions</span><strong id="ci-total-contrib">0.00</strong></div>
           <div><span>Growth</span><strong id="ci-growth">0.00</strong></div>
         </div>
+      </div>
+    </div>
+    <div id="compound-breakdown" class="breakdown-table" style="display:none">
+      <h3><i data-lucide="table"></i> Yearly Growth Breakdown</h3>
+      <div class="table-scroll">
+        <table>
+          <thead><tr><th>Year</th><th>Balance</th><th>Contributions</th><th>Growth</th></tr></thead>
+          <tbody id="compound-breakdown-body"></tbody>
+        </table>
       </div>
     </div>
   </section>
@@ -116,6 +137,7 @@
         <label>Current savings</label><input id="sg-current" type="number" min="0" step="100" placeholder="7000">
         <label>Annual return (%)</label><input id="sg-rate" type="number" min="0" step="0.01" placeholder="5">
         <label>Years to goal</label><input id="sg-years" type="number" min="0.1" step="0.1" placeholder="5">
+        <button class="btn-schedule" onclick="fetchSavingsBreakdown()"><i data-lucide="table"></i> View Progress Breakdown</button>
       </div>
       <div class="card result warn">
         <h3><i data-lucide="target"></i>Savings Plan</h3>
@@ -125,6 +147,15 @@
           <div><span>Expected growth</span><strong id="sg-growth">0.00</strong></div>
         </div>
         <p class="note" id="sg-note"></p>
+      </div>
+    </div>
+    <div id="savings-breakdown" class="breakdown-table" style="display:none">
+      <h3><i data-lucide="table"></i> Yearly Progress</h3>
+      <div class="table-scroll">
+        <table>
+          <thead><tr><th>Year</th><th>Balance</th><th>% of Target</th><th>Progress</th></tr></thead>
+          <tbody id="savings-breakdown-body"></tbody>
+        </table>
       </div>
     </div>
   </section>
@@ -147,6 +178,76 @@
         <p class="note" id="debt-note"></p>
       </div>
     </div>
+    {% if creditors %}
+    <div class="strategy-section">
+      <h3><i data-lucide="swords"></i> Snowball vs Avalanche — Your Actual Debts</h3>
+      <p class="hint">Compares payoff strategies using your {{ creditors|length }} active creditor{{ 's' if creditors|length != 1 }}.</p>
+      <div class="creditor-list">
+        {% for c in creditors %}
+        <div class="creditor-chip">
+          <span class="creditor-name">{{ c.name }}</span>
+          <span class="creditor-bal">GHS {{ '{:,.2f}'.format(c.balance) }}</span>
+          <span class="creditor-rate">{{ '{:.1f}'.format(c.rate) }}%</span>
+        </div>
+        {% endfor %}
+      </div>
+      <label>Extra monthly payment (above minimums)</label>
+      <input id="debt-extra" type="number" min="0" step="50" placeholder="200" value="0">
+      <button class="btn-schedule" onclick="fetchDebtStrategy()"><i data-lucide="zap"></i> Compare Strategies</button>
+      <div id="debt-strategy-result" style="display:none">
+        <div class="grid" style="margin-top:.8rem">
+          <div class="card result success" style="padding:.8rem">
+            <h4 style="margin:0 0 .5rem;font-size:.9rem">Avalanche (Highest Rate First)</h4>
+            <p class="big" style="font-size:1.5rem;margin:.2rem 0" id="aval-months">-</p>
+            <div class="stats">
+              <div><span>Total interest</span><strong id="aval-interest">-</strong></div>
+              <div><span>Total paid</span><strong id="aval-total">-</strong></div>
+            </div>
+          </div>
+          <div class="card result primary" style="padding:.8rem">
+            <h4 style="margin:0 0 .5rem;font-size:.9rem">Snowball (Smallest Balance First)</h4>
+            <p class="big" style="font-size:1.5rem;margin:.2rem 0" id="snow-months">-</p>
+            <div class="stats">
+              <div><span>Total interest</span><strong id="snow-interest">-</strong></div>
+              <div><span>Total paid</span><strong id="snow-total">-</strong></div>
+            </div>
+          </div>
+        </div>
+        <p class="note" id="strategy-recommendation"></p>
+      </div>
+    </div>
+    {% endif %}
+  </section>
+
+  <section id="panel-networth" class="panel">
+    <div class="grid">
+      <div class="card">
+        <h3><i data-lucide="settings-2"></i>Net Worth Inputs</h3>
+        <label>Total assets (GHS)</label><input id="nw-assets" type="number" min="0" step="1000" placeholder="50000" value="{{ '{:.0f}'.format(total_assets) }}">
+        <label>Total debts (GHS)</label><input id="nw-debts" type="number" min="0" step="1000" placeholder="10000" value="{{ '{:.0f}'.format(total_debts) }}">
+        <label>Monthly savings (GHS)</label><input id="nw-savings" type="number" min="0" step="100" placeholder="2000" value="{{ '{:.0f}'.format(monthly_savings) }}">
+        <label>Expected annual return (%)</label><input id="nw-rate" type="number" min="0" step="0.5" placeholder="8" value="8">
+        <label>Projection years</label><input id="nw-years" type="number" min="1" max="50" step="1" placeholder="10" value="10">
+        <button class="btn-schedule" onclick="fetchNetWorth()"><i data-lucide="bar-chart-3"></i> Project Net Worth</button>
+      </div>
+      <div class="card result success">
+        <h3><i data-lucide="trending-up"></i>Net Worth Projection</h3>
+        <p class="big" id="nw-projected">0.00</p>
+        <div class="stats">
+          <div><span>Current net worth</span><strong id="nw-current">{{ '{:,.2f}'.format(total_assets - total_debts) }}</strong></div>
+          <div><span>Projected growth</span><strong id="nw-growth">0.00</strong></div>
+        </div>
+      </div>
+    </div>
+    <div id="nw-breakdown" class="breakdown-table" style="display:none">
+      <h3><i data-lucide="table"></i> Yearly Net Worth Projection</h3>
+      <div class="table-scroll">
+        <table>
+          <thead><tr><th>Year</th><th>Assets</th><th>Debts</th><th>Net Worth</th></tr></thead>
+          <tbody id="nw-breakdown-body"></tbody>
+        </table>
+      </div>
+    </div>
   </section>
 </div>
 
@@ -156,7 +257,7 @@
 .eyebrow{margin:0 0 .4rem;font-size:.75rem;letter-spacing:.12em;text-transform:uppercase;font-weight:700;color:var(--color-primary)}
 .calc-hero h2{margin:0 0 .5rem;font-size:1.4rem;color:var(--color-text)}
 .calc-hero p{margin:0;color:var(--color-text-muted)}
-.tabs{display:grid;grid-template-columns:repeat(6,minmax(130px,1fr));gap:.55rem;overflow-x:auto;padding-bottom:.2rem}
+.tabs{display:grid;grid-template-columns:repeat(7,minmax(120px,1fr));gap:.55rem;overflow-x:auto;padding-bottom:.2rem}
 .tab{height:44px;border:1px solid var(--color-border);border-radius:var(--radius-lg);background:var(--color-surface);color:var(--color-text-muted);font-weight:600;display:flex;align-items:center;justify-content:center;gap:.4rem;cursor:pointer}
 .tab.active{color:var(--color-text);border-color:color-mix(in srgb,var(--color-primary) 65%,var(--color-border));box-shadow:0 8px 14px color-mix(in srgb,var(--color-primary) 22%,transparent)}
 .tab i{width:16px;height:16px}
@@ -190,8 +291,30 @@
 .keys .op{color:var(--color-primary)}
 .keys .eq{background:var(--color-primary);border-color:transparent;color:#fff}
 .hint{margin:0;text-align:center;font-size:.8rem;color:var(--color-text-muted)}
+.btn-schedule{margin-top:.8rem;width:100%;height:42px;border:1px solid rgba(255,255,255,.2);border-radius:var(--radius-md);background:var(--color-primary);color:#fff;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:.4rem;transition:opacity .2s}
+.btn-schedule:hover{opacity:.85}
+.btn-schedule i{width:16px;height:16px}
+.breakdown-table{margin-top:.9rem;border:1px solid var(--color-border);border-radius:var(--radius-lg);padding:1rem;background:var(--color-background)}
+.breakdown-table h3{margin:0 0 .7rem;font-size:.95rem;display:flex;gap:.4rem;align-items:center;color:var(--color-text)}
+.breakdown-table h3 i{width:16px;height:16px}
+.table-scroll{max-height:400px;overflow-y:auto;border-radius:var(--radius-md)}
+.table-scroll table{width:100%;border-collapse:collapse;font-size:.82rem}
+.table-scroll th{position:sticky;top:0;background:var(--color-surface);padding:.5rem .6rem;text-align:left;font-weight:700;color:var(--color-text-muted);text-transform:uppercase;letter-spacing:.05em;font-size:.72rem;border-bottom:2px solid var(--color-border)}
+.table-scroll td{padding:.45rem .6rem;border-bottom:1px solid var(--color-border);color:var(--color-text)}
+.table-scroll tr:hover td{background:var(--color-surface-hover)}
+.strategy-section{margin-top:.9rem;border:1px solid var(--color-border);border-radius:var(--radius-lg);padding:1rem;background:var(--color-background)}
+.strategy-section h3{margin:0 0 .4rem;font-size:1rem;display:flex;gap:.4rem;align-items:center;color:var(--color-text)}
+.strategy-section h3 i{width:16px;height:16px}
+.strategy-section h4{color:#f8fafc}
+.creditor-list{display:flex;flex-wrap:wrap;gap:.4rem;margin:.6rem 0}
+.creditor-chip{display:inline-flex;gap:.5rem;align-items:center;padding:.35rem .7rem;border:1px solid var(--color-border);border-radius:var(--radius-md);background:var(--color-surface);font-size:.8rem}
+.creditor-name{font-weight:600;color:var(--color-text)}
+.creditor-bal{color:var(--color-primary);font-weight:700}
+.creditor-rate{color:var(--color-text-muted);font-size:.72rem}
+.progress-bar{width:100%;height:6px;background:var(--color-surface-active);border-radius:3px;overflow:hidden}
+.progress-bar-fill{height:100%;border-radius:3px;background:var(--color-primary);transition:width .3s}
 @keyframes fade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
-@media (max-width:920px){.grid{grid-template-columns:1fr}.tabs{grid-template-columns:repeat(6,150px)}}
+@media (max-width:920px){.grid{grid-template-columns:1fr}.tabs{grid-template-columns:repeat(7,140px)}}
 @media (max-width:640px){.stats{grid-template-columns:1fr}.keys button{height:46px}.big{font-size:1.8rem}}
 </style>
 
@@ -220,6 +343,79 @@ function calcDebt(){const b=num('debt-balance'),r=num('debt-rate'),pay=num('debt
 
 [['loan-amount','loan-rate','loan-years',calcLoan],['ci-principal','ci-contrib','ci-rate','ci-years',calcCompound],['roi-invested','roi-current','roi-years',calcROI],['sg-target','sg-current','sg-rate','sg-years',calcSavings],['debt-balance','debt-rate','debt-payment',calcDebt]].forEach(group=>{const fn=group[group.length-1];group.slice(0,-1).forEach(id=>document.getElementById(id)?.addEventListener('input',fn));});
 stdClear();calcLoan();calcCompound();calcROI();calcSavings();calcDebt();
+
+async function serverCalc(payload){
+  const r=await fetch('/calculator/compute',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+  if(!r.ok)throw new Error('Calculation failed');
+  return r.json();
+}
+
+async function fetchLoanSchedule(){
+  try{
+    const d=await serverCalc({type:'loan',principal:num('loan-amount'),rate:num('loan-rate'),years:num('loan-years')});
+    const tb=document.getElementById('loan-schedule-body');
+    tb.innerHTML=d.schedule.map((r,i)=>{
+      if(i<24||i%12===0||i===d.schedule.length-1)
+        return `<tr><td>${r.month}</td><td>${money(r.payment)}</td><td>${money(r.principal)}</td><td>${money(r.interest)}</td><td>${money(r.balance)}</td></tr>`;
+      return '';
+    }).join('');
+    document.getElementById('loan-schedule').style.display='block';
+  }catch(e){alert('Enter valid loan values first.');}
+  if(window.lucide)window.lucide.createIcons();
+}
+
+async function fetchCompoundBreakdown(){
+  try{
+    const d=await serverCalc({type:'compound',principal:num('ci-principal')||0,monthly_contrib:num('ci-contrib')||0,rate:num('ci-rate'),years:num('ci-years')});
+    const tb=document.getElementById('compound-breakdown-body');
+    tb.innerHTML=d.breakdown.map(r=>`<tr><td>${r.year}</td><td>${money(r.balance)}</td><td>${money(r.contributions)}</td><td>${money(r.growth)}</td></tr>`).join('');
+    document.getElementById('compound-breakdown').style.display='block';
+  }catch(e){alert('Enter valid compound interest values first.');}
+  if(window.lucide)window.lucide.createIcons();
+}
+
+async function fetchSavingsBreakdown(){
+  try{
+    const d=await serverCalc({type:'savings',target:num('sg-target'),current:num('sg-current')||0,rate:num('sg-rate'),years:num('sg-years')});
+    const tb=document.getElementById('savings-breakdown-body');
+    tb.innerHTML=d.breakdown.map(r=>`<tr><td>${r.year}</td><td>${money(r.balance)}</td><td>${r.target_pct}%</td><td><div class="progress-bar"><div class="progress-bar-fill" style="width:${Math.min(r.target_pct,100)}%"></div></div></td></tr>`).join('');
+    document.getElementById('savings-breakdown').style.display='block';
+  }catch(e){alert('Enter valid savings goal values first.');}
+  if(window.lucide)window.lucide.createIcons();
+}
+
+async function fetchDebtStrategy(){
+  try{
+    const extra=num('debt-extra')||0;
+    const d=await serverCalc({type:'debt_payoff',extra_payment:extra});
+    document.getElementById('aval-months').textContent=d.avalanche.months+' months';
+    document.getElementById('aval-interest').textContent=money(d.avalanche.total_interest);
+    document.getElementById('aval-total').textContent=money(d.avalanche.total_paid);
+    document.getElementById('snow-months').textContent=d.snowball.months+' months';
+    document.getElementById('snow-interest').textContent=money(d.snowball.total_interest);
+    document.getElementById('snow-total').textContent=money(d.snowball.total_paid);
+    const rec=d.recommendation==='avalanche'
+      ?`Avalanche saves you GHS ${money(d.interest_savings)} in interest! Pay highest-rate debts first.`
+      :`Both strategies are similar. Snowball gives faster wins for motivation.`;
+    document.getElementById('strategy-recommendation').textContent=rec;
+    document.getElementById('debt-strategy-result').style.display='block';
+  }catch(e){alert('Could not calculate debt strategies.');}
+  if(window.lucide)window.lucide.createIcons();
+}
+
+async function fetchNetWorth(){
+  try{
+    const d=await serverCalc({type:'net_worth',assets:num('nw-assets')||0,debts:num('nw-debts')||0,monthly_savings:num('nw-savings')||0,rate:num('nw-rate')||0,years:num('nw-years')||10});
+    document.getElementById('nw-projected').textContent=money(d.projected_net_worth);
+    document.getElementById('nw-current').textContent=money(d.current_net_worth);
+    document.getElementById('nw-growth').textContent=money(d.growth);
+    const tb=document.getElementById('nw-breakdown-body');
+    tb.innerHTML=d.projection.map(r=>`<tr><td>${r.year}</td><td>${money(r.assets)}</td><td>${money(r.debts)}</td><td>${money(r.net_worth)}</td></tr>`).join('');
+    document.getElementById('nw-breakdown').style.display='block';
+  }catch(e){alert('Enter valid net worth values first.');}
+  if(window.lucide)window.lucide.createIcons();
+}
+
 if(window.lucide){window.lucide.createIcons();}
 </script>
 {% endblock %}

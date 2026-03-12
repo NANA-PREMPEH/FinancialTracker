@@ -12,7 +12,8 @@
       "WebSearch",
       "Bash(cd /c/Users/HP/Documents/GitHub/FinancialTracker && flask db migrate -m \"Add email verification, 2FA, and password reset tokens\" 2>&1)",
       "Bash(flask db migrate:*)",
-      "Bash(wc:*)"
+      "Bash(wc:*)",
+      "Bash(echo exit:$?:*)"
     ]
   }
 }

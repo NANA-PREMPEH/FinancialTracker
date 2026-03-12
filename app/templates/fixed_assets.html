@@ -9,13 +9,125 @@
         <h1 class="text-2xl font-bold font-heading text-text m-0">Fixed Assets</h1>
         <p class="text-text-muted mt-1 text-sm">Manage your long-term assets like vehicles, property, and equipment.</p>
     </div>
-    <div class="flex gap-3 w-full sm:w-auto">
-        <button class="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-primary text-primary-content font-bold rounded-xl hover:bg-primary-hover transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-primary/50 text-sm">
-            <i data-lucide="plus" class="w-4 h-4"></i> Add Asset
-        </button>
+    <button onclick="document.getElementById('addAssetModal').showModal()" class="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-primary text-primary-content font-bold rounded-xl hover:bg-primary-hover transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-primary/50 text-sm">
+        <i data-lucide="plus" class="w-4 h-4"></i> Add Asset
+    </button>
+</div>
+
+<!-- Summary Cards -->
+{% if assets %}
+<div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+    <div class="bg-surface rounded-xl border border-border p-5 shadow-sm">
+        <div class="flex items-center gap-3">
+            <div class="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
+                <i data-lucide="DollarSign" class="w-6 h-6 text-primary"></i>
+            </div>
+            <div>
+                <p class="text-sm text-text-muted">Total Current Value</p>
+                <p class="text-xl font-bold text-text">{{ total_value | round(2) }}</p>
+            </div>
+        </div>
+    </div>
+    <div class="bg-surface rounded-xl border border-border p-5 shadow-sm">
+        <div class="flex items-center gap-3">
+            <div class="w-12 h-12 rounded-xl bg-success/10 flex items-center justify-center">
+                <i data-lucide="TrendingUp" class="w-6 h-6 text-success"></i>
+            </div>
+            <div>
+                <p class="text-sm text-text-muted">Total Purchase Value</p>
+                <p class="text-xl font-bold text-text">{{ total_purchase | round(2) }}</p>
+            </div>
+        </div>
+    </div>
+    <div class="bg-surface rounded-xl border border-border p-5 shadow-sm">
+        <div class="flex items-center gap-3">
+            <div class="w-12 h-12 rounded-xl bg-warning/10 flex items-center justify-center">
+                <i data-lucide="MinusCircle" class="w-6 h-6 text-warning"></i>
+            </div>
+            <div>
+                <p class="text-sm text-text-muted">Total Depreciation</p>
+                <p class="text-xl font-bold text-text">{{ (total_purchase - total_value) | round(2) }}</p>
+            </div>
+        </div>
     </div>
 </div>
 
+<!-- Assets by Category -->
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+    {% set category_values = {} %}
+    {% for asset in assets %}
+        {% if asset.asset_category not in category_values %}
+            {% set _ = category_values.update({asset.asset_category: 0}) %}
+        {% endif %}
+        {% set _ = category_values.update({asset.asset_category: category_values[asset.asset_category] + asset.current_value}) %}
+    {% endfor %}
+    
+    {% for cat, val in category_values.items() %}
+    <div class="bg-surface rounded-xl border border-border p-4 shadow-sm">
+        <p class="text-sm text-text-muted">{{ cat }}</p>
+        <p class="text-lg font-bold text-text">{{ val | round(2) }}</p>
+    </div>
+    {% endfor %}
+</div>
+
+<!-- Assets Table -->
+<div class="bg-surface rounded-2xl border border-border shadow-sm overflow-hidden">
+    <div class="overflow-x-auto">
+        <table class="w-full">
+            <thead>
+                <tr class="border-b border-border bg-surface-active/50">
+                    <th class="text-left p-4 text-sm font-semibold text-text-muted">Asset</th>
+                    <th class="text-left p-4 text-sm font-semibold text-text-muted">Category</th>
+                    <th class="text-left p-4 text-sm font-semibold text-text-muted">Location</th>
+                    <th class="text-right p-4 text-sm font-semibold text-text-muted">Purchase Price</th>
+                    <th class="text-right p-4 text-sm font-semibold text-text-muted">Current Value</th>
+                    <th class="text-center p-4 text-sm font-semibold text-text-muted">Condition</th>
+                    <th class="text-right p-4 text-sm font-semibold text-text-muted">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for asset in assets %}
+                <tr class="border-b border-border hover:bg-surface-active/30">
+                    <td class="p-4">
+                        <p class="font-medium text-text">{{ asset.name }}</p>
+                        <p class="text-xs text-text-muted">{{ asset.purchase_date.strftime('%Y-%m-%d') if asset.purchase_date else 'No date' }}</p>
+                    </td>
+                    <td class="p-4">
+                        <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-medium bg-primary/10 text-primary">
+                            {{ asset.asset_category }}
+                        </span>
+                    </td>
+                    <td class="p-4 text-text-muted text-sm">{{ asset.location or '-' }}</td>
+                    <td class="p-4 text-right text-text">{{ asset.purchase_price | round(2) }}</td>
+                    <td class="p-4 text-right font-medium text-text">{{ asset.current_value | round(2) }}</td>
+                    <td class="p-4 text-center">
+                        <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-medium
+                            {% if asset.condition == 'Excellent' %}bg-success/10 text-success
+                            {% elif asset.condition == 'Good' %}bg-primary/10 text-primary
+                            {% elif asset.condition == 'Fair' %}bg-warning/10 text-warning
+                            {% else %}bg-error/10 text-error{% endif %}">
+                            {{ asset.condition }}
+                        </span>
+                    </td>
+                    <td class="p-4 text-right">
+                        <div class="flex items-center justify-end gap-2">
+                            <button onclick="document.getElementById('editAssetModal-{{ asset.id }}').showModal()" class="p-2 hover:bg-surface-active rounded-lg transition-colors" title="Edit">
+                                <i data-lucide="Edit2" class="w-4 h-4 text-text-muted"></i>
+                            </button>
+                            <form method="POST" action="{{ url_for('fixed_assets.delete_asset', id=asset.id) }}" onsubmit="return confirm('Delete this asset?')">
+                                <button type="submit" class="p-2 hover:bg-error/10 rounded-lg transition-colors" title="Delete">
+                                    <i data-lucide="Trash2" class="w-4 h-4 text-error"></i>
+                                </button>
+                            </form>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% else %}
 <div class="bg-surface rounded-2xl border border-border shadow-sm p-8 text-center">
     <div class="w-16 h-16 bg-surface-active rounded-full flex items-center justify-center mx-auto mb-4 border border-border">
         <i data-lucide="home" class="w-8 h-8 text-text-muted"></i>
@@ -23,4 +135,67 @@
     <h3 class="text-lg font-bold text-text mb-2">No fixed assets recorded yet</h3>
     <p class="text-text-muted max-w-sm mx-auto">Start adding your properties, vehicles, and long-term equipment to track their depreciation and value.</p>
 </div>
+{% endif %}
+
+<!-- Add Asset Modal -->
+<dialog id="addAssetModal" class="modal modal-bottom sm:modal-middle">
+    <div class="modal-box bg-surface border border-border">
+        <h3 class="font-bold text-lg text-text mb-4">Add New Asset</h3>
+        <form method="POST" action="{{ url_for('fixed_assets.add_asset') }}">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="form-control">
+                    <label class="label"><span class="label-text text-text">Asset Name</span></label>
+                    <input type="text" name="name" class="input input-bordered bg-surface border-border text-text" required>
+                </div>
+                <div class="form-control">
+                    <label class="label"><span class="label-text text-text">Category</span></label>
+                    <select name="asset_category" class="select select-bordered bg-surface border-border text-text">
+                        {% for cat in categories %}
+                        <option value="{{ cat }}">{{ cat }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="form-control">
+                    <label class="label"><span class="label-text text-text">Purchase Date</span></label>
+                    <input type="date" name="purchase_date" class="input input-bordered bg-surface border-border text-text">
+                </div>
+                <div class="form-control">
+                    <label class="label"><span class="label-text text-text">Purchase Price</span></label>
+                    <input type="number" name="purchase_price" step="0.01" class="input input-bordered bg-surface border-border text-text" required>
+                </div>
+                <div class="form-control">
+                    <label class="label"><span class="label-text text-text">Current Value</span></label>
+                    <input type="number" name="current_value" step="0.01" class="input input-bordered bg-surface border-border text-text" required>
+                </div>
+                <div class="form-control">
+                    <label class="label"><span class="label-text text-text">Location</span></label>
+                    <input type="text" name="location" class="input input-bordered bg-surface border-border text-text">
+                </div>
+                <div class="form-control">
+                    <label class="label"><span class="label-text text-text">Condition</span></label>
+                    <select name="condition" class="select select-bordered bg-surface border-border text-text">
+                        {% for cond in conditions %}
+                        <option value="{{ cond }}">{{ cond }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="form-control">
+                    <label class="label"><span class="label-text text-text">Depreciation Rate (%)</span></label>
+                    <input type="number" name="depreciation_rate" step="0.1" value="0" class="input input-bordered bg-surface border-border text-text">
+                </div>
+            </div>
+            <div class="form-control mt-4">
+                <label class="label"><span class="label-text text-text">Notes</span></label>
+                <textarea name="notes" class="textarea textarea-bordered bg-surface border-border text-text" rows="2"></textarea>
+            </div>
+            <div class="modal-action">
+                <button type="button" class="btn btn-ghost" onclick="document.getElementById('addAssetModal').close()">Cancel</button>
+                <button type="submit" class="btn btn-primary">Add Asset</button>
+            </div>
+        </form>
+    </div>
+    <form method="dialog" class="modal-backdrop"><button>close</button></form>
+</dialog>
+
+<!-- Edit Asset Modal (placeholder - would need route to fetch asset data) -->
 {% endblock %}

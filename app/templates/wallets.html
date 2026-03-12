@@ -9,10 +9,16 @@
     <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-surface p-6 rounded-2xl border border-border shadow-sm">
         <h2 class="text-xl font-bold font-heading text-text m-0">Your Accounts</h2>
         <div class="flex flex-wrap gap-3 w-full sm:w-auto">
+            <a href="{{ url_for('shared_wallets.shared_wallets') }}" class="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-surface border border-border text-text font-bold rounded-xl hover:bg-surface-hover transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-primary/50 no-underline relative">
+                <i data-lucide="users" class="w-4 h-4 text-primary"></i> Shared
+                {% if pending_invites %}
+                <span class="absolute -top-1.5 -right-1.5 w-5 h-5 bg-danger text-white text-xs font-bold rounded-full flex items-center justify-center">{{ pending_invites|length }}</span>
+                {% endif %}
+            </a>
             <button onclick="showTransferModal()" class="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-surface border border-border text-text font-bold rounded-xl hover:bg-surface-hover transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-primary/50">
                 <i data-lucide="arrow-left-right" class="w-4 h-4 text-primary"></i> Transfer Funds
             </button>
-            <a href="{{ url_for('main.add_wallet') }}" class="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-primary text-primary-content font-bold rounded-xl hover:bg-primary-hover transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-primary/50">
+            <a href="{{ url_for('main.add_wallet') }}" class="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-primary text-primary-content font-bold rounded-xl hover:bg-primary-hover transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-primary/50 no-underline">
                 <i data-lucide="plus-circle" class="w-4 h-4"></i> Add Wallet
             </a>
         </div>
@@ -27,6 +33,9 @@
                     {{ wallet.icon }}
                 </div>
                 <div class="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button class="share-wallet-btn p-2 text-text-muted hover:text-success bg-surface hover:bg-success/10 rounded-lg transition-colors" data-id="{{ wallet.id }}" data-name="{{ wallet.name }}" title="Share Wallet">
+                        <i data-lucide="share-2" class="w-4 h-4"></i>
+                    </button>
                     <a href="{{ url_for('main.edit_wallet', id=wallet.id) }}" class="p-2 text-text-muted hover:text-primary bg-surface hover:bg-primary/10 rounded-lg transition-colors" title="Edit Wallet">
                         <i data-lucide="edit-3" class="w-4 h-4"></i>
                     </a>
@@ -65,6 +74,64 @@
         </div>
         {% endfor %}
     </div>
+
+    <!-- Pending Invites Banner -->
+    {% if pending_invites %}
+    <div class="bg-warning/5 border border-warning/20 rounded-2xl p-5 flex items-center gap-4">
+        <div class="w-10 h-10 rounded-xl bg-warning/10 flex items-center justify-center text-warning shrink-0">
+            <i data-lucide="mail" class="w-5 h-5"></i>
+        </div>
+        <div class="flex-1">
+            <div class="font-bold text-text text-sm">{{ pending_invites|length }} pending wallet invite{{ 's' if pending_invites|length > 1 }}</div>
+            <div class="text-xs text-text-muted">Someone wants to share a wallet with you.</div>
+        </div>
+        <a href="{{ url_for('shared_wallets.shared_wallets') }}" class="inline-flex items-center gap-2 px-4 py-2 bg-warning text-white font-bold rounded-xl hover:bg-warning/90 transition-colors text-sm no-underline">
+            View Invites
+        </a>
+    </div>
+    {% endif %}
+
+    <!-- Shared With Me Section -->
+    {% if shared_with_me %}
+    <div>
+        <h3 class="text-sm font-bold text-text-muted uppercase tracking-wider mb-4 flex items-center gap-2">
+            <i data-lucide="users" class="w-4 h-4"></i> Shared With Me
+        </h3>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {% for share in shared_with_me %}
+            <div class="bg-surface rounded-2xl border border-primary/20 shadow-sm hover:shadow-md transition-all duration-300 p-6 flex flex-col relative">
+                <div class="absolute top-3 right-3">
+                    <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-xs font-bold bg-primary/10 text-primary">
+                        <i data-lucide="users" class="w-3 h-3"></i> Shared
+                    </span>
+                </div>
+                <div class="flex items-start mb-4">
+                    <div class="w-12 h-12 rounded-xl bg-surface-active/50 flex items-center justify-center text-2xl shadow-sm border border-border/50">
+                        {{ share.wallet.icon }}
+                    </div>
+                </div>
+                <div class="flex-1">
+                    <h3 class="text-lg font-bold text-text m-0 mb-1 line-clamp-1">{{ share.wallet.name }}</h3>
+                    <div class="text-xs text-text-muted mb-1">Owner: {{ share.owner.name }}</div>
+                    <span class="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-bold
+                        {% if share.permission == 'manage' %}bg-danger/10 text-danger
+                        {% elif share.permission == 'contribute' %}bg-success/10 text-success
+                        {% else %}bg-primary/10 text-primary{% endif %}">
+                        {{ share.permission|title }} Access
+                    </span>
+                </div>
+                <div class="mt-auto pt-4 border-t border-border">
+                    <p class="text-xs font-semibold text-text-muted uppercase tracking-wider mb-1">Balance</p>
+                    <div class="text-2xl font-black font-heading text-text flex items-baseline gap-1">
+                        <span class="text-base font-bold text-text-muted">{{ share.wallet.currency }}</span>
+                        {{ "{:,.2f}".format(share.wallet.balance) }}
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
 
     {% if not wallets %}
     <div class="bg-surface rounded-2xl border border-dashed border-border p-12 flex flex-col items-center justify-center text-center">
@@ -258,6 +325,47 @@
 
 <form id="deleteWalletForm" method="POST" class="hidden"></form>
 
+<!-- Share Wallet Modal -->
+<div id="shareWalletModal" class="hidden fixed inset-0 bg-surface-active/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 opacity-0 transition-opacity duration-300">
+    <div class="bg-surface w-full max-w-md rounded-2xl border border-border flex flex-col shadow-2xl overflow-hidden relative transform scale-95 transition-transform duration-300" onclick="event.stopPropagation()">
+        <div class="p-6 border-b border-border flex items-center justify-between bg-surface-active/30">
+            <h2 class="text-lg font-bold font-heading text-text m-0 flex items-center gap-2">
+                <div class="w-8 h-8 rounded-lg bg-success/10 text-success flex items-center justify-center">
+                    <i data-lucide="share-2" class="w-4 h-4"></i>
+                </div>
+                Share Wallet
+            </h2>
+            <button onclick="hideShareModal()" class="text-text-muted hover:text-text transition-colors p-1 rounded-lg hover:bg-surface-hover">
+                <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+        </div>
+        <div class="p-6">
+            <form id="shareWalletForm" method="POST" class="space-y-4">
+                <p class="text-sm text-text-muted m-0">Share <strong id="shareWalletName"></strong> with another user by entering their email.</p>
+                <div class="space-y-2">
+                    <label class="block text-sm font-semibold text-text">User Email</label>
+                    <input type="email" name="email" required placeholder="friend@example.com"
+                        class="w-full h-11 px-4 bg-surface border border-border rounded-xl text-text focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors">
+                </div>
+                <div class="space-y-2">
+                    <label class="block text-sm font-semibold text-text">Permission Level</label>
+                    <select name="permission" class="w-full h-11 px-4 bg-surface border border-border rounded-xl text-text focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors">
+                        <option value="view">View — Can see balance and transactions</option>
+                        <option value="contribute">Contribute — Can add transactions</option>
+                        <option value="manage">Manage — Full access (edit, delete)</option>
+                    </select>
+                </div>
+                <div class="pt-2 flex justify-end gap-3">
+                    <button type="button" onclick="hideShareModal()" class="px-5 py-2.5 font-semibold text-text bg-surface border border-border rounded-xl hover:bg-surface-hover transition-colors text-sm">Cancel</button>
+                    <button type="submit" class="px-5 py-2.5 font-bold text-white bg-success rounded-xl hover:bg-success/90 transition-colors shadow-sm flex items-center gap-2 text-sm">
+                        <i data-lucide="send" class="w-4 h-4"></i> Send Invite
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     lucide.createIcons();
@@ -352,6 +460,36 @@ document.addEventListener('DOMContentLoaded', function() {
     // Add listener to destSelect as well
     destSelect.addEventListener('change', checkCurrencies);
 
+    // Share Wallet Modal Logic
+    const shareModal = document.getElementById('shareWalletModal');
+    const shareModalContent = shareModal.querySelector('.bg-surface');
+    const shareForm = document.getElementById('shareWalletForm');
+    const shareWalletName = document.getElementById('shareWalletName');
+
+    window.showShareModal = function(walletId, walletName) {
+        shareForm.action = `/wallets/${walletId}/share`;
+        shareWalletName.textContent = `"${walletName}"`;
+        shareModal.classList.remove('hidden');
+        setTimeout(() => {
+            shareModal.classList.remove('opacity-0');
+            shareModalContent.classList.remove('scale-95');
+            shareModalContent.classList.add('scale-100');
+        }, 10);
+    };
+
+    window.hideShareModal = function() {
+        shareModal.classList.add('opacity-0');
+        shareModalContent.classList.remove('scale-100');
+        shareModalContent.classList.add('scale-95');
+        setTimeout(() => { shareModal.classList.add('hidden'); }, 300);
+    };
+
+    document.querySelectorAll('.share-wallet-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            showShareModal(this.dataset.id, this.dataset.name);
+        });
+    });
+
     // Attach click handlers to all delete buttons
     document.querySelectorAll('.delete-wallet-btn').forEach(button => {
         button.addEventListener('click', function() {
@@ -393,6 +531,9 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         if (event.target == transferModal) {
             hideTransferModal();
+        }
+        if (event.target == shareModal) {
+            hideShareModal();
         }
     };
 });

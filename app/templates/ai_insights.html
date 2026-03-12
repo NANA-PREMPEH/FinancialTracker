@@ -65,25 +65,196 @@
         </div>
     </div>
 
+    <!-- Financial Health Score -->
+    <div class="bg-surface rounded-2xl border border-border shadow-sm overflow-hidden">
+        <div class="p-6 border-b border-border bg-surface-active/30 flex items-center gap-2">
+            <i data-lucide="heart-pulse" class="w-6 h-6 text-{{ health_score.color }}"></i>
+            <h2 class="text-xl font-bold font-heading m-0 text-text">Financial Health Score</h2>
+        </div>
+        <div class="p-6">
+            <div class="flex flex-col md:flex-row items-center gap-8">
+                <div class="relative w-40 h-40 shrink-0">
+                    <svg viewBox="0 0 120 120" class="w-full h-full -rotate-90">
+                        <circle cx="60" cy="60" r="52" fill="none" stroke="currentColor" stroke-width="10" class="text-surface-active" />
+                        <circle cx="60" cy="60" r="52" fill="none" stroke-width="10"
+                            stroke-dasharray="{{ (health_score.total / 100 * 326.7)|round(1) }} 326.7"
+                            stroke-linecap="round"
+                            class="text-{{ health_score.color }} transition-all duration-1000" />
+                    </svg>
+                    <div class="absolute inset-0 flex flex-col items-center justify-center">
+                        <span class="text-3xl font-black font-heading text-text">{{ health_score.total }}</span>
+                        <span class="text-xs font-bold text-{{ health_score.color }} uppercase">{{ health_score.grade }}</span>
+                    </div>
+                </div>
+                <div class="flex-1 w-full space-y-4">
+                    {% for key, item in health_score.breakdown.items() %}
+                    <div>
+                        <div class="flex justify-between items-center mb-1">
+                            <span class="text-sm font-semibold text-text capitalize">{{ key }}</span>
+                            <span class="text-xs font-bold text-text-muted">{{ item.score }}/{{ item.max }}</span>
+                        </div>
+                        <div class="w-full bg-surface-active rounded-full h-2.5">
+                            <div class="h-2.5 rounded-full bg-{{ health_score.color }} transition-all duration-700" style="width: {{ (item.score / item.max * 100)|round(1) }}%"></div>
+                        </div>
+                        <p class="text-xs text-text-muted mt-0.5 m-0">{{ item.detail }}</p>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Spending Forecast & Recommendations -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- Spending Forecast -->
+        <div class="bg-surface rounded-2xl border border-border shadow-sm overflow-hidden">
+            <div class="p-6 border-b border-border bg-surface-active/30 flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                    <i data-lucide="calendar-clock" class="w-5 h-5 text-primary"></i>
+                    <h2 class="text-lg font-bold font-heading m-0 text-text">Next Month Forecast</h2>
+                </div>
+                <span class="text-sm font-bold text-primary bg-primary/10 px-3 py-1 rounded-lg">GHS {{ '{:,.2f}'.format(forecast.total_projected) }}</span>
+            </div>
+            <div class="p-6">
+                {% if forecast.categories %}
+                <div class="space-y-3">
+                    {% for item in forecast.categories %}
+                    <div class="flex items-center justify-between gap-3">
+                        <span class="text-sm font-medium text-text truncate flex-1">{{ item.category }}</span>
+                        <div class="flex items-center gap-2">
+                            <div class="w-24 bg-surface-active rounded-full h-2">
+                                {% set pct = (item.projected / forecast.total_projected * 100) if forecast.total_projected > 0 else 0 %}
+                                <div class="h-2 rounded-full bg-primary/70" style="width: {{ pct|round(1) }}%"></div>
+                            </div>
+                            <span class="text-sm font-bold text-text-muted w-24 text-right">GHS {{ '{:,.2f}'.format(item.projected) }}</span>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <p class="text-sm text-text-muted text-center py-6 m-0">Not enough data to generate forecast. Keep tracking for at least 1 month.</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Top Recommendations -->
+        <div class="bg-surface rounded-2xl border border-border shadow-sm overflow-hidden">
+            <div class="p-6 border-b border-border bg-surface-active/30 flex items-center gap-2">
+                <i data-lucide="lightbulb" class="w-5 h-5 text-warning"></i>
+                <h2 class="text-lg font-bold font-heading m-0 text-text">Top Recommendations</h2>
+            </div>
+            <div class="p-6">
+                <div class="space-y-3">
+                    {% for rec in recommendations %}
+                    <div class="flex items-start gap-3 p-3 rounded-xl bg-surface-active/30 border border-border">
+                        <div class="w-8 h-8 rounded-lg flex items-center justify-center shrink-0
+                            {% if rec.priority == 'high' %}bg-danger/10 text-danger
+                            {% elif rec.priority == 'medium' %}bg-warning/10 text-warning
+                            {% else %}bg-success/10 text-success{% endif %}">
+                            <i data-lucide="{{ rec.icon }}" class="w-4 h-4"></i>
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <span class="text-xs font-bold uppercase tracking-wider
+                                {% if rec.priority == 'high' %}text-danger
+                                {% elif rec.priority == 'medium' %}text-warning
+                                {% else %}text-success{% endif %}">{{ rec.priority }}</span>
+                            <p class="text-sm text-text m-0 mt-0.5 leading-relaxed">{{ rec.text }}</p>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Weekly Spending Heatmap & Income Stability -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- Weekly Heatmap -->
+        <div class="bg-surface rounded-2xl border border-border shadow-sm overflow-hidden">
+            <div class="p-6 border-b border-border bg-surface-active/30 flex items-center gap-2">
+                <i data-lucide="flame" class="w-5 h-5 text-danger"></i>
+                <h2 class="text-lg font-bold font-heading m-0 text-text">Weekly Spending Heatmap</h2>
+            </div>
+            <div class="p-6">
+                <div class="grid grid-cols-7 gap-2">
+                    {% for day in heatmap %}
+                    <div class="flex flex-col items-center gap-2">
+                        <span class="text-xs font-bold text-text-muted">{{ day.short }}</span>
+                        <div class="w-full aspect-square rounded-xl flex items-center justify-center transition-all relative"
+                            style="background: rgba(var(--color-danger-rgb, 239,68,68), {{ (day.intensity / 100 * 0.6 + 0.05)|round(2) }});">
+                            <span class="text-xs font-bold {% if day.intensity > 50 %}text-white{% else %}text-text{% endif %}">
+                                {{ day.count }}
+                            </span>
+                        </div>
+                        <span class="text-xs font-semibold text-text-muted truncate w-full text-center">{{ '{:,.0f}'.format(day.total) }}</span>
+                    </div>
+                    {% endfor %}
+                </div>
+                <p class="text-xs text-text-muted text-center mt-4 m-0">Based on last 90 days. Numbers show transaction count. Amounts in GHS below.</p>
+            </div>
+        </div>
+
+        <!-- Income Stability -->
+        <div class="bg-surface rounded-2xl border border-border shadow-sm overflow-hidden">
+            <div class="p-6 border-b border-border bg-surface-active/30 flex items-center gap-2">
+                <i data-lucide="activity" class="w-5 h-5 text-success"></i>
+                <h2 class="text-lg font-bold font-heading m-0 text-text">Income Stability</h2>
+            </div>
+            <div class="p-6">
+                <div class="flex items-center gap-6 mb-6">
+                    <div class="relative w-24 h-24 shrink-0">
+                        <svg viewBox="0 0 120 120" class="w-full h-full -rotate-90">
+                            <circle cx="60" cy="60" r="52" fill="none" stroke="currentColor" stroke-width="8" class="text-surface-active" />
+                            <circle cx="60" cy="60" r="52" fill="none" stroke-width="8"
+                                stroke-dasharray="{{ (income_stability.score / 100 * 326.7)|round(1) }} 326.7"
+                                stroke-linecap="round"
+                                class="{% if income_stability.score >= 70 %}text-success{% elif income_stability.score >= 40 %}text-warning{% else %}text-danger{% endif %}" />
+                        </svg>
+                        <div class="absolute inset-0 flex flex-col items-center justify-center">
+                            <span class="text-xl font-black text-text">{{ income_stability.score }}</span>
+                        </div>
+                    </div>
+                    <div>
+                        <span class="text-lg font-bold text-text">{{ income_stability.label }}</span>
+                        <p class="text-sm text-text-muted m-0 mt-1">Based on {{ income_stability.months }} month{{ 's' if income_stability.months != 1 }} of data</p>
+                        <p class="text-sm text-text-muted m-0">Avg monthly income: <span class="font-bold text-text">GHS {{ '{:,.2f}'.format(income_stability.avg_income) }}</span></p>
+                    </div>
+                </div>
+                {% if income_stability.monthly_amounts|length > 1 %}
+                <div class="flex items-end gap-1.5 h-20">
+                    {% set max_amt = income_stability.monthly_amounts|max %}
+                    {% for amt in income_stability.monthly_amounts %}
+                    <div class="flex-1 rounded-t-lg bg-success/60 hover:bg-success transition-colors relative group"
+                        style="height: {{ (amt / max_amt * 100) if max_amt > 0 else 0 }}%"
+                        title="GHS {{ '{:,.2f}'.format(amt) }}">
+                    </div>
+                    {% endfor %}
+                </div>
+                <p class="text-xs text-text-muted text-center mt-2 m-0">Monthly income over last 6 months</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
     <!-- Insights Section -->
     <div class="bg-surface rounded-2xl border border-border shadow-sm overflow-hidden z-10 relative">
         <div class="p-6 border-b border-border bg-surface-active/30 flex items-center gap-2">
             <i data-lucide="sparkles" class="w-6 h-6 text-primary"></i>
             <h2 class="text-xl font-bold font-heading m-0 text-text">Your Personalized Insights</h2>
         </div>
-        
+
         <div class="p-6">
             {% if insights %}
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {% for insight in insights %}
-                <div class="flex items-start gap-4 p-5 bg-surface-active/30 rounded-2xl border border-border hover:shadow-md transition-all relative overflow-hidden group 
+                <div class="flex items-start gap-4 p-5 bg-surface-active/30 rounded-2xl border border-border hover:shadow-md transition-all relative overflow-hidden group
                     {% if insight.type == 'success' %}hover:border-success/30
                     {% elif insight.type == 'danger' %}hover:border-danger/30
                     {% elif insight.type == 'warning' %}hover:border-warning/30
                     {% else %}hover:border-primary/30{% endif %}">
-                    
+
                     <!-- Top accent line -->
-                    <div class="absolute top-0 left-0 right-0 h-1 
+                    <div class="absolute top-0 left-0 right-0 h-1
                         {% if insight.type == 'success' %}bg-success
                         {% elif insight.type == 'danger' %}bg-danger
                         {% elif insight.type == 'warning' %}bg-warning
@@ -104,7 +275,7 @@
                             <i data-lucide="info" class="w-6 h-6"></i>
                         {% endif %}
                     </div>
-                    
+
                     <div class="flex-1 min-w-0">
                         <div class="flex items-center gap-2 mb-2">
                             <h3 class="text-lg font-bold text-text m-0 line-clamp-1">{{ insight.title }}</h3>

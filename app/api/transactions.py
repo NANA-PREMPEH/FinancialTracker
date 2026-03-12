@@ -138,3 +138,105 @@ def delete_transaction(id):
     db.session.delete(t)
     db.session.commit()
     return jsonify({'message': 'Transaction deleted'}), 200
+
+
+@api_bp.route('/transactions/bulk', methods=['POST'])
+@require_api_key('write_transactions')
+def bulk_create_transactions():
+    """Create up to 100 transactions in one call."""
+    data = request.get_json()
+    if not data or not isinstance(data, list):
+        return jsonify({'error': 'JSON array of transactions required'}), 400
+    
+    if len(data) > 100:
+        return jsonify({'error': 'Maximum 100 transactions per bulk request'}), 400
+    
+    if len(data) == 0:
+        return jsonify({'error': 'At least one transaction required'}), 400
+    
+    created = []
+    errors = []
+    
+    for i, item in enumerate(data):
+        try:
+            if not item.get('amount') or not item.get('category_id') or not item.get('wallet_id'):
+                errors.append({'index': i, 'error': 'Missing required fields (amount, category_id, wallet_id)'})
+                continue
+            
+            t = Expense(
+                user_id=g.api_user_id,
+                description=item.get('description', ''),
+                amount=float(item['amount']),
+                transaction_type=item.get('transaction_type', 'expense'),
+                category_id=int(item['category_id']),
+                wallet_id=int(item['wallet_id']),
+                date=datetime.fromisoformat(item['date']) if item.get('date') else datetime.utcnow(),
+                tags=item.get('tags'),
+                notes=item.get('notes'),
+            )
+            
+            # Update wallet balance
+            wallet = Wallet.query.get(t.wallet_id)
+            if wallet:
+                if t.transaction_type == 'income':
+                    wallet.balance += t.amount
+                else:
+                    wallet.balance -= t.amount
+            
+            db.session.add(t)
+            created.append(t)
+        except Exception as e:
+            errors.append({'index': i, 'error': str(e)})
+    
+    db.session.commit()
+    
+    return jsonify({
+        'message': f'{len(created)} transactions created',
+        'created': [serialize_transaction(t) for t in created],
+        'errors': errors if errors else None
+    }), 201 if created else 400
+
+
+@api_bp.route('/transactions/bulk', methods=['DELETE'])
+@require_api_key('write_transactions')
+def bulk_delete_transactions():
+    """Delete multiple transactions by IDs."""
+    data = request.get_json()
+    if not data or not isinstance(data, dict):
+        return jsonify({'error': 'JSON object with ids array required'}), 400
+    
+    ids = data.get('ids', [])
+    if not ids:
+        return jsonify({'error': 'ids array is required'}), 400
+    
+    if len(ids) > 100:
+        return jsonify({'error': 'Maximum 100 IDs per bulk request'}), 400
+    
+    # Get all transactions that belong to user
+    transactions = Expense.query.filter(
+        Expense.id.in_(ids),
+        Expense.user_id == g.api_user_id
+    ).all()
+    
+    deleted_ids = []
+    for t in transactions:
+        # Reverse wallet balance
+        wallet = Wallet.query.get(t.wallet_id)
+        if wallet:
+            if t.transaction_type == 'income':
+                wallet.balance -= t.amount
+            else:
+                wallet.balance += t.amount
+        
+        db.session.delete(t)
+        deleted_ids.append(t.id)
+    
+    not_found = set(ids) - set(deleted_ids)
+    
+    db.session.commit()
+    
+    return jsonify({
+        'message': f'{len(deleted_ids)} transactions deleted',
+        'deleted': deleted_ids,
+        'not_found': list(not_found) if not_found else None
+    })

@@ -1,0 +1,121 @@
+{% extends "base.html" %}
+
+{% block title %}Exchange Rates - FinTracker{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <div class="flex items-center justify-between mb-6">
+        <h1 class="text-3xl font-bold">Exchange Rates</h1>
+        <a href="{{ url_for('settings.settings') }}" class="btn btn-outline">
+            ← Back to Settings
+        </a>
+    </div>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="alert alert-{{ 'error' if category == 'error' else 'success' }} mb-4">
+                    {{ message }}
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <!-- Add Manual Rate -->
+        <div class="card">
+            <h2 class="text-xl font-semibold mb-4">Add/Update Rate Manually</h2>
+            <form method="POST">
+                <input type="hidden" name="action" value="add_manual">
+                <div class="mb-4">
+                    <label class="block text-sm font-medium mb-1">From Currency</label>
+                    <select name="from_currency" class="input" required>
+                        {% for code, name in currencies %}
+                        <option value="{{ code }}">{{ code }} - {{ name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="mb-4">
+                    <label class="block text-sm font-medium mb-1">To Currency</label>
+                    <select name="to_currency" class="input" required>
+                        {% for code, name in currencies %}
+                        <option value="{{ code }}" {% if code == 'GHS' %}selected{% endif %}>{{ code }} - {{ name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="mb-4">
+                    <label class="block text-sm font-medium mb-1">Exchange Rate</label>
+                    <input type="number" name="rate" step="0.000001" min="0" class="input" placeholder="e.g., 12.3456" required>
+                    <p class="text-sm text-gray-500 mt-1">How much of To Currency equals 1 unit of From Currency</p>
+                </div>
+                <button type="submit" class="btn btn-primary">Save Rate</button>
+            </form>
+        </div>
+
+        <!-- Auto-refresh -->
+        <div class="card">
+            <h2 class="text-xl font-semibold mb-4">Auto-Fetch Rates</h2>
+            <p class="text-gray-600 mb-4">Fetch latest exchange rates from online API. Rates are cached for 24 hours.</p>
+            <form method="POST">
+                <input type="hidden" name="action" value="refresh_all">
+                <button type="submit" class="btn btn-primary">
+                    Refresh All Rates to GHS
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Current Rates Table -->
+    <div class="card mt-6">
+        <h2 class="text-xl font-semibold mb-4">Current Exchange Rates</h2>
+        {% if rates %}
+        <div class="overflow-x-auto">
+            <table class="w-full">
+                <thead>
+                    <tr class="border-b">
+                        <th class="text-left py-3 px-4">From</th>
+                        <th class="text-left py-3 px-4">To</th>
+                        <th class="text-right py-3 px-4">Rate</th>
+                        <th class="text-left py-3 px-4">Last Updated</th>
+                        <th class="text-center py-3 px-4">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for rate in rates %}
+                    <tr class="border-b hover:bg-gray-50">
+                        <td class="py-3 px-4 font-medium">{{ rate.from_currency }}</td>
+                        <td class="py-3 px-4">{{ rate.to_currency }}</td>
+                        <td class="py-3 px-4 text-right">{{ rate.rate | round(6) }}</td>
+                        <td class="py-3 px-4 text-gray-600">{{ rate.date.strftime('%Y-%m-%d %H:%M') if rate.date else 'N/A' }}</td>
+                        <td class="py-3 px-4 text-center">
+                            <form method="POST" class="inline">
+                                <input type="hidden" name="action" value="delete">
+                                <input type="hidden" name="rate_id" value="{{ rate.id }}">
+                                <button type="submit" class="text-red-600 hover:text-red-800 text-sm" 
+                                        onclick="return confirm('Delete this exchange rate?')">
+                                    Delete
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <p class="text-gray-500">No exchange rates saved yet. Add manually or refresh from API.</p>
+        {% endif %}
+    </div>
+
+    <!-- Info Box -->
+    <div class="mt-6 p-4 bg-blue-50 rounded-lg">
+        <h3 class="font-semibold text-blue-800 mb-2">💡 How Exchange Rates Work</h3>
+        <ul class="text-sm text-blue-700 space-y-1">
+            <li>• Exchange rates are used when you add expenses in a different currency than your wallet's currency</li>
+            <li>• The system automatically fetches rates from an online API if no manual rate is set</li>
+            <li>• Manually set rates take priority and won't be overwritten by auto-fetch</li>
+            <li>• Rates are cached for 24 hours to reduce API calls</li>
+        </ul>
+    </div>
+</div>
+{% endblock %}

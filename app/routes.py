@@ -1,16 +1,49 @@
-from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify, send_file, Response
+from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify
 from flask_login import login_required, current_user
 from . import db
-from .models import Expense, Category, Wallet, Budget, RecurringTransaction, ExchangeRate, Project, ProjectItem, ProjectItemPayment, FinancialSummary, WishlistItem, Creditor, DebtPayment, Debtor
+from .models import (Expense, Category, Wallet, Budget, FinancialSummary,
+                     Creditor, WalletShare)
 from .utils import get_exchange_rate
 from datetime import datetime, timedelta
-from dateutil.relativedelta import relativedelta
 from sqlalchemy import func, or_
-import io
-import csv
 import requests
 
 main = Blueprint('main', __name__)
+
+
+# ===== SHARED HELPERS =====
+def get_accessible_wallets(user_id):
+    """Get wallets the user owns + wallets shared with them (contribute or manage permission)."""
+    owned = Wallet.query.filter_by(user_id=user_id).all()
+
+    shared_shares = WalletShare.query.filter_by(
+        shared_with_id=user_id,
+        accepted=True
+    ).filter(WalletShare.permission.in_(['contribute', 'manage'])).all()
+
+    shared_wallet_ids = [s.wallet_id for s in shared_shares]
+    shared = Wallet.query.filter(Wallet.id.in_(shared_wallet_ids)).all() if shared_wallet_ids else []
+
+    return list(owned) + list(shared)
+
+
+def can_access_wallet(user_id, wallet_id):
+    """Check if user can access a specific wallet (own or shared with contribute/manage)."""
+    wallet = Wallet.query.get(wallet_id)
+    if not wallet:
+        return False
+
+    if wallet.user_id == user_id:
+        return True
+
+    share = WalletShare.query.filter_by(
+        wallet_id=wallet_id,
+        shared_with_id=user_id,
+        accepted=True
+    ).filter(WalletShare.permission.in_(['contribute', 'manage'])).first()
+
+    return share is not None
+
 
 # ===== DASHBOARD =====
 @main.route('/')
@@ -47,14 +80,14 @@ def dashboard():
         Expense.transaction_type == 'income',
         ~transfer_filter
     ).scalar() or 0
-    
+
     # Add Historical Data to Totals
     hist_expenses = db.session.query(func.sum(FinancialSummary.total_expense)).filter(FinancialSummary.user_id == current_user.id).scalar() or 0
     hist_income = db.session.query(func.sum(FinancialSummary.total_income)).filter(FinancialSummary.user_id == current_user.id).scalar() or 0
-    
+
     total_expenses += hist_expenses
     total_income += hist_income
-    
+
     # Get all-time Money Lent (Live)
     debt_lent_cat = Category.query.filter_by(name='Money Lent', user_id=current_user.id).first()
     debt_lent_id = debt_lent_cat.id if debt_lent_cat else -1
@@ -64,13 +97,13 @@ def dashboard():
         or_(Expense.category_id == debt_lent_id, Expense.tags.ilike('%debt_lent%')),
         ~transfer_filter
     ).scalar() or 0
-    
+
     # Get all-time Debt Recoveries/Collections (Live)
     coll_cat = Category.query.filter_by(name='Debt Collection', user_id=current_user.id).first()
     coll_id = coll_cat.id if coll_cat else -1
     rec_cat = Category.query.filter_by(name='Bad Debt Recovery', user_id=current_user.id).first()
     rec_id = rec_cat.id if rec_cat else -1
-    
+
     total_m_recovered = db.session.query(func.sum(Expense.amount)).filter(
         Expense.user_id == current_user.id,
         Expense.transaction_type == 'income',
@@ -81,10 +114,10 @@ def dashboard():
         ),
         ~transfer_filter
     ).scalar() or 0
-    
+
     actual_total_expenses = total_expenses - total_money_lent
     actual_total_income = total_income - total_m_recovered
-    
+
     # Get the oldest date for Total Expenses context
     oldest_expense = db.session.query(func.min(Expense.date)).filter(
         Expense.user_id == current_user.id,
@@ -92,16 +125,16 @@ def dashboard():
         ~transfer_filter
     ).scalar()
     oldest_hist = db.session.query(func.min(FinancialSummary.year)).filter(FinancialSummary.user_id == current_user.id).scalar()
-    
+
     oldest_date = None
     if oldest_expense:
         oldest_date = oldest_expense
-    
+
     if oldest_hist:
         hist_date = datetime(oldest_hist, 1, 1)
         if not oldest_date or hist_date < oldest_date:
             oldest_date = hist_date
-            
+
     # Calculate total wallet balance in GHS
     total_wallet_balance = 0
     for wallet in wallets:
@@ -110,7 +143,7 @@ def dashboard():
         else:
             current_rate = get_exchange_rate(wallet.currency, 'GHS')
             total_wallet_balance += wallet.balance * current_rate
-    
+
     # Calculate current month's expenses
     now = datetime.utcnow()
     month_start = datetime(now.year, now.month, 1)
@@ -120,7 +153,7 @@ def dashboard():
         Expense.date >= month_start,
         ~transfer_filter
     ).scalar() or 0
-    
+
     # Calculate current year's expenses
     year_start = datetime(now.year, 1, 1)
     yearly_expenses = db.session.query(func.sum(Expense.amount)).filter(
@@ -129,15 +162,15 @@ def dashboard():
         Expense.date >= year_start,
         ~transfer_filter
     ).scalar() or 0
-    
+
     # Add Historical Data for Current Year
     hist_yearly_expenses = db.session.query(func.sum(FinancialSummary.total_expense)).filter(
         FinancialSummary.user_id == current_user.id,
         FinancialSummary.year == now.year
     ).scalar() or 0
-    
+
     yearly_expenses += hist_yearly_expenses
-    
+
     # Calculate yearly money lent
     yearly_money_lent = db.session.query(func.sum(Expense.amount)).filter(
         Expense.user_id == current_user.id,
@@ -147,25 +180,21 @@ def dashboard():
         ~transfer_filter
     ).scalar() or 0
     actual_yearly_expenses = yearly_expenses - yearly_money_lent
-    
+
     # Budget alerts
     budgets = Budget.query.filter_by(user_id=current_user.id, is_active=True).all()
     budget_alerts = []
     for budget in budgets:
-        # Calculate effective start date based on period
         now = datetime.utcnow()
         if budget.period == 'weekly':
-            # Start of current week (Monday)
             effective_start = now - timedelta(days=now.weekday())
         elif budget.period == 'monthly':
-            # Start of current month
             effective_start = datetime(now.year, now.month, 1)
         elif budget.period == 'yearly':
-            # Start of current year
             effective_start = datetime(now.year, 1, 1)
         else:
             effective_start = budget.start_date
-        
+
         spent = db.session.query(func.sum(Expense.amount)).filter(
             Expense.user_id == current_user.id,
             Expense.category_id == budget.category_id,
@@ -180,7 +209,7 @@ def dashboard():
             budget_alerts.append({'budget': budget, 'spent': spent, 'percentage': percentage, 'level': '90'})
         elif percentage >= 75:
             budget_alerts.append({'budget': budget, 'spent': spent, 'percentage': percentage, 'level': '75'})
-    
+
     # Calculate total debt and net balance
     creditors = Creditor.query.filter_by(user_id=current_user.id).all()
     total_debt = sum(c.amount for c in creditors)
@@ -189,14 +218,14 @@ def dashboard():
     # Calculate actual monthly trend
     debt_lent_cat = Category.query.filter_by(name='Money Lent', user_id=current_user.id).first()
     debt_lent_id = debt_lent_cat.id if debt_lent_cat else -1
-    
+
     monthly_lent = db.session.query(func.sum(Expense.amount)).filter(
         Expense.user_id == current_user.id,
         Expense.transaction_type == 'expense',
         Expense.date >= month_start,
         or_(Expense.category_id == debt_lent_id, Expense.tags.ilike('%debt_lent%'))
     ).scalar() or 0
-    
+
     actual_monthly_trend = monthly_expenses - monthly_lent
 
     # Category spending data for doughnut chart (current month)
@@ -251,6 +280,13 @@ def dashboard():
     trend_amounts = [m['amount'] for m in monthly_trend]
     actual_trend_amounts = [m['actual_amount'] for m in monthly_trend]
 
+    # Check creditor payment due dates (fires push if approaching)
+    try:
+        from .push_events import check_creditor_due_dates
+        check_creditor_due_dates(current_user.id)
+    except Exception:
+        pass
+
     return render_template('dashboard.html',
                          wallets=wallets,
                          creditors=creditors,
@@ -275,927 +311,6 @@ def dashboard():
                          trend_amounts=trend_amounts,
                          actual_trend_amounts=actual_trend_amounts)
 
-# ===== TRANSACTIONS =====
-@main.route('/add', methods=['GET', 'POST'])
-@login_required
-def add_expense():
-    categories = Category.query.filter_by(user_id=current_user.id).all()
-    wallets = Wallet.query.filter_by(user_id=current_user.id).all()
-    from .currencies import CURRENCIES
-
-    if request.method == 'POST':
-        description = request.form.get('description')
-        category_id_str = request.form.get('category')
-        category_id = int(category_id_str) if category_id_str else Category.query.filter_by(user_id=current_user.id).first().id
-        wallet_id = int(request.form.get('wallet', 1))
-        date_str = request.form.get('date')
-        notes = request.form.get('notes', '')
-        tags = request.form.get('tags', '')
-        transaction_type = request.form.get('transaction_type', 'expense')
-        currency = request.form.get('currency', 'GHS')
-        
-        if not description or not description.strip():
-            flash('Description is required!', 'error')
-            return redirect(url_for('main.add_expense'))
-            
-        try:
-            input_amount = float(request.form.get('amount'))
-            if input_amount <= 0:
-                 flash('Amount must be greater than 0!', 'error')
-                 return redirect(url_for('main.add_expense'))
-        except (ValueError, TypeError):
-            flash('Invalid amount provided!', 'error')
-            return redirect(url_for('main.add_expense'))
-        
-        if date_str:
-            date_obj = datetime.strptime(date_str, '%Y-%m-%d')
-        else:
-            date_obj = datetime.utcnow()
-
-        # Handle file upload
-        receipt_path = None
-        if 'receipt' in request.files:
-            file = request.files['receipt']
-            if file and file.filename:
-                import os
-                from werkzeug.utils import secure_filename
-                filename = secure_filename(file.filename)
-                timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-                filename = f"{timestamp}_{filename}"
-                filepath = os.path.join('app', 'static', 'receipts', filename)
-                file.save(filepath)
-                receipt_path = f"receipts/{filename}"
-        
-        # Currency Conversion Logic
-        wallet = Wallet.query.get(wallet_id)
-        converted_amount = input_amount
-        
-        if currency != wallet.currency:
-            rate = get_exchange_rate(currency, wallet.currency)
-            converted_amount = input_amount * rate
-            print(f"Converting {input_amount} {currency} to {converted_amount} {wallet.currency} (Rate: {rate})")
-
-        if transaction_type == 'transfer':
-            to_wallet_id_str = request.form.get('to_wallet')
-            if not to_wallet_id_str:
-                flash('Please select a destination wallet for the transfer.', 'error')
-                return redirect(url_for('main.add_expense'))
-            
-            to_wallet_id = int(to_wallet_id_str)
-            if wallet_id == to_wallet_id:
-                flash('Cannot transfer to the same wallet!', 'error')
-                return redirect(url_for('main.add_expense'))
-            
-            to_wallet = Wallet.query.get(to_wallet_id)
-            if not to_wallet:
-                flash('Destination wallet not found!', 'error')
-                return redirect(url_for('main.add_expense'))
-                
-            # Ensure "Transfer" category exists for this user
-            transfer_cat = Category.query.filter_by(name='Transfer', user_id=current_user.id).first()
-            if not transfer_cat:
-                transfer_cat = Category(name='Transfer', icon='??', user_id=current_user.id)
-                db.session.add(transfer_cat)
-                db.session.flush() # flush to get ID
-            category_id = transfer_cat.id
-                
-            # Create the withdrawal record (source wallet)
-            expense_out = Expense(
-                user_id=current_user.id,
-                amount=converted_amount, 
-                description=f"Transfer to {to_wallet.name}: {description}", 
-                category_id=category_id,
-                wallet_id=wallet_id,
-                date=date_obj,
-                notes=notes,
-                tags=tags,
-                receipt_path=receipt_path,
-                transaction_type='transfer_out', # Mark as outgoing transfer
-                original_amount=input_amount,
-                original_currency=currency
-            )
-            db.session.add(expense_out)
-            wallet.balance -= converted_amount
-            
-            # Create the deposit record (destination wallet)
-            to_converted_amount = input_amount
-            if currency != to_wallet.currency:
-                rate = get_exchange_rate(currency, to_wallet.currency)
-                to_converted_amount = input_amount * rate
-                
-            expense_in = Expense(
-                user_id=current_user.id,
-                amount=to_converted_amount, 
-                description=f"Transfer from {wallet.name}: {description}", 
-                category_id=category_id,
-                wallet_id=to_wallet_id,
-                date=date_obj,
-                notes=notes,
-                tags=tags,
-                receipt_path=receipt_path,
-                transaction_type='transfer_in', # Mark as incoming transfer
-                original_amount=input_amount,
-                original_currency=currency
-            )
-            db.session.add(expense_in)
-            to_wallet.balance += to_converted_amount
-            
-            db.session.commit()
-            flash(f'Transfer successful! ({input_amount} {currency})', 'success')
-            
-        else:
-            expense = Expense(
-                user_id=current_user.id,
-                amount=converted_amount, 
-                description=description, 
-                category_id=category_id,
-                wallet_id=wallet_id,
-                date=date_obj,
-                notes=notes,
-                tags=tags,
-                receipt_path=receipt_path,
-                transaction_type=transaction_type,
-                original_amount=input_amount,
-                original_currency=currency
-            )
-            db.session.add(expense)
-            
-            # Update wallet balance (using converted amount)
-            if transaction_type == 'expense':
-                wallet.balance -= converted_amount
-            elif transaction_type == 'income':
-                wallet.balance += converted_amount
-            
-            db.session.commit()
-            flash(f'Transaction added successfully! ({input_amount} {currency})', 'success')
-            
-        action = request.form.get('action')
-        if action == 'save_and_continue':
-            return redirect(url_for('main.add_expense'))
-        else:
-            return redirect(url_for('main.all_expenses'))
-    
-    return render_template('add_expense.html', categories=categories, wallets=wallets, currencies=CURRENCIES)
-
-@main.route('/edit/<int:id>', methods=['GET', 'POST'])
-@login_required
-def edit_expense(id):
-    expense = Expense.query.get_or_404(id)
-    if expense.user_id != current_user.id:
-        flash('Access denied.', 'error')
-        return redirect(url_for('main.all_expenses'))
-    categories = Category.query.filter_by(user_id=current_user.id).all()
-    wallets = Wallet.query.filter_by(user_id=current_user.id).all()
-
-    if request.method == 'POST':
-        old_amount = expense.amount
-        old_type = expense.transaction_type
-        old_wallet_id = expense.wallet_id
-        
-        expense.amount = float(request.form.get('amount'))
-        expense.description = request.form.get('description')
-        expense.category_id = int(request.form.get('category'))
-        expense.wallet_id = int(request.form.get('wallet'))
-        expense.notes = request.form.get('notes', '')
-        expense.tags = request.form.get('tags', '')
-        expense.transaction_type = request.form.get('transaction_type', 'expense')
-        date_str = request.form.get('date')
-        
-        if date_str:
-            expense.date = datetime.strptime(date_str, '%Y-%m-%d')
-        
-        # Handle file upload
-        if 'receipt' in request.files:
-            file = request.files['receipt']
-            if file and file.filename:
-                import os
-                from werkzeug.utils import secure_filename
-                filename = secure_filename(file.filename)
-                timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-                filename = f"{timestamp}_{filename}"
-                filepath = os.path.join('app', 'static', 'receipts', filename)
-                file.save(filepath)
-                expense.receipt_path = f"receipts/{filename}"
-        
-        # Update wallet balances
-        old_wallet = Wallet.query.get(old_wallet_id)
-        new_wallet = Wallet.query.get(expense.wallet_id)
-        
-        # Reverse old transaction
-        if old_type == 'expense':
-            old_wallet.balance += old_amount
-        elif old_type == 'income':
-            old_wallet.balance -= old_amount
-            
-        # Apply new transaction
-        if expense.transaction_type == 'expense':
-            new_wallet.balance -= expense.amount
-        elif expense.transaction_type == 'income':
-            new_wallet.balance += expense.amount
-        
-        db.session.commit()
-        flash('Transaction updated successfully!', 'success')
-        return redirect(url_for('main.all_expenses') + f'#expense-{id}')
-    
-    return render_template('edit_expense.html', expense=expense, categories=categories, wallets=wallets)
-
-@main.route('/delete/<int:id>', methods=['POST'])
-@login_required
-def delete_expense(id):
-    expense = Expense.query.get_or_404(id)
-    if expense.user_id != current_user.id:
-        flash('Access denied.', 'error')
-        return redirect(url_for('main.all_expenses'))
-
-    # Update wallet balance
-    wallet = Wallet.query.get(expense.wallet_id)
-    if expense.transaction_type == 'expense':
-        wallet.balance += expense.amount
-    elif expense.transaction_type == 'income':
-        wallet.balance -= expense.amount
-    
-    db.session.delete(expense)
-    db.session.commit()
-    flash('Transaction deleted successfully!', 'success')
-    return redirect(url_for('main.all_expenses'))
-
-@main.route('/expenses')
-@main.route('/transactions')
-@login_required
-def all_expenses():
-    # Search and filter
-    search_query = request.args.get('search', '')
-    category_filter = request.args.get('category', '')
-    wallet_filter = request.args.get('wallet', '')
-    type_filter = request.args.get('type', '')
-    date_from = request.args.get('from', '')
-    date_to = request.args.get('to', '')
-    
-    query = Expense.query.filter_by(user_id=current_user.id)
-
-    if search_query:
-        query = query.filter(or_(
-            Expense.description.contains(search_query),
-            Expense.notes.contains(search_query),
-            Expense.tags.contains(search_query)
-        ))
-    
-    if category_filter:
-        query = query.filter_by(category_id=int(category_filter))
-    else:
-        # Exclude Transfer category by default unless specifically filtered for it
-        if type_filter != 'transfer':
-            transfer_cat = Category.query.filter_by(name='Transfer', user_id=current_user.id).first()
-            if transfer_cat:
-                query = query.filter(Expense.category_id != transfer_cat.id)
-    
-    if wallet_filter:
-        query = query.filter_by(wallet_id=int(wallet_filter))
-    
-    if type_filter:
-        if type_filter == 'transfer':
-            query = query.filter(Expense.transaction_type.in_(['transfer', 'transfer_out', 'transfer_in', 'expense', 'income']))
-            # Note: the category_id filter above acts as the primary 'transfer' gatekeeper if type_filter != 'transfer'
-        else:
-            query = query.filter_by(transaction_type=type_filter)
-    
-    if date_from:
-        query = query.filter(Expense.date >= datetime.strptime(date_from, '%Y-%m-%d'))
-    
-    if date_to:
-        query = query.filter(Expense.date < datetime.strptime(date_to, '%Y-%m-%d') + timedelta(days=1))
-    
-    # Sorting
-    sort_by = request.args.get('sort', 'date')
-    sort_order = request.args.get('order', 'desc')
-    
-    if sort_by == 'date':
-        if sort_order == 'asc':
-            query = query.order_by(Expense.date.asc())
-        else:
-            query = query.order_by(Expense.date.desc())
-    elif sort_by == 'description':
-        if sort_order == 'asc':
-            query = query.order_by(Expense.description.asc())
-        else:
-            query = query.order_by(Expense.description.desc())
-    elif sort_by == 'category':
-        query = query.join(Category)
-        if sort_order == 'asc':
-            query = query.order_by(Category.name.asc())
-        else:
-            query = query.order_by(Category.name.desc())
-    elif sort_by == 'amount':
-        if sort_order == 'asc':
-            query = query.order_by(Expense.amount.asc())
-        else:
-            query = query.order_by(Expense.amount.desc())
-    else:
-        # Default fallback
-        query = query.order_by(Expense.date.desc())
-    
-    expenses = query.all()
-    categories = Category.query.filter_by(user_id=current_user.id).all()
-    wallets = Wallet.query.filter_by(user_id=current_user.id).all()
-
-    # AJAX live search: return JSON with rendered partial
-    if request.args.get('ajax') == '1':
-        html = render_template('_partials/expense_rows.html', expenses=expenses)
-        return jsonify({'html': html, 'count': len(expenses)})
-
-    return render_template('all_expenses.html',
-                         expenses=expenses,
-                         categories=categories,
-                         wallets=wallets,
-                         filters={
-                             'search': search_query,
-                             'category': category_filter,
-                             'wallet': wallet_filter,
-                             'type': type_filter,
-                             'from': date_from,
-                             'to': date_to,
-                             'sort': sort_by,
-                             'order': sort_order
-                         })
-
-# ===== WALLETS =====
-@main.route('/wallets')
-@login_required
-def wallets():
-    all_wallets = Wallet.query.filter_by(user_id=current_user.id).all()
-
-    # Fetch recent transfers
-    transfers = []
-    transfer_category = Category.query.filter_by(name='Transfer', user_id=current_user.id).first()
-    if transfer_category:
-        transfers = Expense.query.filter_by(user_id=current_user.id, category_id=transfer_category.id)\
-            .order_by(Expense.date.desc())\
-            .limit(10).all()
-            
-    return render_template('wallets.html', wallets=all_wallets, transfers=transfers)
-
-@main.route('/wallets/add', methods=['GET', 'POST'])
-@login_required
-def add_wallet():
-    from .currencies import CURRENCIES
-    if request.method == 'POST':
-        name = request.form.get('name')
-        balance = float(request.form.get('balance', 0))
-        currency = request.form.get('currency', 'GHS')
-        icon = request.form.get('icon', '💰')
-        wallet_type = request.form.get('wallet_type', 'cash')
-        account_number = request.form.get('account_number')
-        is_shared = request.form.get('is_shared') == 'on'
-        
-        wallet = Wallet(
-            name=name,
-            balance=balance,
-            currency=currency,
-            icon=icon,
-            wallet_type=wallet_type,
-            account_number=account_number,
-            is_shared=is_shared
-        )
-        db.session.add(wallet)
-        db.session.commit()
-        flash('Wallet created successfully!', 'success')
-        return redirect(url_for('main.wallets'))
-    
-    return render_template('add_wallet.html', currencies=CURRENCIES)
-
-@main.route('/wallets/edit/<int:id>', methods=['GET', 'POST'])
-@login_required
-def edit_wallet(id):
-    from .currencies import CURRENCIES
-    wallet = Wallet.query.get_or_404(id)
-    
-    if request.method == 'POST':
-        wallet.name = request.form.get('name')
-        wallet.balance = float(request.form.get('balance', 0))
-        wallet.currency = request.form.get('currency', 'GHS')
-        wallet.icon = request.form.get('icon', '💰')
-        wallet.wallet_type = request.form.get('wallet_type', 'cash')
-        wallet.account_number = request.form.get('account_number')
-        wallet.is_shared = request.form.get('is_shared') == 'on'
-        
-        db.session.commit()
-        flash('Wallet updated successfully!', 'success')
-        return redirect(url_for('main.wallets') + f'#wallet-{id}')
-    
-    return render_template('edit_wallet.html', wallet=wallet, currencies=CURRENCIES)
-
-@main.route('/wallets/delete/<int:id>', methods=['POST'])
-@login_required
-def delete_wallet(id):
-    wallet = Wallet.query.get_or_404(id)
-    
-    # Check if wallet has transactions
-    expense_count = Expense.query.filter_by(wallet_id=id).count()
-    if expense_count > 0:
-        flash(f'Cannot delete wallet with {expense_count} transaction(s). Please reassign or delete transactions first.', 'error')
-        return redirect(url_for('main.wallets'))
-    
-    db.session.delete(wallet)
-    db.session.commit()
-    flash('Wallet deleted successfully!', 'success')
-    return redirect(url_for('main.wallets'))
-
-@main.route('/wallets/transfer', methods=['POST'])
-@login_required
-def transfer_funds():
-    source_wallet_id = int(request.form.get('source_wallet_id'))
-    dest_wallet_id = int(request.form.get('dest_wallet_id'))
-    amount = float(request.form.get('amount'))
-    exchange_rate = float(request.form.get('exchange_rate', 1.0))
-    date_str = request.form.get('date')
-    reason = request.form.get('reason', '').strip()
-    
-    if source_wallet_id == dest_wallet_id:
-        flash('Cannot transfer to the same wallet!', 'error')
-        return redirect(url_for('main.wallets'))
-    
-    if amount <= 0:
-        flash('Transfer amount must be greater than 0!', 'error')
-        return redirect(url_for('main.wallets'))
-        
-    source_wallet = Wallet.query.get_or_404(source_wallet_id)
-    dest_wallet = Wallet.query.get_or_404(dest_wallet_id)
-    
-    # Calculate destination amount based on exchange rate
-    dest_amount = amount * exchange_rate
-    
-    # Optional: Check for sufficient funds (commented out as per original)
-    # if source_wallet.balance < amount:
-    #     flash('Insufficient funds in source wallet!', 'error')
-    #     return redirect(url_for('main.wallets'))
-        
-    # Get or create Transfer category for the current user
-    transfer_category = Category.query.filter_by(name='Transfer', user_id=current_user.id).first()
-    if not transfer_category:
-        transfer_category = Category(name='Transfer', icon='↔️', user_id=current_user.id)
-        db.session.add(transfer_category)
-        db.session.commit()
-    
-    if date_str:
-        date_obj = datetime.strptime(date_str, '%Y-%m-%d')
-    else:
-        date_obj = datetime.utcnow()
-        
-    # Create Expense for Source Wallet
-    # Note: Amount is in Source Wallet Currency
-    expense = Expense(
-        user_id=current_user.id,
-        amount=amount,
-        description=f"Transfer to {dest_wallet.name}" + (f": {reason}" if reason else "") + (f" (Rate: {exchange_rate})" if exchange_rate != 1.0 else ""),
-        category_id=transfer_category.id,
-        wallet_id=source_wallet.id,
-        date=date_obj,
-        transaction_type='transfer_out',
-        tags='transfer,outgoing'
-    )
-    
-    # Create Income for Destination Wallet
-    # Note: Amount is in Destination Wallet Currency (converted)
-    income = Expense(
-        user_id=current_user.id,
-        amount=dest_amount,
-        description=f"Transfer from {source_wallet.name}" + (f": {reason}" if reason else "") + (f" (Rate: {exchange_rate})" if exchange_rate != 1.0 else ""),
-        category_id=transfer_category.id,
-        wallet_id=dest_wallet.id,
-        date=date_obj,
-        transaction_type='transfer_in',
-        tags='transfer,incoming'
-    )
-    
-    db.session.add(expense)
-    db.session.add(income)
-    
-    # Update balances
-    source_wallet.balance -= amount
-    dest_wallet.balance += dest_amount
-    
-    db.session.commit()
-    
-    flash('Funds transferred successfully!', 'success')
-    return redirect(url_for('main.wallets'))
-
-# ===== BUDGETS =====
-@main.route('/budgets')
-@main.route('/budget')
-@login_required
-def budgets():
-    all_budgets = Budget.query.filter_by(is_active=True).all()
-    budget_data = []
-    
-    for budget in all_budgets:
-        # Calculate effective start date based on period
-        now = datetime.utcnow()
-        if budget.period == 'weekly':
-            # Start of current week (Monday)
-            effective_start = now - timedelta(days=now.weekday())
-        elif budget.period == 'monthly':
-            # Start of current month
-            effective_start = datetime(now.year, now.month, 1)
-        elif budget.period == 'yearly':
-            # Start of current year
-            effective_start = datetime(now.year, 1, 1)
-        else:
-            effective_start = budget.start_date
-        
-        spent = db.session.query(func.sum(Expense.amount)).filter(
-            Expense.category_id == budget.category_id,
-            Expense.transaction_type == 'expense',
-            Expense.date >= effective_start
-        ).scalar() or 0
-        
-        percentage = (spent / budget.amount * 100) if budget.amount > 0 else 0
-        budget_data.append({
-            'budget': budget,
-            'spent': spent,
-            'remaining': budget.amount - spent,
-            'percentage': percentage,
-            'width_percentage': min(percentage, 100)
-        })
-    
-    return render_template('budgets.html', budgets=budget_data)
-
-@main.route('/budgets/add', methods=['GET', 'POST'])
-@login_required
-def add_budget():
-    categories = Category.query.all()
-    
-    if request.method == 'POST':
-        category_id = int(request.form.get('category'))
-        amount = float(request.form.get('amount'))
-        period = request.form.get('period', 'monthly')
-        
-        # Calculate start and end dates based on period
-        start_date = datetime.utcnow()
-        if period == 'weekly':
-            end_date = start_date + timedelta(days=7)
-        elif period == 'monthly':
-            end_date = start_date + timedelta(days=30)
-        elif period == 'yearly':
-            end_date = start_date + timedelta(days=365)
-        
-        budget = Budget(
-            category_id=category_id,
-            amount=amount,
-            period=period,
-            start_date=start_date,
-            end_date=end_date
-        )
-        db.session.add(budget)
-        db.session.commit()
-        flash('Budget created successfully!', 'success')
-        return redirect(url_for('main.budgets'))
-    
-    return render_template('add_budget.html', categories=categories)
-
-@main.route('/budgets/delete/<int:id>', methods=['POST'])
-@login_required
-def delete_budget(id):
-    budget = Budget.query.get_or_404(id)
-    db.session.delete(budget)
-    db.session.commit()
-    flash('Budget deleted successfully!', 'success')
-    return redirect(url_for('main.budgets'))
-
-# ===== RECURRING TRANSACTIONS =====
-@main.route('/recurring')
-@main.route('/recurring-transactions')
-@login_required
-def recurring_transactions():
-    recurring = RecurringTransaction.query.filter_by(is_active=True).all()
-    return render_template('recurring.html', recurring=recurring)
-
-@main.route('/recurring/add', methods=['GET', 'POST'])
-@login_required
-def add_recurring():
-    categories = Category.query.all()
-    wallets = Wallet.query.all()
-    
-    if request.method == 'POST':
-        amount = float(request.form.get('amount'))
-        description = request.form.get('description')
-        category_id = int(request.form.get('category'))
-        wallet_id = int(request.form.get('wallet'))
-        frequency = request.form.get('frequency')
-        transaction_type = request.form.get('transaction_type', 'expense')
-        start_date = datetime.strptime(request.form.get('start_date'), '%Y-%m-%d')
-        notes = request.form.get('notes', '')
-        
-        # Calculate next due date
-        if frequency == 'daily':
-            next_due = start_date + timedelta(days=1)
-        elif frequency == 'weekly':
-            next_due = start_date + timedelta(days=7)
-        elif frequency == 'monthly':
-            next_due = start_date + timedelta(days=30)
-        elif frequency == 'yearly':
-            next_due = start_date + timedelta(days=365)
-        
-        recurring = RecurringTransaction(
-            user_id=current_user.id,
-            amount=amount,
-            description=description,
-            category_id=category_id,
-            wallet_id=wallet_id,
-            transaction_type=transaction_type,
-            frequency=frequency,
-            start_date=start_date,
-            next_due=next_due,
-            notes=notes
-        )
-        db.session.add(recurring)
-        db.session.commit()
-        flash('Recurring transaction created successfully!', 'success')
-        return redirect(url_for('main.recurring_transactions'))
-    
-    return render_template('add_recurring.html', categories=categories, wallets=wallets)
-
-@main.route('/recurring/edit/<int:id>', methods=['GET', 'POST'])
-@login_required
-def edit_recurring(id):
-    recurring = RecurringTransaction.query.get_or_404(id)
-    categories = Category.query.all()
-    wallets = Wallet.query.all()
-    
-    if request.method == 'POST':
-        recurring.amount = float(request.form.get('amount'))
-        recurring.description = request.form.get('description')
-        recurring.category_id = int(request.form.get('category'))
-        recurring.wallet_id = int(request.form.get('wallet'))
-        recurring.transaction_type = request.form.get('transaction_type', 'expense')
-        recurring.frequency = request.form.get('frequency')
-        recurring.notes = request.form.get('notes', '')
-        start_date_str = request.form.get('start_date')
-        
-        if start_date_str:
-            recurring.start_date = datetime.strptime(start_date_str, '%Y-%m-%d')
-        
-        # Recalculate next due date based on frequency
-        if recurring.frequency == 'daily':
-            recurring.next_due = recurring.start_date + timedelta(days=1)
-        elif recurring.frequency == 'weekly':
-            recurring.next_due = recurring.start_date + timedelta(days=7)
-        elif recurring.frequency == 'monthly':
-            recurring.next_due = recurring.start_date + timedelta(days=30)
-        elif recurring.frequency == 'yearly':
-            recurring.next_due = recurring.start_date + timedelta(days=365)
-        
-        db.session.commit()
-        flash('Recurring transaction updated successfully!', 'success')
-        return redirect(url_for('main.recurring_transactions') + f'#recurring-{id}')
-    
-    return render_template('edit_recurring.html', recurring=recurring, categories=categories, wallets=wallets)
-
-@main.route('/recurring/delete/<int:id>', methods=['POST'])
-@login_required
-def delete_recurring(id):
-    recurring = RecurringTransaction.query.get_or_404(id)
-    db.session.delete(recurring)
-    db.session.commit()
-    flash('Recurring transaction deleted successfully!', 'success')
-    return redirect(url_for('main.recurring_transactions'))
-
-# ===== ANALYTICS =====
-@main.route('/analytics')
-@login_required
-def analytics():
-    # Category breakdown for pie chart (Expenses only)
-    # Category breakdown for pie chart (Expenses only) - Exclude Transfers
-    transfer_cat = Category.query.filter_by(name='Transfer').first()
-    transfer_id = transfer_cat.id if transfer_cat else -1
-    
-    debt_lent_cat = Category.query.filter_by(name='Money Lent', user_id=current_user.id).first()
-    debt_lent_id = debt_lent_cat.id if debt_lent_cat else -1
-    
-    category_data = db.session.query(
-        Category.name, Category.icon, func.sum(Expense.amount)
-    ).join(Expense).filter(
-        Expense.transaction_type == 'expense',
-        Category.id != transfer_id
-    ).group_by(Category.id).all()
-    
-    # Monthly trend for line chart (last 6 months)
-    monthly_data = []
-    today = datetime.utcnow()
-    
-    for i in range(5, -1, -1):
-        # Calculate start of month exactly
-        month_date = today - relativedelta(months=i)
-        month_start = datetime(month_date.year, month_date.month, 1)
-        
-        # Calculate end of month
-        if month_start.month == 12:
-            month_end = datetime(month_start.year + 1, 1, 1)
-        else:
-            month_end = datetime(month_start.year, month_start.month + 1, 1)
-            
-        # Get Expenses (Live)
-        expense_total = db.session.query(func.sum(Expense.amount)).filter(
-            Expense.transaction_type == 'expense',
-            Expense.date >= month_start,
-            Expense.date < month_end,
-            Expense.category_id != transfer_id
-        ).scalar() or 0
-        
-        # Get Income (Live)
-        income_total = db.session.query(func.sum(Expense.amount)).filter(
-            Expense.transaction_type == 'income',
-            Expense.date >= month_start,
-            Expense.date < month_end,
-            Expense.category_id != transfer_id
-        ).scalar() or 0
-        
-        # Add Historical Data
-        hist_summary = FinancialSummary.query.filter_by(
-            year=month_start.year, 
-            month=month_start.month
-        ).first()
-        
-        if hist_summary:
-            expense_total += hist_summary.total_expense
-            income_total += hist_summary.total_income
-        
-        # Get Money Lent (Live)
-        m_lent = db.session.query(func.sum(Expense.amount)).filter(
-            Expense.user_id == current_user.id,
-            Expense.transaction_type == 'expense',
-            Expense.date >= month_start,
-            Expense.date < month_end,
-            or_(Expense.category_id == debt_lent_id, Expense.tags.ilike('%debt_lent%'))
-        ).scalar() or 0
-        
-        # Get Debt Recoveries (Live)
-        coll_cat = Category.query.filter_by(name='Debt Collection', user_id=current_user.id).first()
-        coll_id = coll_cat.id if coll_cat else -1
-        rec_cat = Category.query.filter_by(name='Bad Debt Recovery', user_id=current_user.id).first()
-        rec_id = rec_cat.id if rec_cat else -1
-        
-        m_recovered = db.session.query(func.sum(Expense.amount)).filter(
-            Expense.user_id == current_user.id,
-            Expense.transaction_type == 'income',
-            Expense.date >= month_start,
-            Expense.date < month_end,
-            or_(
-                Expense.category_id.in_([coll_id, rec_id]),
-                Expense.tags.ilike('%debt_collection%'),
-                Expense.tags.ilike('%bad_debt_recovery%')
-            )
-        ).scalar() or 0
-        
-        monthly_data.append({
-            'month': month_start.strftime('%b'),
-            'expense': expense_total,
-            'actual_expense': expense_total - m_lent,
-            'income': income_total,
-            'actual_income': income_total - m_recovered
-        })
-    
-    # Yearly trend (Last 12 Months)
-    yearly_data = []
-    
-    for i in range(11, -1, -1):
-        # Calculate start of month exactly
-        month_date = today - relativedelta(months=i)
-        month_start = datetime(month_date.year, month_date.month, 1)
-        
-        if month_start.month == 12:
-            month_end = datetime(month_start.year + 1, 1, 1)
-        else:
-            month_end = datetime(month_start.year, month_start.month + 1, 1)
-            
-        # Live Data
-        expense_total = db.session.query(func.sum(Expense.amount)).filter(
-            Expense.transaction_type == 'expense',
-            Expense.date >= month_start,
-            Expense.date < month_end,
-            Expense.category_id != transfer_id
-        ).scalar() or 0
-        
-        income_total = db.session.query(func.sum(Expense.amount)).filter(
-            Expense.transaction_type == 'income',
-            Expense.date >= month_start,
-            Expense.date < month_end,
-            Expense.category_id != transfer_id
-        ).scalar() or 0
-        
-        # Historical Data
-        hist_summary = FinancialSummary.query.filter_by(
-            year=month_start.year, 
-            month=month_start.month
-        ).first()
-        
-        if hist_summary:
-            expense_total += hist_summary.total_expense
-            income_total += hist_summary.total_income
-        
-        # Get Money Lent (Live)
-        m_lent = db.session.query(func.sum(Expense.amount)).filter(
-            Expense.user_id == current_user.id,
-            Expense.transaction_type == 'expense',
-            Expense.date >= month_start,
-            Expense.date < month_end,
-            or_(Expense.category_id == debt_lent_id, Expense.tags.ilike('%debt_lent%'))
-        ).scalar() or 0
-        
-        # Get Debt Recoveries (Live)
-        m_recovered = db.session.query(func.sum(Expense.amount)).filter(
-            Expense.user_id == current_user.id,
-            Expense.transaction_type == 'income',
-            Expense.date >= month_start,
-            Expense.date < month_end,
-            or_(
-                Expense.category_id.in_([coll_id, rec_id]),
-                Expense.tags.ilike('%debt_collection%'),
-                Expense.tags.ilike('%bad_debt_recovery%')
-            )
-        ).scalar() or 0
-        
-        yearly_data.append({
-            'month': month_start.strftime('%b %Y'),
-            'expense': expense_total,
-            'actual_expense': expense_total - m_lent,
-            'income': income_total,
-            'actual_income': income_total - m_recovered
-        })
-        
-    # Annual Overview (All Years)
-    # Get all years from Expenses
-    expense_years = db.session.query(func.extract('year', Expense.date)).distinct().all()
-    expense_years = [int(y[0]) for y in expense_years] if expense_years else []
-    
-    # Get all years from FinancialSummary
-    hist_years = db.session.query(FinancialSummary.year).distinct().all()
-    hist_years = [int(y[0]) for y in hist_years] if hist_years else []
-    
-    all_years = sorted(list(set(expense_years + hist_years)), reverse=True)
-    
-    annual_data = []
-    for year in all_years:
-        year_start = datetime(year, 1, 1)
-        year_end = datetime(year + 1, 1, 1)
-        
-        # Live Data
-        live_expense = db.session.query(func.sum(Expense.amount)).filter(
-            Expense.transaction_type == 'expense',
-            Expense.date >= year_start,
-            Expense.date < year_end,
-            Expense.category_id != transfer_id
-        ).scalar() or 0
-        
-        live_income = db.session.query(func.sum(Expense.amount)).filter(
-            Expense.user_id == current_user.id,
-            Expense.transaction_type == 'income',
-            Expense.date >= year_start,
-            Expense.date < year_end,
-            Expense.category_id != transfer_id
-        ).scalar() or 0
-        
-        # Live Money Lent (Live)
-        live_money_lent = db.session.query(func.sum(Expense.amount)).filter(
-            Expense.user_id == current_user.id,
-            Expense.transaction_type == 'expense',
-            Expense.date >= year_start,
-            Expense.date < year_end,
-            or_(Expense.category_id == debt_lent_id, Expense.tags.ilike('%debt_lent%')),
-            Expense.category_id != transfer_id
-        ).scalar() or 0
-        
-        # Live Debt Recoveries/Collections (Live)
-        live_m_recovered = db.session.query(func.sum(Expense.amount)).filter(
-            Expense.user_id == current_user.id,
-            Expense.transaction_type == 'income',
-            Expense.date >= year_start,
-            Expense.date < year_end,
-            or_(
-                Expense.category_id.in_([coll_id, rec_id]),
-                Expense.tags.ilike('%debt_collection%'),
-                Expense.tags.ilike('%bad_debt_recovery%')
-            ),
-            Expense.category_id != transfer_id
-        ).scalar() or 0
-        
-        # Historical Data (Sum of all monthly + yearly summaries for this year)
-        hist_records = FinancialSummary.query.filter_by(year=year).all()
-        hist_expense = sum(h.total_expense for h in hist_records)
-        hist_income = sum(h.total_income for h in hist_records)
-        
-        annual_data.append({
-            'year': year,
-            'expense': live_expense + hist_expense,
-            'actual_expense': live_expense + hist_expense - live_money_lent,
-            'income': live_income + hist_income,
-            'actual_income': live_income + hist_income - live_m_recovered
-        })
-
-    return render_template('analytics.html', 
-                         category_data=category_data,
-                         monthly_data=monthly_data,
-                         yearly_data=yearly_data,
-                         annual_data=annual_data)
 
 # ===== CATEGORIES =====
 @main.route('/categories')
@@ -1208,8 +323,8 @@ def categories():
 @login_required
 def add_category():
     name = request.form.get('name')
-    icon = request.form.get('icon', '📝')
-    
+    icon = request.form.get('icon', '\U0001f4dd')
+
     category = Category(name=name, icon=icon, is_custom=True)
     db.session.add(category)
     db.session.commit()
@@ -1223,941 +338,11 @@ def delete_category(id):
     if not category.is_custom:
         flash('Cannot delete default categories!', 'error')
         return redirect(url_for('main.categories'))
-    
+
     db.session.delete(category)
     db.session.commit()
     flash('Category deleted successfully!', 'success')
     return redirect(url_for('main.categories'))
-
-# ===== CREDITORS =====
-def _safe_return_url(default_endpoint='main.creditors'):
-    next_url = request.form.get('next') or request.args.get('next')
-    if next_url and next_url.startswith('/'):
-        return next_url
-    return url_for(default_endpoint)
-
-
-def _creditor_for_current_user_or_404(creditor_id):
-    return Creditor.query.filter_by(id=creditor_id, user_id=current_user.id).first_or_404()
-
-
-def _parse_due_date(value):
-    if not value:
-        return None
-    try:
-        return datetime.strptime(value, '%Y-%m-%d')
-    except (TypeError, ValueError):
-        return None
-
-
-@main.route('/creditors')
-@login_required
-def creditors():
-    all_creditors = Creditor.query.filter_by(user_id=current_user.id).order_by(Creditor.amount.desc()).all()
-    wallets = Wallet.query.filter_by(user_id=current_user.id).order_by(Wallet.balance.desc()).all()
-
-    # KPI calculations
-    now = datetime.utcnow()
-    month_start = datetime(now.year, now.month, 1)
-
-    active_debts = [c for c in all_creditors if c.computed_status == 'active']
-    overdue_debts = [c for c in all_creditors if c.computed_status == 'overdue']
-    paid_off_debts = [c for c in all_creditors if c.computed_status == 'paid_off']
-    total_debt = sum(c.amount for c in all_creditors if c.computed_status != 'paid_off')
-    monthly_due = sum(c.minimum_payment or 0 for c in active_debts + overdue_debts)
-    est_monthly_interest = sum((c.amount * (c.interest_rate or 0) / 100 / 12) for c in active_debts + overdue_debts)
-
-    from .models import DebtPayment
-    paid_this_month = db.session.query(func.sum(DebtPayment.amount)).join(Creditor).filter(
-        Creditor.user_id == current_user.id,
-        DebtPayment.date >= month_start
-    ).scalar() or 0
-
-    # Filters
-    type_filter = request.args.get('type', 'all')
-    status_filter = request.args.get('status', 'all')
-    sort_by = request.args.get('sort', 'amount_desc')
-
-    filtered = all_creditors
-    if type_filter != 'all':
-        filtered = [c for c in filtered if c.debt_type == type_filter]
-    if status_filter != 'all':
-        filtered = [c for c in filtered if c.computed_status == status_filter]
-
-    if sort_by == 'amount_asc':
-        filtered.sort(key=lambda c: c.amount)
-    elif sort_by == 'amount_desc':
-        filtered.sort(key=lambda c: c.amount, reverse=True)
-    elif sort_by == 'due_date':
-        filtered.sort(key=lambda c: (c.due_date or datetime(9999, 1, 1)))
-    elif sort_by == 'priority':
-        filtered.sort(key=lambda c: (c.priority or 3))
-    elif sort_by == 'recent':
-        filtered.sort(key=lambda c: c.created_at, reverse=True)
-
-    # Fetch payment history
-    payment_history = Expense.query.filter(
-        Expense.user_id == current_user.id,
-        Expense.tags.like('%debt_payment%')
-    ).order_by(Expense.date.desc()).limit(30).all()
-
-    return render_template(
-        'creditors.html',
-        creditors=filtered,
-        wallets=wallets,
-        total_debt=total_debt,
-        active_count=len(active_debts),
-        overdue_count=len(overdue_debts),
-        paid_off_count=len(paid_off_debts),
-        monthly_due=monthly_due,
-        paid_this_month=paid_this_month,
-        est_monthly_interest=est_monthly_interest,
-        payment_history=payment_history,
-        now_date=datetime.utcnow().strftime('%Y-%m-%d'),
-        type_filter=type_filter,
-        status_filter=status_filter,
-        sort_by=sort_by
-    )
-
-
-@main.route('/creditors/add', methods=['GET', 'POST'])
-@login_required
-def add_creditor():
-    if request.method == 'POST':
-        name = (request.form.get('name') or '').strip()
-        if not name:
-            flash('Debt name is required.', 'error')
-            return redirect(_safe_return_url())
-
-        try:
-            amount = float(request.form.get('amount', 0))
-        except (TypeError, ValueError):
-            flash('Please provide a valid amount.', 'error')
-            return redirect(_safe_return_url())
-
-        if amount <= 0:
-            flash('Amount owed must be greater than 0.', 'error')
-            return redirect(_safe_return_url())
-
-        currency = (request.form.get('currency') or 'GHS').upper().strip()[:10] or 'GHS'
-        description = (request.form.get('description') or '').strip() or None
-        debt_type = (request.form.get('debt_type') or 'Personal Loan').strip() or 'Personal Loan'
-
-        try:
-            interest_rate = max(float(request.form.get('interest_rate', 0) or 0), 0)
-        except (TypeError, ValueError):
-            flash('Interest rate must be a number.', 'error')
-            return redirect(_safe_return_url())
-
-        original_amount_raw = request.form.get('original_amount')
-        if original_amount_raw:
-            try:
-                original_amount = float(original_amount_raw)
-            except (TypeError, ValueError):
-                flash('Original amount must be a number.', 'error')
-                return redirect(_safe_return_url())
-            if original_amount <= 0:
-                flash('Original amount must be greater than 0.', 'error')
-                return redirect(_safe_return_url())
-            original_amount = max(original_amount, amount)
-        else:
-            original_amount = amount
-
-        due_date = _parse_due_date(request.form.get('due_date'))
-        if request.form.get('due_date') and not due_date:
-            flash('Invalid due date provided.', 'error')
-            return redirect(_safe_return_url())
-
-        payment_frequency = (request.form.get('payment_frequency') or '').strip() or None
-        try:
-            minimum_payment = max(float(request.form.get('minimum_payment', 0) or 0), 0)
-        except (TypeError, ValueError):
-            minimum_payment = 0.0
-        contact_info = (request.form.get('contact_info') or '').strip() or None
-        try:
-            priority = int(request.form.get('priority', 3) or 3)
-            priority = max(1, min(4, priority))
-        except (TypeError, ValueError):
-            priority = 3
-        notes = (request.form.get('notes') or '').strip() or None
-
-        creditor = Creditor(
-            user_id=current_user.id,
-            name=name,
-            amount=amount,
-            currency=currency,
-            description=description,
-            debt_type=debt_type,
-            interest_rate=interest_rate,
-            original_amount=original_amount,
-            due_date=due_date,
-            payment_frequency=payment_frequency,
-            minimum_payment=minimum_payment,
-            contact_info=contact_info,
-            priority=priority,
-            notes=notes
-        )
-        db.session.add(creditor)
-
-        # Handle wallet balance update if a wallet was selected
-        wallet_id = request.form.get('wallet_id')
-        if wallet_id:
-            try:
-                wallet_id = int(wallet_id)
-                wallet = Wallet.query.filter_by(id=wallet_id, user_id=current_user.id).first()
-                if wallet:
-                    wallet.balance += amount
-                    
-                    # Ensure a 'Loan Received' category exists
-                    loan_cat = Category.query.filter_by(name='Loan Received', user_id=current_user.id).first()
-                    if not loan_cat:
-                        loan_cat = Category(name='Loan Received', icon='📥', is_custom=True, user_id=current_user.id)
-                        db.session.add(loan_cat)
-                        db.session.flush()
-                    
-                    # Record the income transaction
-                    income_expense = Expense(
-                        user_id=current_user.id,
-                        amount=amount,
-                        description=f"Loan from {name}",
-                        category_id=loan_cat.id,
-                        wallet_id=wallet.id,
-                        date=datetime.utcnow(),
-                        transaction_type='income',
-                        tags='loan_received',
-                        notes=f"Creditor ID: {creditor.id}"
-                    )
-                    db.session.add(income_expense)
-                    flash(f'Added GHS {amount:.2f} to {wallet.name}.', 'success')
-            except (TypeError, ValueError):
-                pass
-
-        db.session.commit()
-        flash('Debt added successfully!', 'success')
-        return redirect(_safe_return_url())
-        
-    return redirect(url_for('main.creditors'))
-
-@main.route('/creditors/edit/<int:id>', methods=['POST'])
-@login_required
-def edit_creditor(id):
-    creditor = _creditor_for_current_user_or_404(id)
-
-    name = (request.form.get('name') or '').strip()
-    if not name:
-        flash('Debt name is required.', 'error')
-        return redirect(_safe_return_url() + f'#creditor-{id}')
-
-    try:
-        amount = float(request.form.get('amount', creditor.amount))
-    except (TypeError, ValueError):
-        flash('Please provide a valid amount.', 'error')
-        return redirect(_safe_return_url() + f'#creditor-{id}')
-
-    if amount < 0:
-        flash('Amount owed cannot be negative.', 'error')
-        return redirect(_safe_return_url() + f'#creditor-{id}')
-
-    try:
-        interest_rate = max(float(request.form.get('interest_rate', creditor.interest_rate or 0) or 0), 0)
-    except (TypeError, ValueError):
-        flash('Interest rate must be a number.', 'error')
-        return redirect(_safe_return_url() + f'#creditor-{id}')
-
-    original_amount_raw = request.form.get('original_amount')
-    if original_amount_raw:
-        try:
-            original_amount = float(original_amount_raw)
-        except (TypeError, ValueError):
-            flash('Original amount must be a number.', 'error')
-            return redirect(_safe_return_url() + f'#creditor-{id}')
-        if original_amount <= 0:
-            flash('Original amount must be greater than 0.', 'error')
-            return redirect(_safe_return_url() + f'#creditor-{id}')
-        original_amount = max(original_amount, amount)
-    else:
-        existing_original = creditor.original_amount if creditor.original_amount and creditor.original_amount > 0 else amount
-        original_amount = max(existing_original, amount)
-
-    due_date = _parse_due_date(request.form.get('due_date'))
-    if request.form.get('due_date') and not due_date:
-        flash('Invalid due date provided.', 'error')
-        return redirect(_safe_return_url() + f'#creditor-{id}')
-
-    creditor.name = name
-    creditor.amount = amount
-    creditor.currency = (request.form.get('currency') or creditor.currency or 'GHS').upper().strip()[:10] or 'GHS'
-    creditor.description = (request.form.get('description') or '').strip() or None
-    creditor.debt_type = (request.form.get('debt_type') or creditor.debt_type or 'Personal Loan').strip()
-    creditor.interest_rate = interest_rate
-    creditor.original_amount = original_amount
-    creditor.due_date = due_date if request.form.get('due_date') else None
-    creditor.payment_frequency = (request.form.get('payment_frequency') or '').strip() or None
-    try:
-        creditor.minimum_payment = max(float(request.form.get('minimum_payment', creditor.minimum_payment or 0) or 0), 0)
-    except (TypeError, ValueError):
-        pass
-    creditor.contact_info = (request.form.get('contact_info') or '').strip() or None
-    try:
-        p = int(request.form.get('priority', creditor.priority or 3) or 3)
-        creditor.priority = max(1, min(4, p))
-    except (TypeError, ValueError):
-        pass
-    creditor.notes = (request.form.get('notes') or '').strip() or None
-
-    db.session.commit()
-    flash('Debt updated successfully!', 'success')
-    return redirect(_safe_return_url() + f'#creditor-{id}')
-
-@main.route('/creditors/delete/<int:id>', methods=['POST'])
-@login_required
-def delete_creditor(id):
-    creditor = _creditor_for_current_user_or_404(id)
-    db.session.delete(creditor)
-    db.session.commit()
-    flash('Debt removed successfully!', 'success')
-    return redirect(_safe_return_url())
-
-@main.route('/creditors/pay/<int:id>', methods=['POST'])
-@login_required
-def pay_creditor(id):
-    creditor = _creditor_for_current_user_or_404(id)
-
-    try:
-        wallet_id = int(request.form.get('wallet_id'))
-    except (TypeError, ValueError):
-        flash('Please select a valid wallet.', 'error')
-        return redirect(_safe_return_url())
-
-    wallet = Wallet.query.filter_by(id=wallet_id, user_id=current_user.id).first()
-    if not wallet:
-        flash('Selected wallet is not available.', 'error')
-        return redirect(_safe_return_url())
-
-    try:
-        amount = float(request.form.get('amount'))
-    except (TypeError, ValueError):
-        flash('Please provide a valid payment amount.', 'error')
-        return redirect(_safe_return_url())
-
-    payment_date = _parse_due_date(request.form.get('date')) or datetime.utcnow()
-
-    if amount <= 0:
-        flash('Payment amount must be positive.', 'error')
-        return redirect(_safe_return_url())
-
-    if amount > wallet.balance:
-        flash(f'Insufficient balance in {wallet.name}.', 'error')
-        return redirect(_safe_return_url())
-
-    if amount > creditor.amount:
-        flash('Payment amount cannot exceed remaining debt.', 'error')
-        return redirect(_safe_return_url())
-
-    wallet.balance -= amount
-    creditor.amount = max(creditor.amount - amount, 0)
-    if creditor.amount <= 0:
-        creditor.status = 'paid_off'
-
-    debt_cat = Category.query.filter_by(name='Debt Payment', user_id=current_user.id).first()
-    if not debt_cat:
-        debt_cat = Category(name='Debt Payment', icon='$', is_custom=True, user_id=current_user.id)
-        db.session.add(debt_cat)
-        db.session.flush()
-
-    expense = Expense(
-        user_id=current_user.id,
-        amount=amount,
-        description=f"Payment to {creditor.name}",
-        category_id=debt_cat.id,
-        wallet_id=wallet.id,
-        date=payment_date,
-        transaction_type='expense',
-        tags='debt_payment'
-    )
-
-    debt_payment = DebtPayment(
-        creditor_id=creditor.id,
-        amount=amount,
-        date=payment_date,
-        notes=(request.form.get('notes') or '').strip() or None
-    )
-
-    db.session.add(expense)
-    db.session.add(debt_payment)
-    db.session.commit()
-
-    flash(f'Paid {wallet.currency} {amount:.2f} to {creditor.name}!', 'success')
-    return redirect(_safe_return_url())
-
-
-# ===== DEBTORS =====
-def _safe_return_url_debtors(default_endpoint='main.debtors'):
-    return request.referrer or url_for(default_endpoint)
-
-def _debtor_for_current_user_or_404(debtor_id):
-    from .models import Debtor
-    debtor = Debtor.query.filter_by(id=debtor_id, user_id=current_user.id).first()
-    if not debtor:
-        from werkzeug.exceptions import abort
-        abort(404)
-    return debtor
-
-@main.route('/debtors')
-@login_required
-def debtors():
-    from .models import Debtor, Wallet, Expense
-    all_debtors = Debtor.query.filter_by(user_id=current_user.id).order_by(Debtor.amount.desc()).all()
-    wallets = Wallet.query.filter_by(user_id=current_user.id).order_by(Wallet.balance.desc()).all()
-
-    # KPI calculations
-    now = datetime.utcnow()
-    month_start = datetime(now.year, now.month, 1)
-
-    active_debts = [d for d in all_debtors if d.computed_status == 'active']
-    overdue_debts = [d for d in all_debtors if d.computed_status == 'overdue']
-    paid_off_debts = [d for d in all_debtors if d.computed_status == 'paid_off']
-    total_expected = sum(d.amount for d in all_debtors if d.computed_status not in ('paid_off', 'bad_debt'))
-    monthly_expected = sum(d.minimum_payment or 0 for d in active_debts + overdue_debts)
-
-    from .models import DebtorPayment, Category
-    collected_this_month = db.session.query(func.sum(DebtorPayment.amount)).join(Debtor).filter(
-        Debtor.user_id == current_user.id,
-        DebtorPayment.date >= month_start
-    ).scalar() or 0
-
-    # Bad debt stats
-    bad_debt_debtors = [d for d in all_debtors if d.computed_status == 'bad_debt']
-    bad_debt_count = len(bad_debt_debtors)
-    total_bad_debt = db.session.query(func.sum(Expense.amount)).filter(
-        Expense.user_id == current_user.id,
-        Expense.tags.like('%bad_debt%'),
-        ~Expense.tags.like('%bad_debt_recovery%')
-    ).scalar() or 0
-    total_recovered = db.session.query(func.sum(Expense.amount)).filter(
-        Expense.user_id == current_user.id,
-        Expense.tags.like('%bad_debt_recovery%')
-    ).scalar() or 0
-
-    categories = Category.query.filter_by(user_id=current_user.id).order_by(Category.name).all()
-
-    # Filters
-    type_filter = request.args.get('type', 'all')
-    status_filter = request.args.get('status', 'all')
-    sort_by = request.args.get('sort', 'amount_desc')
-
-    filtered = all_debtors
-    if type_filter != 'all':
-        filtered = [d for d in filtered if d.debt_type == type_filter]
-    if status_filter != 'all':
-        filtered = [d for d in filtered if d.computed_status == status_filter]
-
-    if sort_by == 'amount_asc':
-        filtered.sort(key=lambda d: d.amount)
-    elif sort_by == 'amount_desc':
-        filtered.sort(key=lambda d: d.amount, reverse=True)
-    elif sort_by == 'due_date':
-        filtered.sort(key=lambda d: (d.due_date or datetime(9999, 1, 1)))
-    elif sort_by == 'priority':
-        filtered.sort(key=lambda d: (d.priority or 3))
-    elif sort_by == 'recent':
-        filtered.sort(key=lambda d: d.created_at, reverse=True)
-
-    # Fetch collection history
-    collection_history = Expense.query.filter(
-        Expense.user_id == current_user.id,
-        Expense.tags.like('%debt_collection%')
-    ).order_by(Expense.date.desc()).limit(30).all()
-
-    return render_template(
-        'debtors.html',
-        debtors=filtered,
-        wallets=wallets,
-        total_expected=total_expected,
-        active_count=len(active_debts),
-        overdue_count=len(overdue_debts),
-        paid_off_count=len(paid_off_debts),
-        monthly_expected=monthly_expected,
-        collected_this_month=collected_this_month,
-        collection_history=collection_history,
-        now_date=datetime.utcnow().strftime('%Y-%m-%d'),
-        type_filter=type_filter,
-        status_filter=status_filter,
-        sort_by=sort_by,
-        bad_debt_count=bad_debt_count,
-        total_bad_debt=total_bad_debt,
-        total_recovered=total_recovered,
-        categories=categories
-    )
-
-@main.route('/debtors/add', methods=['GET', 'POST'])
-@login_required
-def add_debtor():
-    from .models import Debtor, Wallet, Expense, Category
-    if request.method == 'POST':
-        name = (request.form.get('name') or '').strip()
-        if not name:
-            flash('Debtor name is required.', 'error')
-            return redirect(_safe_return_url_debtors())
-
-        try:
-            amount = float(request.form.get('amount', 0))
-        except (TypeError, ValueError):
-            flash('Please provide a valid amount.', 'error')
-            return redirect(_safe_return_url_debtors())
-
-        if amount <= 0:
-            flash('Amount owed must be greater than 0.', 'error')
-            return redirect(_safe_return_url_debtors())
-
-        try:
-            wallet_id = int(request.form.get('wallet_id'))
-        except (TypeError, ValueError):
-            flash('Please select a source wallet.', 'error')
-            return redirect(_safe_return_url_debtors())
-
-        wallet = Wallet.query.filter_by(id=wallet_id, user_id=current_user.id).first()
-        if not wallet:
-            flash('Selected wallet is not available.', 'error')
-            return redirect(_safe_return_url_debtors())
-
-        if amount > wallet.balance:
-            flash(f'Insufficient balance in {wallet.name}.', 'error')
-            return redirect(_safe_return_url_debtors())
-
-        currency = (request.form.get('currency') or 'GHS').upper().strip()[:10] or 'GHS'
-        description = (request.form.get('description') or '').strip() or None
-        debt_type = (request.form.get('debt_type') or 'Money Lent').strip() or 'Money Lent'
-
-        try:
-            interest_rate = max(float(request.form.get('interest_rate', 0) or 0), 0)
-        except (TypeError, ValueError):
-            flash('Interest rate must be a number.', 'error')
-            return redirect(_safe_return_url_debtors())
-
-        original_amount_raw = request.form.get('original_amount')
-        if original_amount_raw:
-            try:
-                original_amount = float(original_amount_raw)
-            except (TypeError, ValueError):
-                flash('Original amount must be a number.', 'error')
-                return redirect(_safe_return_url_debtors())
-            if original_amount <= 0:
-                flash('Original amount must be greater than 0.', 'error')
-                return redirect(_safe_return_url_debtors())
-            original_amount = max(original_amount, amount)
-        else:
-            original_amount = amount
-
-        due_date = _parse_due_date(request.form.get('due_date'))
-        if request.form.get('due_date') and not due_date:
-            flash('Invalid due date provided.', 'error')
-            return redirect(_safe_return_url_debtors())
-
-        payment_frequency = (request.form.get('payment_frequency') or '').strip() or None
-        try:
-            minimum_payment = max(float(request.form.get('minimum_payment', 0) or 0), 0)
-        except (TypeError, ValueError):
-            minimum_payment = 0.0
-        contact_info = (request.form.get('contact_info') or '').strip() or None
-        try:
-            priority = int(request.form.get('priority', 3) or 3)
-            priority = max(1, min(4, priority))
-        except (TypeError, ValueError):
-            priority = 3
-        notes = (request.form.get('notes') or '').strip() or None
-
-        wallet.balance -= amount
-
-        debt_lent_cat = Category.query.filter_by(name='Money Lent', user_id=current_user.id).first()
-        if not debt_lent_cat:
-            debt_lent_cat = Category(name='Money Lent', icon='💸', is_custom=True, user_id=current_user.id)
-            db.session.add(debt_lent_cat)
-            db.session.flush()
-
-        expense = Expense(
-            user_id=current_user.id,
-            amount=amount,
-            description=f"Lent to {name}",
-            category_id=debt_lent_cat.id,
-            wallet_id=wallet.id,
-            date=datetime.utcnow(),
-            transaction_type='expense',
-            tags='debt_lent',
-            notes=notes
-        )
-        db.session.add(expense)
-
-        debtor = Debtor(
-            user_id=current_user.id,
-            name=name,
-            amount=amount,
-            currency=currency,
-            description=description,
-            debt_type=debt_type,
-            interest_rate=interest_rate,
-            original_amount=original_amount,
-            due_date=due_date,
-            payment_frequency=payment_frequency,
-            minimum_payment=minimum_payment,
-            contact_info=contact_info,
-            priority=priority,
-            notes=notes
-        )
-        db.session.add(debtor)
-        db.session.commit()
-        flash('Debtor added successfully!', 'success')
-        return redirect(_safe_return_url_debtors())
-        
-    return redirect(url_for('main.debtors'))
-
-@main.route('/debtors/edit/<int:id>', methods=['POST'])
-@login_required
-def edit_debtor(id):
-    debtor = _debtor_for_current_user_or_404(id)
-
-    name = (request.form.get('name') or '').strip()
-    if not name:
-        flash('Debtor name is required.', 'error')
-        return redirect(_safe_return_url_debtors() + f'#debtor-{id}')
-
-    try:
-        amount = float(request.form.get('amount', debtor.amount))
-    except (TypeError, ValueError):
-        flash('Please provide a valid amount.', 'error')
-        return redirect(_safe_return_url_debtors() + f'#debtor-{id}')
-
-    if amount < 0:
-        flash('Amount owed cannot be negative.', 'error')
-        return redirect(_safe_return_url_debtors() + f'#debtor-{id}')
-
-    try:
-        interest_rate = max(float(request.form.get('interest_rate', debtor.interest_rate or 0) or 0), 0)
-    except (TypeError, ValueError):
-        flash('Interest rate must be a number.', 'error')
-        return redirect(_safe_return_url_debtors() + f'#debtor-{id}')
-
-    original_amount_raw = request.form.get('original_amount')
-    if original_amount_raw:
-        try:
-            original_amount = float(original_amount_raw)
-        except (TypeError, ValueError):
-            flash('Original amount must be a number.', 'error')
-            return redirect(_safe_return_url_debtors() + f'#debtor-{id}')
-        if original_amount <= 0:
-            flash('Original amount must be greater than 0.', 'error')
-            return redirect(_safe_return_url_debtors() + f'#debtor-{id}')
-        original_amount = max(original_amount, amount)
-    else:
-        existing_original = debtor.original_amount if debtor.original_amount and debtor.original_amount > 0 else amount
-        original_amount = max(existing_original, amount)
-
-    due_date = _parse_due_date(request.form.get('due_date'))
-    if request.form.get('due_date') and not due_date:
-        flash('Invalid due date provided.', 'error')
-        return redirect(_safe_return_url_debtors() + f'#debtor-{id}')
-
-    debtor.name = name
-    debtor.amount = amount
-    debtor.currency = (request.form.get('currency') or debtor.currency or 'GHS').upper().strip()[:10] or 'GHS'
-    debtor.description = (request.form.get('description') or '').strip() or None
-    debtor.debt_type = (request.form.get('debt_type') or debtor.debt_type or 'Money Lent').strip()
-    debtor.interest_rate = interest_rate
-    debtor.original_amount = original_amount
-    debtor.due_date = due_date if request.form.get('due_date') else None
-    debtor.payment_frequency = (request.form.get('payment_frequency') or '').strip() or None
-    try:
-        debtor.minimum_payment = max(float(request.form.get('minimum_payment', debtor.minimum_payment or 0) or 0), 0)
-    except (TypeError, ValueError):
-        pass
-    debtor.contact_info = (request.form.get('contact_info') or '').strip() or None
-    try:
-        p = int(request.form.get('priority', debtor.priority or 3) or 3)
-        debtor.priority = max(1, min(4, p))
-    except (TypeError, ValueError):
-        pass
-    debtor.notes = (request.form.get('notes') or '').strip() or None
-
-    db.session.commit()
-    flash('Debtor updated successfully!', 'success')
-    return redirect(_safe_return_url_debtors() + f'#debtor-{id}')
-
-@main.route('/debtors/delete/<int:id>', methods=['POST'])
-@login_required
-def delete_debtor(id):
-    debtor = _debtor_for_current_user_or_404(id)
-    db.session.delete(debtor)
-    db.session.commit()
-    flash('Debtor removed successfully!', 'success')
-    return redirect(_safe_return_url_debtors())
-
-@main.route('/debtors/collect/<int:id>', methods=['POST'])
-@login_required
-def collect_debtor(id):
-    from .models import Wallet, Category, Expense, DebtorPayment
-    debtor = _debtor_for_current_user_or_404(id)
-
-    try:
-        wallet_id = int(request.form.get('wallet_id'))
-    except (TypeError, ValueError):
-        flash('Please select a valid wallet.', 'error')
-        return redirect(_safe_return_url_debtors())
-
-    wallet = Wallet.query.filter_by(id=wallet_id, user_id=current_user.id).first()
-    if not wallet:
-        flash('Selected wallet is not available.', 'error')
-        return redirect(_safe_return_url_debtors())
-
-    try:
-        amount = float(request.form.get('amount'))
-    except (TypeError, ValueError):
-        flash('Please provide a valid collection amount.', 'error')
-        return redirect(_safe_return_url_debtors())
-
-    payment_date = _parse_due_date(request.form.get('date')) or datetime.utcnow()
-
-    if amount <= 0:
-        flash('Collection amount must be positive.', 'error')
-        return redirect(_safe_return_url_debtors())
-
-    if amount > debtor.amount:
-        flash('Collection amount cannot exceed remaining expected amount.', 'error')
-        return redirect(_safe_return_url_debtors())
-
-    wallet.balance += amount
-    debtor.amount = max(debtor.amount - amount, 0)
-    if debtor.amount <= 0:
-        debtor.status = 'paid_off'
-
-    coll_cat = Category.query.filter_by(name='Debt Collection', user_id=current_user.id).first()
-    if not coll_cat:
-        coll_cat = Category(name='Debt Collection', icon='💵', is_custom=True, user_id=current_user.id)
-        db.session.add(coll_cat)
-        db.session.flush()
-
-    # Log as income instead of expense
-    income_log = Expense(
-        user_id=current_user.id,
-        amount=amount,
-        description=f"Collection from {debtor.name}",
-        category_id=coll_cat.id,
-        wallet_id=wallet.id,
-        date=payment_date,
-        transaction_type='income',
-        tags='debt_collection'
-    )
-
-    debtor_payment = DebtorPayment(
-        debtor_id=debtor.id,
-        amount=amount,
-        date=payment_date,
-        notes=(request.form.get('notes') or '').strip() or None
-    )
-
-    db.session.add(income_log)
-    db.session.add(debtor_payment)
-    db.session.commit()
-
-    flash(f'Collected {wallet.currency} {amount:.2f} from {debtor.name}!', 'success')
-    return redirect(_safe_return_url_debtors())
-
-@main.route('/debtors/bad_debt/<int:id>', methods=['POST'])
-@login_required
-def bad_debt_debtor(id):
-    from .models import Wallet, Category, Expense
-    debtor = _debtor_for_current_user_or_404(id)
-
-    if debtor.amount <= 0:
-        flash('Debtor has no remaining balance to mark as bad debt.', 'error')
-        return redirect(_safe_return_url_debtors())
-
-    # Partial or full write-off amount
-    try:
-        amount = float(request.form.get('amount', debtor.amount))
-    except (ValueError, TypeError):
-        amount = debtor.amount
-    amount = min(amount, debtor.amount)
-    if amount <= 0:
-        flash('Write-off amount must be positive.', 'error')
-        return redirect(_safe_return_url_debtors())
-
-    # Wallet selection (no balance deduction — money already left)
-    wallet_id = request.form.get('wallet_id')
-    if wallet_id:
-        wallet = Wallet.query.filter_by(id=wallet_id, user_id=current_user.id).first()
-    else:
-        wallet = Wallet.query.filter_by(user_id=current_user.id).first()
-    if not wallet:
-        flash('You need at least one wallet to record bad debt expenses.', 'error')
-        return redirect(_safe_return_url_debtors())
-
-    # Category selection
-    category_id = request.form.get('category_id')
-    if category_id:
-        bd_cat = Category.query.filter_by(id=category_id, user_id=current_user.id).first()
-    else:
-        bd_cat = None
-    if not bd_cat:
-        bd_cat = Category.query.filter_by(name='Bad Debt', user_id=current_user.id).first()
-        if not bd_cat:
-            bd_cat = Category(name='Bad Debt', icon='⚠️', is_custom=True, user_id=current_user.id)
-            db.session.add(bd_cat)
-            db.session.flush()
-
-    # Date
-    write_off_date = _parse_due_date(request.form.get('date')) or datetime.utcnow()
-
-    expense = Expense(
-        user_id=current_user.id,
-        amount=amount,
-        description=f"Bad Debt Write-off: {debtor.name}",
-        category_id=bd_cat.id,
-        wallet_id=wallet.id,
-        date=write_off_date,
-        transaction_type='expense',
-        tags='bad_debt'
-    )
-
-    debtor.amount = max(debtor.amount - amount, 0)
-    if debtor.amount <= 0:
-        debtor.status = 'bad_debt'
-
-    db.session.add(expense)
-    db.session.commit()
-
-    if debtor.status == 'bad_debt':
-        flash(f'Wrote off {wallet.currency} {amount:.2f} for {debtor.name}. Fully written off as bad debt.', 'success')
-    else:
-        flash(f'Wrote off {wallet.currency} {amount:.2f} for {debtor.name}. Remaining: {wallet.currency} {debtor.amount:.2f}', 'success')
-    return redirect(_safe_return_url_debtors())
-
-
-@main.route('/debtors/recover/<int:id>', methods=['POST'])
-@login_required
-def recover_bad_debt(id):
-    from .models import Wallet, Category, Expense
-    debtor = _debtor_for_current_user_or_404(id)
-
-    if debtor.status != 'bad_debt':
-        flash('This debtor is not marked as bad debt.', 'error')
-        return redirect(_safe_return_url_debtors())
-
-    try:
-        amount = float(request.form.get('amount', 0))
-    except (ValueError, TypeError):
-        amount = 0
-    if amount <= 0:
-        flash('Recovery amount must be positive.', 'error')
-        return redirect(_safe_return_url_debtors())
-
-    # Get total written off for this debtor
-    total_written_off = db.session.query(func.sum(Expense.amount)).filter(
-        Expense.user_id == current_user.id,
-        Expense.tags.like('%bad_debt%'),
-        ~Expense.tags.like('%bad_debt_recovery%'),
-        Expense.description.like(f'%{debtor.name}%')
-    ).scalar() or 0
-    total_already_recovered = db.session.query(func.sum(Expense.amount)).filter(
-        Expense.user_id == current_user.id,
-        Expense.tags.like('%bad_debt_recovery%'),
-        Expense.description.like(f'%{debtor.name}%')
-    ).scalar() or 0
-    max_recoverable = total_written_off - total_already_recovered
-    if amount > max_recoverable and max_recoverable > 0:
-        amount = max_recoverable
-
-    wallet_id = request.form.get('wallet_id')
-    wallet = Wallet.query.filter_by(id=wallet_id, user_id=current_user.id).first() if wallet_id else None
-    if not wallet:
-        wallet = Wallet.query.filter_by(user_id=current_user.id).first()
-    if not wallet:
-        flash('You need at least one wallet to record recovery.', 'error')
-        return redirect(_safe_return_url_debtors())
-
-    recovery_date = _parse_due_date(request.form.get('date')) or datetime.utcnow()
-
-    # Create/get recovery category
-    rec_cat = Category.query.filter_by(name='Bad Debt Recovery', user_id=current_user.id).first()
-    if not rec_cat:
-        rec_cat = Category(name='Bad Debt Recovery', icon='💰', is_custom=True, user_id=current_user.id)
-        db.session.add(rec_cat)
-        db.session.flush()
-
-    # Add money back to wallet
-    wallet.balance += amount
-
-    expense = Expense(
-        user_id=current_user.id,
-        amount=amount,
-        description=f"Bad Debt Recovery: {debtor.name}",
-        category_id=rec_cat.id,
-        wallet_id=wallet.id,
-        date=recovery_date,
-        transaction_type='income',
-        tags='bad_debt_recovery'
-    )
-    db.session.add(expense)
-
-    # If fully recovered, mark as paid off
-    new_total_recovered = total_already_recovered + amount
-    if new_total_recovered >= total_written_off and total_written_off > 0:
-        debtor.status = 'paid_off'
-
-    db.session.commit()
-
-    flash(f'Recovered {wallet.currency} {amount:.2f} from {debtor.name}!', 'success')
-    return redirect(_safe_return_url_debtors())
-
-
-# ===== EXPORT =====
-@main.route('/export/csv')
-@login_required
-def export_csv():
-    expenses = Expense.query.order_by(Expense.date.desc()).all()
-    
-    output = io.StringIO()
-    writer = csv.writer(output)
-    writer.writerow(['Date', 'Description', 'Category', 'Wallet', 'Amount', 'Type', 'Tags', 'Notes'])
-    
-    for expense in expenses:
-        writer.writerow([
-            expense.date.strftime('%Y-%m-%d'),
-            expense.description,
-            expense.category.name,
-            expense.wallet.name,
-            expense.amount,
-            expense.transaction_type,
-            expense.tags or '',
-            expense.notes or ''
-        ])
-    
-    output.seek(0)
-    return Response(
-        output.getvalue(),
-        mimetype='text/csv',
-        headers={'Content-Disposition': 'attachment; filename=expenses.csv'}
-    )
-
-
-@main.route('/export/pdf')
-@login_required
-def export_pdf():
-    from .export import generate_pdf
-    expenses = Expense.query.filter_by(user_id=current_user.id).order_by(Expense.date.desc()).all()
-    buffer = generate_pdf(expenses, current_user)
-    return send_file(buffer, mimetype='application/pdf', as_attachment=True,
-                     download_name=f'transactions_{datetime.utcnow().strftime("%Y%m%d")}.pdf')
-
-
-@main.route('/export/excel')
-@login_required
-def export_excel():
-    from .export import generate_excel
-    expenses = Expense.query.filter_by(user_id=current_user.id).order_by(Expense.date.desc()).all()
-    buffer = generate_excel(expenses, current_user)
-    return send_file(buffer, mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-                     as_attachment=True,
-                     download_name=f'transactions_{datetime.utcnow().strftime("%Y%m%d")}.xlsx')
 
 
 # ===== CURRENCY CONVERSION =====
@@ -2168,10 +353,6 @@ def convert_currency():
         amount = float(request.json.get('amount', 0))
         from_currency = request.json.get('from_currency', 'GHS').upper()
 
-        # Use a free currency API to get exchange rates
-        import requests
-
-        # Using exchangerate-api.com (free tier)
         api_url = f'https://api.exchangerate-api.com/v4/latest/{from_currency}'
 
         response = requests.get(api_url, timeout=5)
@@ -2179,7 +360,6 @@ def convert_currency():
             data = response.json()
             rates = data.get('rates', {})
 
-            # Target currencies to show
             target_currencies = ['GHS', 'USD', 'EUR', 'GBP', 'JPY', 'CNY']
             conversions = {}
             for curr in target_currencies:
@@ -2207,314 +387,22 @@ def convert_currency():
         }), 500
 
 
-# ===== REPORTS =====
-@main.route('/reports')
-@login_required
-def reports():
-    now = datetime.utcnow()
-    
-    # Weekly (last 7 days)
-    week_start = now - timedelta(days=7)
-    weekly_expenses = db.session.query(
-        Category.name, func.sum(Expense.amount)
-    ).join(Category).filter(Expense.date >= week_start, Expense.transaction_type == 'expense').group_by(Category.name).all()
-    
-    # Monthly (this month)
-    month_start = datetime(now.year, now.month, 1)
-    monthly_expenses = db.session.query(
-        Category.name, func.sum(Expense.amount)
-    ).join(Category).filter(Expense.date >= month_start, Expense.transaction_type == 'expense').group_by(Category.name).all()
-    
-    # Quarterly (last 3 months approx)
-    quarter_start = now - timedelta(days=90)
-    quarterly_expenses = db.session.query(
-        Category.name, func.sum(Expense.amount)
-    ).join(Category).filter(Expense.date >= quarter_start, Expense.transaction_type == 'expense').group_by(Category.name).all()
-    
-    # Yearly (this year)
-    year_start = datetime(now.year, 1, 1)
-    yearly_expenses = db.session.query(
-        Category.name, func.sum(Expense.amount)
-    ).join(Category).filter(Expense.date >= year_start, Expense.transaction_type == 'expense').group_by(Category.name).all()
-
-    # Calculate totals
-    weekly_total = sum(amount for _, amount in weekly_expenses)
-    monthly_total = sum(amount for _, amount in monthly_expenses)
-    quarterly_total = sum(amount for _, amount in quarterly_expenses)
-    yearly_total = sum(amount for _, amount in yearly_expenses)
-
-    return render_template('reports.html', 
-                           weekly=weekly_expenses, 
-                           monthly=monthly_expenses, 
-                           quarterly=quarterly_expenses, 
-                           yearly=yearly_expenses,
-                           weekly_total=weekly_total,
-                           monthly_total=monthly_total,
-                           quarterly_total=quarterly_total,
-                           yearly_total=yearly_total)
-
-# ===== PROJECTS TO-DO =====
-@main.route('/projects')
-@login_required
-def projects():
-    projects = Project.query.order_by(Project.created_date.desc()).all()
-    return render_template('projects.html', projects=projects)
-
-@main.route('/projects/add', methods=['GET', 'POST'])
-@login_required
-def add_project():
-    if request.method == 'POST':
-        name = request.form.get('name')
-        description = request.form.get('description')
-        funding_source = request.form.get('funding_source')
-        custom_funding_source = request.form.get('custom_funding_source')
-        wallet_id = request.form.get('wallet_id')
-        
-        # Determine the actual funding source
-        if funding_source == 'wallet' and wallet_id:
-            final_funding_source = 'wallet'
-            final_wallet_id = int(wallet_id)
-            final_custom_source = None
-        elif funding_source == 'other' and custom_funding_source:
-            final_funding_source = 'other'
-            final_wallet_id = None
-            final_custom_source = custom_funding_source
-        else:
-            final_funding_source = funding_source
-            final_wallet_id = None
-            final_custom_source = None
-        
-        project = Project(
-            user_id=current_user.id,
-            name=name,
-            description=description,
-            funding_source=final_funding_source,
-            wallet_id=final_wallet_id,
-            custom_funding_source=final_custom_source
-        )
-        db.session.add(project)
-        db.session.commit()
-        flash('Project created successfully!', 'success')
-        return redirect(url_for('main.project_details', id=project.id))
-    
-    wallets = Wallet.query.all()
-    return render_template('add_project.html', wallets=wallets)
-
-@main.route('/projects/<int:id>')
-@login_required
-def project_details(id):
-    project = Project.query.get_or_404(id)
-    
-    # Calculate total cost of completed items (sum of all paid payments for expenses)
-    completed_cost = project.paid_expense
-    
-    # Calculate total cost of not completed items (Unpaid Expenses)
-    not_completed_cost = project.total_cost - project.paid_expense
-    
-    # Total Realized Income (Payments with indication as income-type items and marked as completed)
-    total_income = project.paid_income
-
-    # Net Total Cost (Total Expense - Total Income) - Using Projected
-    net_cost = project.total_cost - project.total_income
-    
-    return render_template('project_details.html', 
-                         project=project, 
-                         completed_cost=completed_cost, 
-                         not_completed_cost=not_completed_cost,
-                         total_income=total_income,
-                         net_cost=project.total_cost - project.total_income)
-
-@main.route('/projects/edit/<int:id>', methods=['GET', 'POST'])
-@login_required
-def edit_project(id):
-    project = Project.query.get_or_404(id)
-    
-    if request.method == 'POST':
-        project.name = request.form.get('name')
-        project.description = request.form.get('description')
-        funding_source = request.form.get('funding_source')
-        custom_funding_source = request.form.get('custom_funding_source')
-        wallet_id = request.form.get('wallet_id')
-        
-        # Determine the actual funding source
-        if funding_source == 'wallet' and wallet_id:
-            project.funding_source = 'wallet'
-            project.wallet_id = int(wallet_id)
-            project.custom_funding_source = None
-        elif funding_source == 'other' and custom_funding_source:
-            project.funding_source = 'other'
-            project.wallet_id = None
-            project.custom_funding_source = custom_funding_source
-        else:
-            project.funding_source = funding_source
-            project.wallet_id = None
-            project.custom_funding_source = None
-        
-        db.session.commit()
-        flash('Project updated successfully!', 'success')
-        # Redirect to projects list if came from there, or details if edited from details?
-        # The prompt implies "bring the user back to the exact item of the project" which usually means details
-        # But this is the project ITSELF being edited. If edited, we likely stay on details or go to list.
-        # However, the user request "implement the same for any item that has edit feature" implies lists.
-        # If I edit a project from the projects list, I want to go back to the projects list at that project.
-        return redirect(url_for('main.project_details', id=project.id)) # For edit_project, usually we are on details page.
-        # WAIT, if I edit the project *itself*, I might be on the projects list or the details page.
-        # The existing code redirects to 'main.project_details'.
-        # If I want to support scrolling on the PROJECTS LIST, I should probably redirect to 'main.projects' if I came from there?
-        # But for now, let's keep the existing behavior of going to details, but maybe adding anchor there?
-        # Actually, let's stick to the pattern. If the user edits the project, they are likely looking at it.
-        # But if they edit it from the list...
-        # The instruction was "implement the same for any item that has edit feature".
-        # Let's assume the goal is to enhance the LIST views primarily.
-        # But `edit_project` currently redirects to `project_details`.
-        # I will leave this one as is (redirecting to details) OR change it to redirect to projects list with anchor?
-        # The current code redirects to `project_details`. I will ADD the anchor to `project_details` redirect just in case
-        # BUT `project_details` page doesn't list projects, it lists items.
-        # If I want to support the "Projects List" view (projects.html), I should probably redirect there IF that's where they came from.
-        # But I can't know for sure without a 'next' param.
-        # I will skip changing the *destination* url, just add anchor if it makes sense.
-        # Redirecting to project_details with #top is default.
-        # Let's effectively SKIP this one for now unless I change the redirect destination to `projects.html`.
-        # Taking a closer look at `edit_project` route (line 1122):
-        # It redirects to `project_details`.
-        # If I change it to `projects` list, it might break workflow for users who are on details page.
-        # I will change it to:
-        return redirect(url_for('main.project_details', id=project.id))
-    
-    wallets = Wallet.query.all()
-    return render_template('edit_project.html', project=project, wallets=wallets)
-
-@main.route('/projects/delete/<int:id>', methods=['POST'])
-@login_required
-def delete_project(id):
-    project = Project.query.get_or_404(id)
-    db.session.delete(project)
-    db.session.commit()
-    flash('Project deleted successfully!', 'success')
-    return redirect(url_for('main.projects'))
-
-@main.route('/projects/<int:project_id>/items/add', methods=['POST'])
-@login_required
-def add_project_item(project_id):
-    project = Project.query.get_or_404(project_id)
-    item_name = request.form.get('item_name')
-    cost = float(request.form.get('cost', 0))
-    description = request.form.get('description', '')
-    item_type = request.form.get('item_type', 'expense')
-    
-    item = ProjectItem(
-        project_id=project_id,
-        item_name=item_name,
-        cost=cost,
-        description=description,
-        item_type=item_type
-    )
-    db.session.add(item)
-    db.session.commit()
-    db.session.refresh(item)
-    flash('Item added successfully!', 'success')
-    return redirect(url_for('main.project_details', id=project_id, _anchor=f'item-{item.id}'))
-
-@main.route('/projects/<int:project_id>/items/<int:item_id>/delete', methods=['POST'])
-@login_required
-def delete_project_item(project_id, item_id):
-    item = ProjectItem.query.get_or_404(item_id)
-    db.session.delete(item)
-    db.session.commit()
-    flash('Item deleted successfully!', 'success')
-    return redirect(url_for('main.project_details', id=project_id))
-
-@main.route('/projects/<int:project_id>/items/<int:item_id>/edit', methods=['GET', 'POST'])
-@login_required
-def edit_project_item(project_id, item_id):
-    item = ProjectItem.query.get_or_404(item_id)
-    project = Project.query.get_or_404(project_id)
-    
-    if request.method == 'POST':
-        item.item_name = request.form.get('item_name')
-        item.cost = float(request.form.get('cost', 0))
-        item.description = request.form.get('description', '')
-        item.item_type = request.form.get('item_type', 'expense')
-        db.session.commit()
-        flash('Item updated successfully!', 'success')
-        return redirect(url_for('main.project_details', id=project_id) + f'#item-{item_id}')
-    
-    return render_template('edit_project_item.html', item=item, project=project)
-
-@main.route('/projects/<int:project_id>/items/<int:item_id>/toggle', methods=['POST'])
-@login_required
-def toggle_project_item(project_id, item_id):
-    item = ProjectItem.query.get_or_404(item_id)
-    item.is_completed = not item.is_completed
-    db.session.commit()
-    return jsonify({'success': True, 'is_completed': item.is_completed})
-
-# ===== PROJECT ITEM PAYMENTS =====
-@main.route('/projects/<int:project_id>/items/<int:item_id>/payments/add', methods=['POST'])
-@login_required
-def add_project_item_payment(project_id, item_id):
-    project = Project.query.get_or_404(project_id)
-    item = ProjectItem.query.get_or_404(item_id)
-    
-    amount = float(request.form.get('payment_amount'))
-    description = request.form.get('payment_description', '')
-    date_str = request.form.get('payment_date')
-    
-    payment_date = datetime.utcnow()
-    if date_str:
-        try:
-            payment_date = datetime.strptime(date_str, '%Y-%m-%d')
-        except ValueError:
-            pass
-    
-    payment = ProjectItemPayment(
-        project_item_id=item_id,
-        amount=amount,
-        description=description,
-        payment_date=payment_date
-    )
-    db.session.add(payment)
-    db.session.commit()
-    flash('Payment added successfully!', 'success')
-    return redirect(url_for('main.project_details', id=project_id) + f'#item-{item_id}')
-
-@main.route('/projects/<int:project_id>/items/<int:item_id>/payments/<int:payment_id>/toggle', methods=['POST'])
-@login_required
-def toggle_project_item_payment(project_id, item_id, payment_id):
-    payment = ProjectItemPayment.query.get_or_404(payment_id)
-    payment.is_paid = not payment.is_paid
-    if payment.is_paid:
-        payment.payment_date = datetime.utcnow()
-    else:
-        payment.payment_date = None
-    db.session.commit()
-    return jsonify({'success': True, 'is_paid': payment.is_paid})
-
-@main.route('/projects/<int:project_id>/items/<int:item_id>/payments/<int:payment_id>/delete', methods=['POST'])
-@login_required
-def delete_project_item_payment(project_id, item_id, payment_id):
-    payment = ProjectItemPayment.query.get_or_404(payment_id)
-    db.session.delete(payment)
-    db.session.commit()
-    flash('Payment deleted successfully!', 'success')
-    return redirect(url_for('main.project_details', id=project_id) + f'#item-{item_id}')
 # ===== HISTORICAL DATA =====
 @main.route('/historical')
 @login_required
 def historical_data():
     summaries = FinancialSummary.query.order_by(FinancialSummary.year.desc(), FinancialSummary.month.desc()).all()
-    
-    # Group by year
+
     data_by_year = {}
     for summary in summaries:
         if summary.year not in data_by_year:
             data_by_year[summary.year] = {'yearly': None, 'monthly': []}
-        
+
         if summary.month:
             data_by_year[summary.year]['monthly'].append(summary)
         else:
             data_by_year[summary.year]['yearly'] = summary
-            
+
     return render_template('historical_data.html', data_by_year=data_by_year)
 
 @main.route('/historical/add', methods=['POST'])
@@ -2523,12 +411,11 @@ def add_historical_summary():
     year = int(request.form.get('year'))
     month = request.form.get('month')
     month = int(month) if month else None
-    
+
     total_income = float(request.form.get('total_income', 0))
     total_expense = float(request.form.get('total_expense', 0))
     notes = request.form.get('notes')
-    
-    # Check if exists
+
     existing = FinancialSummary.query.filter_by(year=year, month=month).first()
     if existing:
         existing.total_income = total_income
@@ -2545,7 +432,7 @@ def add_historical_summary():
         )
         db.session.add(summary)
         flash('Historical record added!', 'success')
-        
+
     db.session.commit()
     return redirect(url_for('main.historical_data'))
 
@@ -2553,12 +440,11 @@ def add_historical_summary():
 @login_required
 def edit_historical_summary(id):
     summary = FinancialSummary.query.get_or_404(id)
-    
+
     year = int(request.form.get('year'))
     month = request.form.get('month')
     month = int(month) if month else None
-    
-    # Check for duplicates if year/month changed
+
     if summary.year != year or summary.month != month:
         existing = FinancialSummary.query.filter_by(year=year, month=month).first()
         if existing:
@@ -2570,7 +456,7 @@ def edit_historical_summary(id):
     summary.total_income = float(request.form.get('total_income', 0))
     summary.total_expense = float(request.form.get('total_expense', 0))
     summary.notes = request.form.get('notes')
-    
+
     db.session.commit()
     flash('Record updated!', 'success')
     return redirect(url_for('main.historical_data') + f'#historical-{id}')
@@ -2584,91 +470,24 @@ def delete_historical_summary(id):
     flash('Record deleted!', 'success')
     return redirect(url_for('main.historical_data'))
 
-# ===== WISHLIST =====
-@main.route('/wishlist')
-@login_required
-def wishlist():
-    items = WishlistItem.query.all()
-    categories = Category.query.all()
-    
-    # Custom sort for priority: High > Medium > Low
-    priority_map = {'High': 3, 'Medium': 2, 'Low': 1}
-    items.sort(key=lambda x: priority_map.get(x.priority, 1), reverse=True)
-    
-    return render_template('wishlist.html', items=items, categories=categories)
 
-@main.route('/wishlist/add', methods=['POST'])
-@login_required
-def add_wishlist_item():
-    name = request.form.get('name')
-    amount = float(request.form.get('amount', 0))
-    category_id = request.form.get('category_id')
-    priority = request.form.get('priority', 'Medium')
-    notes = request.form.get('notes')
-    
-    item = WishlistItem(
-        name=name,
-        amount=amount,
-        category_id=int(category_id) if category_id else None,
-        priority=priority,
-        notes=notes
-    )
-    db.session.add(item)
-    db.session.commit()
-    flash('Item added to wishlist!', 'success')
-    return redirect(url_for('main.wishlist'))
+# ===== REGISTER EXTRACTED ROUTE MODULES =====
+from .routes_expenses import register_routes as _reg_expenses
+from .routes_wallets import register_routes as _reg_wallets
+from .routes_budgets import register_routes as _reg_budgets
+from .routes_recurring import register_routes as _reg_recurring
+from .routes_analytics import register_routes as _reg_analytics
+from .routes_creditors import register_routes as _reg_creditors
+from .routes_debtors import register_routes as _reg_debtors
+from .routes_projects import register_routes as _reg_projects
+from .routes_wishlist import register_routes as _reg_wishlist
 
-@main.route('/wishlist/edit/<int:id>', methods=['POST'])
-@login_required
-def edit_wishlist_item(id):
-    item = WishlistItem.query.get_or_404(id)
-    item.name = request.form.get('name')
-    item.amount = float(request.form.get('amount', 0))
-    cat_id = request.form.get('category_id')
-    item.category_id = int(cat_id) if cat_id else None
-    item.priority = request.form.get('priority', 'Medium')
-    item.notes = request.form.get('notes')
-    
-    db.session.commit()
-    flash('Wishlist item updated!', 'success')
-    return redirect(url_for('main.wishlist') + f'#wishlist-{id}')
-
-@main.route('/wishlist/delete/<int:id>', methods=['POST'])
-@login_required
-def delete_wishlist_item(id):
-    item = WishlistItem.query.get_or_404(id)
-    db.session.delete(item)
-    db.session.commit()
-    flash('Item removed from wishlist.', 'success')
-    return redirect(url_for('main.wishlist'))
-
-@main.route('/wishlist/execute/<int:id>', methods=['POST'])
-@login_required
-def execute_wishlist_item(id):
-    item = WishlistItem.query.get_or_404(id)
-    
-    # Default to first wallet (Cash/Main) since this is a quick action
-    wallet = Wallet.query.first()
-    if not wallet:
-        flash('No wallet found. Please create a wallet first.', 'error')
-        return redirect(url_for('main.wishlist'))
-        
-    expense = Expense(
-        description=item.name,
-        amount=item.amount,
-        category_id=item.category_id,
-        wallet_id=wallet.id,
-        transaction_type='expense',
-        date=datetime.utcnow(),
-        notes=item.notes or "Executed from Wishlist"
-    )
-    
-    # Deduct from wallet
-    wallet.balance -= item.amount
-
-    db.session.add(expense)
-    db.session.delete(item)
-    db.session.commit()
-    
-    flash(f"Executed '{item.name}'! Transaction added to {wallet.name}.", 'success')
-    return redirect(url_for('main.wishlist'))
+_reg_expenses(main)
+_reg_wallets(main)
+_reg_budgets(main)
+_reg_recurring(main)
+_reg_analytics(main)
+_reg_creditors(main)
+_reg_debtors(main)
+_reg_projects(main)
+_reg_wishlist(main)
