@@ -12,7 +12,7 @@ def register_routes(main):
     @main.route('/budget')
     @login_required
     def budgets():
-        all_budgets = Budget.query.filter_by(is_active=True).all()
+        all_budgets = Budget.query.filter_by(user_id=current_user.id, is_active=True).all()
         budget_data = []
 
         for budget in all_budgets:
@@ -28,6 +28,7 @@ def register_routes(main):
                 effective_start = budget.start_date
 
             spent = db.session.query(func.sum(Expense.amount)).filter(
+                Expense.user_id == current_user.id,
                 Expense.category_id == budget.category_id,
                 Expense.transaction_type == 'expense',
                 Expense.date >= effective_start
