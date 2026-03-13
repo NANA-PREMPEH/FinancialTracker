@@ -11,14 +11,14 @@ def register_routes(main):
     @main.route('/recurring-transactions')
     @login_required
     def recurring_transactions():
-        recurring = RecurringTransaction.query.filter_by(is_active=True).all()
+        recurring = RecurringTransaction.query.filter_by(user_id=current_user.id, is_active=True).all()
         return render_template('recurring.html', recurring=recurring)
 
     @main.route('/recurring/add', methods=['GET', 'POST'])
     @login_required
     def add_recurring():
-        categories = Category.query.all()
-        wallets = Wallet.query.all()
+        categories = Category.query.filter_by(user_id=current_user.id).all()
+        wallets = Wallet.query.filter_by(user_id=current_user.id).all()
 
         if request.method == 'POST':
             amount = float(request.form.get('amount'))
@@ -62,9 +62,9 @@ def register_routes(main):
     @main.route('/recurring/edit/<int:id>', methods=['GET', 'POST'])
     @login_required
     def edit_recurring(id):
-        recurring = RecurringTransaction.query.get_or_404(id)
-        categories = Category.query.all()
-        wallets = Wallet.query.all()
+        recurring = RecurringTransaction.query.filter_by(id=id, user_id=current_user.id).first_or_404()
+        categories = Category.query.filter_by(user_id=current_user.id).all()
+        wallets = Wallet.query.filter_by(user_id=current_user.id).all()
 
         if request.method == 'POST':
             recurring.amount = float(request.form.get('amount'))
@@ -98,7 +98,7 @@ def register_routes(main):
     @main.route('/recurring/delete/<int:id>', methods=['POST'])
     @login_required
     def delete_recurring(id):
-        recurring = RecurringTransaction.query.get_or_404(id)
+        recurring = RecurringTransaction.query.filter_by(id=id, user_id=current_user.id).first_or_404()
         db.session.delete(recurring)
         db.session.commit()
         flash('Recurring transaction deleted successfully!', 'success')

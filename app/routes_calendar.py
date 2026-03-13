@@ -78,7 +78,7 @@ def add_event():
 @calendar_bp.route('/calendar/edit/<int:id>', methods=['POST'])
 @login_required
 def edit_event(id):
-    event = CalendarEvent.query.get_or_404(id)
+    event = CalendarEvent.query.filter_by(id=id, user_id=current_user.id).first_or_404()
     event.title = request.form.get('title', event.title).strip()
     event.description = request.form.get('description', '').strip() or None
     event.event_type = request.form.get('event_type', event.event_type)
@@ -96,7 +96,7 @@ def edit_event(id):
 @calendar_bp.route('/calendar/delete/<int:id>', methods=['POST'])
 @login_required
 def delete_event(id):
-    event = CalendarEvent.query.get_or_404(id)
+    event = CalendarEvent.query.filter_by(id=id, user_id=current_user.id).first_or_404()
     db.session.delete(event)
     db.session.commit()
     flash('Event deleted.', 'success')

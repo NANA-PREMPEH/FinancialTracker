@@ -10,7 +10,7 @@ from datetime import datetime, timedelta
 import jwt
 import re
 
-auth_bp = Blueprint('auth', __name__, url_prefix='/auth')
+auth_bp = Blueprint('api_auth', __name__, url_prefix='/auth')
 
 
 def generate_jwt_token(user_id, email, expires_in=3600):

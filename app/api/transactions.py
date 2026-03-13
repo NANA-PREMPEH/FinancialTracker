@@ -79,7 +79,7 @@ def create_transaction():
     db.session.add(t)
 
     # Update wallet balance
-    wallet = Wallet.query.get(t.wallet_id)
+    wallet = Wallet.query.filter_by(id=t.wallet_id, user_id=g.api_user_id).first()
     if wallet:
         if t.transaction_type == 'income':
             wallet.balance += t.amount
@@ -128,7 +128,7 @@ def delete_transaction(id):
         return jsonify({'error': 'Transaction not found'}), 404
 
     # Reverse wallet balance
-    wallet = Wallet.query.get(t.wallet_id)
+    wallet = Wallet.query.filter_by(id=t.wallet_id, user_id=g.api_user_id).first()
     if wallet:
         if t.transaction_type == 'income':
             wallet.balance -= t.amount
@@ -176,7 +176,7 @@ def bulk_create_transactions():
             )
             
             # Update wallet balance
-            wallet = Wallet.query.get(t.wallet_id)
+            wallet = Wallet.query.filter_by(id=t.wallet_id, user_id=g.api_user_id).first()
             if wallet:
                 if t.transaction_type == 'income':
                     wallet.balance += t.amount
@@ -221,7 +221,7 @@ def bulk_delete_transactions():
     deleted_ids = []
     for t in transactions:
         # Reverse wallet balance
-        wallet = Wallet.query.get(t.wallet_id)
+        wallet = Wallet.query.filter_by(id=t.wallet_id, user_id=g.api_user_id).first()
         if wallet:
             if t.transaction_type == 'income':
                 wallet.balance -= t.amount

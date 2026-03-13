@@ -35,6 +35,7 @@ python-dateutil = "*"
 python-dotenv = "*"
 pandas = "*"
 pyjwt = "*"
+psycopg2-binary = "*"
 
 [dev-packages]
 

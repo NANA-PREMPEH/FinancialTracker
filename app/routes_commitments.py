@@ -48,7 +48,7 @@ def add_commitment():
 @commitments_bp.route('/commitments/edit/<int:id>', methods=['POST'])
 @login_required
 def edit_commitment(id):
-    c = Commitment.query.get_or_404(id)
+    c = Commitment.query.filter_by(id=id, user_id=current_user.id).first_or_404()
     c.name = request.form.get('name', c.name).strip()
     c.commitment_category = request.form.get('commitment_category', c.commitment_category)
     c.amount = float(request.form.get('amount', c.amount))
@@ -64,7 +64,7 @@ def edit_commitment(id):
 @commitments_bp.route('/commitments/delete/<int:id>', methods=['POST'])
 @login_required
 def delete_commitment(id):
-    c = Commitment.query.get_or_404(id)
+    c = Commitment.query.filter_by(id=id, user_id=current_user.id).first_or_404()
     db.session.delete(c)
     db.session.commit()
     flash('Commitment deleted.', 'success')
@@ -74,16 +74,16 @@ def delete_commitment(id):
 @commitments_bp.route('/commitments/pay/<int:id>', methods=['POST'])
 @login_required
 def pay_commitment(id):
-    c = Commitment.query.get_or_404(id)
+    c = Commitment.query.filter_by(id=id, user_id=current_user.id).first_or_404()
     wallet_id = request.form.get('wallet_id')
     if wallet_id:
-        wallet = Wallet.query.get(int(wallet_id))
+        wallet = Wallet.query.filter_by(id=int(wallet_id), user_id=current_user.id).first()
         if wallet and wallet.balance >= c.amount:
             wallet.balance -= c.amount
             # Create expense record
-            cat = Category.query.filter_by(name='Donation').first()
+            cat = Category.query.filter_by(name='Donation', user_id=current_user.id).first()
             if not cat:
-                cat = Category.query.first()
+                cat = Category.query.filter_by(user_id=current_user.id).first()
             expense = Expense(
                 user_id=current_user.id, amount=c.amount,
                 description=f'Commitment: {c.name}', date=datetime.utcnow(),

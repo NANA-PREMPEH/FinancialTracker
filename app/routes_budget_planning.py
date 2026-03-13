@@ -65,7 +65,7 @@ def add_period():
 @budget_planning_bp.route('/budget-planning/periods/delete/<int:id>', methods=['POST'])
 @login_required
 def delete_period(id):
-    period = BudgetPeriod.query.get_or_404(id)
+    period = BudgetPeriod.query.filter_by(id=id, user_id=current_user.id).first_or_404()
     db.session.delete(period)
     db.session.commit()
     flash('Budget period deleted.', 'success')

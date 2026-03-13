@@ -10,8 +10,8 @@ def register_routes(main):
     @main.route('/wishlist')
     @login_required
     def wishlist():
-        items = WishlistItem.query.all()
-        categories = Category.query.all()
+        items = WishlistItem.query.filter_by(user_id=current_user.id).all()
+        categories = Category.query.filter_by(user_id=current_user.id).all()
 
         # Custom sort for priority: High > Medium > Low
         priority_map = {'High': 3, 'Medium': 2, 'Low': 1}
@@ -33,7 +33,8 @@ def register_routes(main):
             amount=amount,
             category_id=int(category_id) if category_id else None,
             priority=priority,
-            notes=notes
+            notes=notes,
+            user_id=current_user.id
         )
         db.session.add(item)
         db.session.commit()
@@ -43,7 +44,7 @@ def register_routes(main):
     @main.route('/wishlist/edit/<int:id>', methods=['POST'])
     @login_required
     def edit_wishlist_item(id):
-        item = WishlistItem.query.get_or_404(id)
+        item = WishlistItem.query.filter_by(id=id, user_id=current_user.id).first_or_404()
         item.name = request.form.get('name')
         item.amount = float(request.form.get('amount', 0))
         cat_id = request.form.get('category_id')
@@ -58,7 +59,7 @@ def register_routes(main):
     @main.route('/wishlist/delete/<int:id>', methods=['POST'])
     @login_required
     def delete_wishlist_item(id):
-        item = WishlistItem.query.get_or_404(id)
+        item = WishlistItem.query.filter_by(id=id, user_id=current_user.id).first_or_404()
         db.session.delete(item)
         db.session.commit()
         flash('Item removed from wishlist.', 'success')
@@ -67,10 +68,13 @@ def register_routes(main):
     @main.route('/wishlist/execute/<int:id>', methods=['POST'])
     @login_required
     def execute_wishlist_item(id):
-        item = WishlistItem.query.get_or_404(id)
+        item = WishlistItem.query.filter_by(id=id, user_id=current_user.id).first_or_404()
+        wallet_id = request.form.get('wallet_id')
+        if wallet_id:
+            wallet = Wallet.query.filter_by(id=wallet_id, user_id=current_user.id).first_or_404()
+        else:
+            wallet = Wallet.query.filter_by(user_id=current_user.id).first()
 
-        # Default to first wallet (Cash/Main) since this is a quick action
-        wallet = Wallet.query.first()
         if not wallet:
             flash('No wallet found. Please create a wallet first.', 'error')
             return redirect(url_for('main.wishlist'))
@@ -82,7 +86,8 @@ def register_routes(main):
             wallet_id=wallet.id,
             transaction_type='expense',
             date=datetime.utcnow(),
-            notes=item.notes or "Executed from Wishlist"
+            notes=item.notes or "Executed from Wishlist",
+            user_id=current_user.id
         )
 
         # Deduct from wallet

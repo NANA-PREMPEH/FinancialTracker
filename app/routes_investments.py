@@ -135,11 +135,7 @@ def add_investment():
 @login_required
 def edit_investment(id):
     """Edit investment"""
-    investment = Investment.query.get_or_404(id)
-
-    if investment.user_id != current_user.id:
-        flash('Unauthorized access', 'danger')
-        return redirect(url_for('investments.investments_list'))
+    investment = Investment.query.filter_by(id=id, user_id=current_user.id).first_or_404()
 
     if request.method == 'POST':
         try:
@@ -167,11 +163,7 @@ def edit_investment(id):
 @login_required
 def delete_investment(id):
     """Delete investment"""
-    investment = Investment.query.get_or_404(id)
-
-    if investment.user_id != current_user.id:
-        flash('Unauthorized access', 'danger')
-        return redirect(url_for('investments.investments_list'))
+    investment = Investment.query.filter_by(id=id, user_id=current_user.id).first_or_404()
 
     try:
         db.session.delete(investment)
@@ -187,11 +179,7 @@ def delete_investment(id):
 @login_required
 def add_dividend(id):
     """Add dividend to investment"""
-    investment = Investment.query.get_or_404(id)
-
-    if investment.user_id != current_user.id:
-        flash('Unauthorized access', 'danger')
-        return redirect(url_for('investments.investments_list'))
+    investment = Investment.query.filter_by(id=id, user_id=current_user.id).first_or_404()
 
     try:
         amount = float(request.form.get('amount'))
@@ -200,6 +188,7 @@ def add_dividend(id):
         notes = request.form.get('notes', '')
 
         dividend = Dividend(
+            user_id=current_user.id,
             investment_id=id,
             amount=amount,
             date=dividend_date,
@@ -268,11 +257,7 @@ def add_insurance_policy():
 @login_required
 def delete_insurance_policy(id):
     """Delete insurance policy"""
-    policy = InsurancePolicy.query.get_or_404(id)
-
-    if policy.user_id != current_user.id:
-        flash('Unauthorized access', 'danger')
-        return redirect(url_for('investments.insurance_policies'))
+    policy = InsurancePolicy.query.filter_by(id=id, user_id=current_user.id).first_or_404()
 
     try:
         db.session.delete(policy)
@@ -328,11 +313,7 @@ def add_pension():
 @login_required
 def delete_pension(id):
     """Delete pension"""
-    pension = PensionScheme.query.get_or_404(id)
-
-    if pension.user_id != current_user.id:
-        flash('Unauthorized access', 'danger')
-        return redirect(url_for('investments.pensions_list'))
+    pension = PensionScheme.query.filter_by(id=id, user_id=current_user.id).first_or_404()
 
     try:
         db.session.delete(pension)

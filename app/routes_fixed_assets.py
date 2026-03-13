@@ -46,7 +46,7 @@ def add_asset():
 @fixed_assets_bp.route('/fixed-assets/edit/<int:id>', methods=['POST'])
 @login_required
 def edit_asset(id):
-    asset = FixedAsset.query.get_or_404(id)
+    asset = FixedAsset.query.filter_by(id=id, user_id=current_user.id).first_or_404()
     asset.name = request.form.get('name', asset.name).strip()
     asset.asset_category = request.form.get('asset_category', asset.asset_category)
     asset.purchase_price = float(request.form.get('purchase_price', asset.purchase_price))
@@ -65,7 +65,7 @@ def edit_asset(id):
 @fixed_assets_bp.route('/fixed-assets/delete/<int:id>', methods=['POST'])
 @login_required
 def delete_asset(id):
-    asset = FixedAsset.query.get_or_404(id)
+    asset = FixedAsset.query.filter_by(id=id, user_id=current_user.id).first_or_404()
     db.session.delete(asset)
     db.session.commit()
     flash('Asset deleted.', 'success')

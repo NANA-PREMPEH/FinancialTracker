@@ -219,11 +219,7 @@ def banking_overview():
 def reconcile():
     wallet_id = int(request.form.get('wallet_id', 0))
     statement_balance = float(request.form.get('statement_balance', 0))
-    wallet = Wallet.query.get_or_404(wallet_id)
-
-    if wallet.user_id != current_user.id:
-        flash('Unauthorized.', 'error')
-        return redirect(url_for('banking.banking_overview'))
+    wallet = Wallet.query.filter_by(id=wallet_id, user_id=current_user.id).first_or_404()
 
     status = 'reconciled' if abs(wallet.balance - statement_balance) < 0.01 else 'discrepancy'
     rec = BankReconciliation(
@@ -262,10 +258,7 @@ def import_transactions():
         flash('Unsupported file format. Please upload a CSV or Excel (.xlsx) file.', 'error')
         return redirect(url_for('banking.banking_overview'))
 
-    wallet = Wallet.query.get_or_404(wallet_id)
-    if wallet.user_id != current_user.id:
-        flash('Unauthorized.', 'error')
-        return redirect(url_for('banking.banking_overview'))
+    wallet = Wallet.query.filter_by(id=wallet_id, user_id=current_user.id).first_or_404()
 
     # Load user categories for smart categorization
     user_categories = Category.query.filter(

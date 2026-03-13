@@ -40,7 +40,7 @@ def create_key():
 @api_keys_bp.route('/api-keys/delete/<int:id>', methods=['POST'])
 @login_required
 def delete_key(id):
-    key = ApiKey.query.get_or_404(id)
+    key = ApiKey.query.filter_by(id=id, user_id=current_user.id).first_or_404()
     db.session.delete(key)
     db.session.commit()
     flash('API key deleted.', 'success')
@@ -50,7 +50,7 @@ def delete_key(id):
 @api_keys_bp.route('/api-keys/toggle/<int:id>', methods=['POST'])
 @login_required
 def toggle_key(id):
-    key = ApiKey.query.get_or_404(id)
+    key = ApiKey.query.filter_by(id=id, user_id=current_user.id).first_or_404()
     key.is_active = not key.is_active
     db.session.commit()
     flash(f'API key {"activated" if key.is_active else "deactivated"}.', 'success')

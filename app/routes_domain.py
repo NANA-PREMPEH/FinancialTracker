@@ -43,7 +43,7 @@ def add_contract():
 @domain_bp.route('/smc/delete/<int:id>', methods=['POST'])
 @login_required
 def delete_contract(id):
-    c = SMCContract.query.get_or_404(id)
+    c = SMCContract.query.filter_by(id=id, user_id=current_user.id).first_or_404()
     ContractPayment.query.filter_by(contract_id=c.id).delete()
     db.session.delete(c)
     db.session.commit()
@@ -54,7 +54,9 @@ def delete_contract(id):
 @domain_bp.route('/smc/<int:id>/payments/add', methods=['POST'])
 @login_required
 def add_contract_payment(id):
+    contract = SMCContract.query.filter_by(id=id, user_id=current_user.id).first_or_404()
     payment = ContractPayment(
+        user_id=current_user.id,
         contract_id=id,
         amount=float(request.form.get('amount', 0)),
         description=request.form.get('description', '').strip() or None,
@@ -106,7 +108,7 @@ def add_construction():
 @domain_bp.route('/construction-works/edit/<int:id>', methods=['POST'])
 @login_required
 def edit_construction(id):
-    work = ConstructionWork.query.get_or_404(id)
+    work = ConstructionWork.query.filter_by(id=id, user_id=current_user.id).first_or_404()
     work.project_name = request.form.get('project_name', work.project_name).strip()
     work.description = request.form.get('description', '').strip() or None
     work.location = request.form.get('location', '').strip() or None
@@ -123,7 +125,7 @@ def edit_construction(id):
 @domain_bp.route('/construction-works/delete/<int:id>', methods=['POST'])
 @login_required
 def delete_construction(id):
-    work = ConstructionWork.query.get_or_404(id)
+    work = ConstructionWork.query.filter_by(id=id, user_id=current_user.id).first_or_404()
     db.session.delete(work)
     db.session.commit()
     flash('Construction work deleted.', 'success')
@@ -160,7 +162,7 @@ def add_entity():
 @domain_bp.route('/global-finance/edit/<int:id>', methods=['POST'])
 @login_required
 def edit_entity(id):
-    entity = GlobalEntity.query.get_or_404(id)
+    entity = GlobalEntity.query.filter_by(id=id, user_id=current_user.id).first_or_404()
     entity.name = request.form.get('name', entity.name).strip()
     entity.entity_type = request.form.get('entity_type', entity.entity_type)
     entity.ownership_percent = float(request.form.get('ownership_percent', entity.ownership_percent))
@@ -175,7 +177,7 @@ def edit_entity(id):
 @domain_bp.route('/global-finance/delete/<int:id>', methods=['POST'])
 @login_required
 def delete_entity(id):
-    entity = GlobalEntity.query.get_or_404(id)
+    entity = GlobalEntity.query.filter_by(id=id, user_id=current_user.id).first_or_404()
     db.session.delete(entity)
     db.session.commit()
     flash('Entity deleted.', 'success')

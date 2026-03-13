@@ -16,7 +16,7 @@ from app.models import (
 )
 
 
-@click.group(name='db')
+@click.group(name='db-maintenance')
 def db_commands():
     """Database maintenance commands."""
     pass

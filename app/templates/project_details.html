@@ -215,6 +215,12 @@
                                                     {{ current_user.default_currency }} {{ "{:,.2f}".format(payment.amount) }}
                                                 </span>
                                                 
+                                                <button type="button" 
+                                                    onclick="showEditPaymentModal({{ project.id }}, {{ item.id }}, {{ payment.id }}, {{ payment.amount }}, '{{ payment.payment_date.strftime('%Y-%m-%d') if payment.payment_date else '' }}', '{{ payment.description or '' }}')"
+                                                    class="p-1.5 text-text-muted hover:text-primary hover:bg-primary/10 rounded-md transition-colors focus:outline-none" title="Edit payment">
+                                                    <i data-lucide="edit-2" class="w-3.5 h-3.5"></i>
+                                                </button>
+                                                
                                                 <form method="POST" action="{{ url_for('main.delete_project_item_payment', project_id=project.id, item_id=item.id, payment_id=payment.id) }}" class="m-0" onsubmit="return confirm('Delete this payment record?');">
                                                     <button type="submit" class="p-1.5 text-text-muted hover:text-danger hover:bg-danger/10 rounded-md transition-colors focus:outline-none" title="Delete payment">
                                                         <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
@@ -303,25 +309,50 @@
     </div>
 </div>
 
-<!-- Delete Project Confirmation Modal -->
-<div id="deleteProjectModal" class="hidden fixed inset-0 bg-surface-active/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 opacity-0 transition-opacity duration-300">
-    <div class="bg-surface w-full max-w-md rounded-2xl border border-danger/20 flex flex-col shadow-2xl overflow-hidden relative transform scale-95 transition-transform duration-300" onclick="event.stopPropagation()">
-        <div class="p-6 flex flex-col items-center text-center">
-            <div class="w-16 h-16 rounded-full bg-danger/10 flex items-center justify-center text-danger mb-4">
-                <i data-lucide="alert-triangle" class="w-8 h-8"></i>
+<!-- Edit Payment Modal -->
+<div id="editPaymentModal" class="hidden fixed inset-0 bg-surface-active/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 opacity-0 transition-opacity duration-300">
+    <div class="bg-surface w-full max-w-md rounded-2xl border border-border flex flex-col shadow-2xl overflow-hidden relative transform scale-95 transition-transform duration-300" onclick="event.stopPropagation()">
+        <div class="p-5 border-b border-border bg-surface-active/30 flex items-center justify-between">
+            <h3 class="text-lg font-bold font-heading m-0 text-text">Edit Payment Record</h3>
+            <button onclick="hideEditPaymentModal()" class="text-text-muted hover:text-text transition-colors">
+                <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+        </div>
+        
+        <form id="editPaymentForm" method="POST" class="p-5 flex flex-col gap-4">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div class="space-y-2">
+                    <label class="block text-sm font-semibold text-text">Amount</label>
+                    <div class="flex items-center w-full h-11 px-3 bg-surface border border-border rounded-xl focus-within:border-primary focus-within:ring-1 focus-within:ring-primary transition-colors">
+                        <span class="text-text-muted font-bold text-sm mr-2 shrink-0">{{ current_user.default_currency }}</span>
+                        <input type="number" id="edit_payment_amount" name="payment_amount" step="0.01" min="0" required
+                            class="flex-1 w-full bg-transparent text-text font-bold focus:outline-none text-sm appearance-none min-w-0">
+                    </div>
+                </div>
+                <div class="space-y-2">
+                    <label class="block text-sm font-semibold text-text">Date</label>
+                    <div class="relative">
+                        <i data-lucide="calendar" class="w-4 h-4 text-text-muted absolute left-3 top-1/2 -translate-y-1/2"></i>
+                        <input type="date" id="edit_payment_date" name="payment_date" required
+                            class="w-full h-11 pl-9 pr-3 bg-surface border border-border rounded-xl text-sm text-text focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary font-medium">
+                    </div>
+                </div>
             </div>
-            <h3 class="text-xl font-bold font-heading text-text m-0 mb-2">Delete Project?</h3>
-            <p class="text-sm text-text-muted mb-6">Are you sure you want to delete <strong>{{ project.name }}</strong> and all of its items? This action cannot be undone.</p>
+            <div class="space-y-2">
+                <label class="block text-sm font-semibold text-text">Description</label>
+                <input type="text" id="edit_payment_description" name="payment_description" placeholder="Description"
+                    class="w-full h-11 px-3 bg-surface border border-border rounded-xl text-text focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors text-sm">
+            </div>
             
-            <div class="flex gap-3 w-full">
-                <button onclick="hideDeleteProjectDialog()" class="flex-1 px-5 py-3 font-semibold text-text bg-surface border border-border rounded-xl hover:bg-surface-hover transition-colors">
+            <div class="flex gap-3 mt-2">
+                <button type="button" onclick="hideEditPaymentModal()" class="flex-1 px-5 py-3 font-semibold text-text bg-surface border border-border rounded-xl hover:bg-surface-hover transition-colors">
                     Cancel
                 </button>
-                <button onclick="confirmDeleteProject()" class="flex-1 px-5 py-3 font-bold text-white bg-danger rounded-xl hover:bg-danger/90 transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-danger/50">
-                    Yes, Delete
+                <button type="submit" class="flex-1 px-5 py-3 font-bold text-white bg-primary rounded-xl hover:bg-primary-hover transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-primary/50">
+                    Save Changes
                 </button>
             </div>
-        </div>
+        </form>
     </div>
 </div>
 
@@ -388,6 +419,35 @@ function togglePayment(projectId, itemId, paymentId) {
     });
 }
 
+// Edit Payment Modal Logic
+const editPaymentModal = document.getElementById('editPaymentModal');
+const editPaymentModalContent = editPaymentModal.querySelector('.bg-surface');
+const editPaymentForm = document.getElementById('editPaymentForm');
+
+window.showEditPaymentModal = function(projectId, itemId, paymentId, amount, date, description) {
+    document.getElementById('edit_payment_amount').value = amount;
+    document.getElementById('edit_payment_date').value = date;
+    document.getElementById('edit_payment_description').value = description;
+    
+    editPaymentForm.action = `/projects/${projectId}/items/${itemId}/payments/${paymentId}/edit`;
+    
+    editPaymentModal.classList.remove('hidden');
+    setTimeout(() => {
+        editPaymentModal.classList.remove('opacity-0');
+        editPaymentModalContent.classList.remove('scale-95');
+        editPaymentModalContent.classList.add('scale-100');
+    }, 10);
+};
+
+window.hideEditPaymentModal = function() {
+    editPaymentModal.classList.add('opacity-0');
+    editPaymentModalContent.classList.remove('scale-100');
+    editPaymentModalContent.classList.add('scale-95');
+    setTimeout(() => {
+        editPaymentModal.classList.add('hidden');
+    }, 300);
+};
+
 // Delete Modal Logic
 const deleteModal = document.getElementById('deleteProjectModal');
 const deleteModalContent = deleteModal.querySelector('.bg-surface');
@@ -418,6 +478,8 @@ window.confirmDeleteProject = function() {
 window.onclick = function(event) {
     if (event.target == deleteModal) {
         hideDeleteProjectDialog();
+    } else if (event.target == editPaymentModal) {
+        hideEditPaymentModal();
     }
 };
 </script>

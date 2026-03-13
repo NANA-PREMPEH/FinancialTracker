@@ -26,7 +26,7 @@ def notifications_list():
 @notifications_bp.route('/notifications/mark-read/<int:id>', methods=['POST'])
 @login_required
 def mark_read(id):
-    n = Notification.query.get_or_404(id)
+    n = Notification.query.filter_by(id=id, user_id=current_user.id).first_or_404()
     n.is_read = True
     db.session.commit()
     return jsonify({'status': 'ok'})
@@ -44,7 +44,7 @@ def mark_all_read():
 @notifications_bp.route('/notifications/delete/<int:id>', methods=['POST'])
 @login_required
 def delete_notification(id):
-    n = Notification.query.get_or_404(id)
+    n = Notification.query.filter_by(id=id, user_id=current_user.id).first_or_404()
     db.session.delete(n)
     db.session.commit()
     flash('Notification deleted.', 'success')

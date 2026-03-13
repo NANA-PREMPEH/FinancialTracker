@@ -36,7 +36,7 @@ def add_account():
 @accounting_bp.route('/accounting/chart/delete/<int:id>', methods=['POST'])
 @login_required
 def delete_account(id):
-    account = ChartOfAccount.query.get_or_404(id)
+    account = ChartOfAccount.query.filter_by(id=id, user_id=current_user.id).first_or_404()
     db.session.delete(account)
     db.session.commit()
     flash('Account deleted.', 'success')
@@ -56,8 +56,8 @@ def add_journal_entry():
         reference=request.form.get('reference', '').strip() or None,
     )
     # Update account balances
-    debit_acc = ChartOfAccount.query.get(entry.debit_account_id)
-    credit_acc = ChartOfAccount.query.get(entry.credit_account_id)
+    debit_acc = ChartOfAccount.query.filter_by(id=entry.debit_account_id, user_id=current_user.id).first()
+    credit_acc = ChartOfAccount.query.filter_by(id=entry.credit_account_id, user_id=current_user.id).first()
     if debit_acc:
         debit_acc.balance += entry.amount
     if credit_acc:
@@ -72,10 +72,10 @@ def add_journal_entry():
 @accounting_bp.route('/accounting/journal/delete/<int:id>', methods=['POST'])
 @login_required
 def delete_journal_entry(id):
-    entry = JournalEntry.query.get_or_404(id)
+    entry = JournalEntry.query.filter_by(id=id, user_id=current_user.id).first_or_404()
     # Reverse account balances
-    debit_acc = ChartOfAccount.query.get(entry.debit_account_id)
-    credit_acc = ChartOfAccount.query.get(entry.credit_account_id)
+    debit_acc = ChartOfAccount.query.filter_by(id=entry.debit_account_id, user_id=current_user.id).first()
+    credit_acc = ChartOfAccount.query.filter_by(id=entry.credit_account_id, user_id=current_user.id).first()
     if debit_acc:
         debit_acc.balance -= entry.amount
     if credit_acc:

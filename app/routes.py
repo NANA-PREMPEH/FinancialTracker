@@ -69,36 +69,47 @@ def dashboard():
         ~transfer_filter
     ).order_by(Expense.date.desc()).limit(5).all()
 
+    dashboard_start_date = datetime(2024, 1, 1)
+
     # Exclude transfers from totals
     total_expenses = db.session.query(func.sum(Expense.amount)).filter(
         Expense.user_id == current_user.id,
         Expense.transaction_type == 'expense',
+        Expense.date >= dashboard_start_date,
         ~transfer_filter
     ).scalar() or 0
     total_income = db.session.query(func.sum(Expense.amount)).filter(
         Expense.user_id == current_user.id,
         Expense.transaction_type == 'income',
+        Expense.date >= dashboard_start_date,
         ~transfer_filter
     ).scalar() or 0
 
-    # Add Historical Data to Totals
-    hist_expenses = db.session.query(func.sum(FinancialSummary.total_expense)).filter(FinancialSummary.user_id == current_user.id).scalar() or 0
-    hist_income = db.session.query(func.sum(FinancialSummary.total_income)).filter(FinancialSummary.user_id == current_user.id).scalar() or 0
+    # Add Historical Data to Totals (starting from 2024)
+    hist_expenses = db.session.query(func.sum(FinancialSummary.total_expense)).filter(
+        FinancialSummary.user_id == current_user.id,
+        FinancialSummary.year >= 2024
+    ).scalar() or 0
+    hist_income = db.session.query(func.sum(FinancialSummary.total_income)).filter(
+        FinancialSummary.user_id == current_user.id,
+        FinancialSummary.year >= 2024
+    ).scalar() or 0
 
     total_expenses += hist_expenses
     total_income += hist_income
 
-    # Get all-time Money Lent (Live)
+    # Get all-time Money Lent (Live) - starting from 2024
     debt_lent_cat = Category.query.filter_by(name='Money Lent', user_id=current_user.id).first()
     debt_lent_id = debt_lent_cat.id if debt_lent_cat else -1
     total_money_lent = db.session.query(func.sum(Expense.amount)).filter(
         Expense.user_id == current_user.id,
         Expense.transaction_type == 'expense',
+        Expense.date >= dashboard_start_date,
         or_(Expense.category_id == debt_lent_id, Expense.tags.ilike('%debt_lent%')),
         ~transfer_filter
     ).scalar() or 0
 
-    # Get all-time Debt Recoveries/Collections (Live)
+    # Get all-time Debt Recoveries/Collections (Live) - starting from 2024
     coll_cat = Category.query.filter_by(name='Debt Collection', user_id=current_user.id).first()
     coll_id = coll_cat.id if coll_cat else -1
     rec_cat = Category.query.filter_by(name='Bad Debt Recovery', user_id=current_user.id).first()
@@ -107,6 +118,7 @@ def dashboard():
     total_m_recovered = db.session.query(func.sum(Expense.amount)).filter(
         Expense.user_id == current_user.id,
         Expense.transaction_type == 'income',
+        Expense.date >= dashboard_start_date,
         or_(
             Expense.category_id.in_([coll_id, rec_id]),
             Expense.tags.ilike('%debt_collection%'),
@@ -118,22 +130,29 @@ def dashboard():
     actual_total_expenses = total_expenses - total_money_lent
     actual_total_income = total_income - total_m_recovered
 
-    # Get the oldest date for Total Expenses context
+    # Get the oldest date for Total Expenses context (respecting 2024 start)
     oldest_expense = db.session.query(func.min(Expense.date)).filter(
         Expense.user_id == current_user.id,
         Expense.transaction_type == 'expense',
+        Expense.date >= dashboard_start_date,
         ~transfer_filter
     ).scalar()
-    oldest_hist = db.session.query(func.min(FinancialSummary.year)).filter(FinancialSummary.user_id == current_user.id).scalar()
+    oldest_hist = db.session.query(func.min(FinancialSummary.year)).filter(
+        FinancialSummary.user_id == current_user.id,
+        FinancialSummary.year >= 2024
+    ).scalar()
 
-    oldest_date = None
-    if oldest_expense:
-        oldest_date = oldest_expense
+    oldest_date = dashboard_start_date
+    if oldest_expense and oldest_expense > oldest_date:
+        # If the actual first expense is later than Jan 1, 2024, we could show that,
+        # but the request says "start from Jan 2024", so showing Jan 1 2024 as the baseline is better.
+        pass
 
     if oldest_hist:
         hist_date = datetime(oldest_hist, 1, 1)
-        if not oldest_date or hist_date < oldest_date:
-            oldest_date = hist_date
+        if hist_date > oldest_date:
+            # Similar logic as above
+            pass
 
     # Calculate total wallet balance in GHS
     total_wallet_balance = 0
@@ -316,7 +335,7 @@ def dashboard():
 @main.route('/categories')
 @login_required
 def categories():
-    all_categories = Category.query.all()
+    all_categories = Category.query.filter_by(user_id=current_user.id).all()
     return render_template('categories.html', categories=all_categories)
 
 @main.route('/categories/add', methods=['POST'])
@@ -325,7 +344,7 @@ def add_category():
     name = request.form.get('name')
     icon = request.form.get('icon', '\U0001f4dd')
 
-    category = Category(name=name, icon=icon, is_custom=True)
+    category = Category(name=name, icon=icon, is_custom=True, user_id=current_user.id)
     db.session.add(category)
     db.session.commit()
     flash('Category created successfully!', 'success')
@@ -334,7 +353,7 @@ def add_category():
 @main.route('/categories/delete/<int:id>', methods=['POST'])
 @login_required
 def delete_category(id):
-    category = Category.query.get_or_404(id)
+    category = Category.query.filter_by(id=id, user_id=current_user.id).first_or_404()
     if not category.is_custom:
         flash('Cannot delete default categories!', 'error')
         return redirect(url_for('main.categories'))
@@ -391,7 +410,7 @@ def convert_currency():
 @main.route('/historical')
 @login_required
 def historical_data():
-    summaries = FinancialSummary.query.order_by(FinancialSummary.year.desc(), FinancialSummary.month.desc()).all()
+    summaries = FinancialSummary.query.filter_by(user_id=current_user.id).order_by(FinancialSummary.year.desc(), FinancialSummary.month.desc()).all()
 
     data_by_year = {}
     for summary in summaries:
@@ -416,7 +435,7 @@ def add_historical_summary():
     total_expense = float(request.form.get('total_expense', 0))
     notes = request.form.get('notes')
 
-    existing = FinancialSummary.query.filter_by(year=year, month=month).first()
+    existing = FinancialSummary.query.filter_by(year=year, month=month, user_id=current_user.id).first()
     if existing:
         existing.total_income = total_income
         existing.total_expense = total_expense
@@ -424,6 +443,7 @@ def add_historical_summary():
         flash('Historical record updated!', 'success')
     else:
         summary = FinancialSummary(
+            user_id=current_user.id,
             year=year,
             month=month,
             total_income=total_income,
@@ -439,14 +459,14 @@ def add_historical_summary():
 @main.route('/historical/edit/<int:id>', methods=['POST'])
 @login_required
 def edit_historical_summary(id):
-    summary = FinancialSummary.query.get_or_404(id)
+    summary = FinancialSummary.query.filter_by(id=id, user_id=current_user.id).first_or_404()
 
     year = int(request.form.get('year'))
     month = request.form.get('month')
     month = int(month) if month else None
 
     if summary.year != year or summary.month != month:
-        existing = FinancialSummary.query.filter_by(year=year, month=month).first()
+        existing = FinancialSummary.query.filter_by(year=year, month=month, user_id=current_user.id).first()
         if existing:
             flash(f'A record for {year}-{month if month else "Yearly"} already exists!', 'error')
             return redirect(url_for('main.historical_data'))
@@ -464,7 +484,7 @@ def edit_historical_summary(id):
 @main.route('/historical/delete/<int:id>', methods=['POST'])
 @login_required
 def delete_historical_summary(id):
-    summary = FinancialSummary.query.get_or_404(id)
+    summary = FinancialSummary.query.filter_by(id=id, user_id=current_user.id).first_or_404()
     db.session.delete(summary)
     db.session.commit()
     flash('Record deleted!', 'success')

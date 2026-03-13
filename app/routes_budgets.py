@@ -12,7 +12,7 @@ def register_routes(main):
     @main.route('/budget')
     @login_required
     def budgets():
-        all_budgets = Budget.query.filter_by(is_active=True).all()
+        all_budgets = Budget.query.filter_by(user_id=current_user.id, is_active=True).all()
         budget_data = []
 
         for budget in all_budgets:
@@ -28,6 +28,7 @@ def register_routes(main):
                 effective_start = budget.start_date
 
             spent = db.session.query(func.sum(Expense.amount)).filter(
+                Expense.user_id == current_user.id,
                 Expense.category_id == budget.category_id,
                 Expense.transaction_type == 'expense',
                 Expense.date >= effective_start
@@ -47,7 +48,7 @@ def register_routes(main):
     @main.route('/budgets/add', methods=['GET', 'POST'])
     @login_required
     def add_budget():
-        categories = Category.query.all()
+        categories = Category.query.filter_by(user_id=current_user.id).all()
 
         if request.method == 'POST':
             category_id = int(request.form.get('category'))
@@ -64,6 +65,7 @@ def register_routes(main):
                 end_date = start_date + timedelta(days=365)
 
             budget = Budget(
+                user_id=current_user.id,
                 category_id=category_id,
                 amount=amount,
                 period=period,
@@ -80,7 +82,7 @@ def register_routes(main):
     @main.route('/budgets/delete/<int:id>', methods=['POST'])
     @login_required
     def delete_budget(id):
-        budget = Budget.query.get_or_404(id)
+        budget = Budget.query.filter_by(id=id, user_id=current_user.id).first_or_404()
         db.session.delete(budget)
         db.session.commit()
         flash('Budget deleted successfully!', 'success')

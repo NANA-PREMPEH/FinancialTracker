@@ -152,7 +152,7 @@ def add_goal():
 @goals_bp.route('/goals/edit/<int:id>', methods=['GET', 'POST'])
 @login_required
 def edit_goal(id):
-    goal = Goal.query.get_or_404(id)
+    goal = Goal.query.filter_by(id=id, user_id=current_user.id).first_or_404()
     if request.method == 'POST':
         goal.name = request.form.get('name', goal.name).strip()
         goal.target_amount = float(request.form.get('target_amount', goal.target_amount))
@@ -174,7 +174,7 @@ def edit_goal(id):
 @goals_bp.route('/goals/delete/<int:id>', methods=['POST'])
 @login_required
 def delete_goal(id):
-    goal = Goal.query.get_or_404(id)
+    goal = Goal.query.filter_by(id=id, user_id=current_user.id).first_or_404()
     db.session.delete(goal)
     db.session.commit()
     flash('Goal deleted.', 'success')
@@ -184,7 +184,7 @@ def delete_goal(id):
 @goals_bp.route('/goals/contribute/<int:id>', methods=['POST'])
 @login_required
 def contribute_to_goal(id):
-    goal = Goal.query.get_or_404(id)
+    goal = Goal.query.filter_by(id=id, user_id=current_user.id).first_or_404()
     amount = float(request.form.get('amount', 0))
     wallet_id = request.form.get('wallet_id')
 
@@ -193,7 +193,7 @@ def contribute_to_goal(id):
         return redirect(url_for('goals.goals'))
 
     if wallet_id:
-        wallet = Wallet.query.get(int(wallet_id))
+        wallet = Wallet.query.filter_by(id=int(wallet_id), user_id=current_user.id).first()
         if wallet and wallet.balance >= amount:
             wallet.balance -= amount
         else:
@@ -220,14 +220,12 @@ def contribute_to_goal(id):
 @goals_bp.route('/goals/<int:id>/tasks', methods=['POST'])
 @login_required
 def add_task(id):
-    goal = Goal.query.get_or_404(id)
-    if goal.user_id != current_user.id:
-        flash('Unauthorized', 'danger')
-        return redirect(url_for('goals.goals'))
+    goal = Goal.query.filter_by(id=id, user_id=current_user.id).first_or_404()
     
     title = request.form.get('title', '').strip()
     if title:
         task = GoalTask(
+            user_id=current_user.id,
             goal_id=goal.id,
             title=title,
             priority=int(request.form.get('priority', 3)),
@@ -241,9 +239,7 @@ def add_task(id):
 @goals_bp.route('/goals/tasks/<int:task_id>/toggle', methods=['POST'])
 @login_required
 def toggle_task(task_id):
-    task = GoalTask.query.get_or_404(task_id)
-    if task.goal.user_id != current_user.id:
-        return {'status': 'error', 'message': 'Unauthorized'}, 403
+    task = GoalTask.query.join(Goal).filter(Goal.user_id == current_user.id, GoalTask.id == task_id).first_or_404()
     
     task.is_completed = not task.is_completed
     db.session.commit()
@@ -255,10 +251,7 @@ def toggle_task(task_id):
 @goals_bp.route('/goals/tasks/<int:task_id>/delete', methods=['POST'])
 @login_required
 def delete_task(task_id):
-    task = GoalTask.query.get_or_404(task_id)
-    if task.goal.user_id != current_user.id:
-        flash('Unauthorized', 'danger')
-        return redirect(url_for('goals.goals'))
+    task = GoalTask.query.join(Goal).filter(Goal.user_id == current_user.id, GoalTask.id == task_id).first_or_404()
     
     db.session.delete(task)
     db.session.commit()
@@ -268,15 +261,13 @@ def delete_task(task_id):
 @goals_bp.route('/goals/<int:id>/milestones', methods=['POST'])
 @login_required
 def add_milestone(id):
-    goal = Goal.query.get_or_404(id)
-    if goal.user_id != current_user.id:
-        flash('Unauthorized', 'danger')
-        return redirect(url_for('goals.goals'))
+    goal = Goal.query.filter_by(id=id, user_id=current_user.id).first_or_404()
     
     title = request.form.get('title', '').strip()
     target_amount = float(request.form.get('target_amount', 0))
     if title and target_amount > 0:
         milestone = GoalMilestone(
+            user_id=current_user.id,
             goal_id=goal.id,
             title=title,
             target_amount=target_amount
@@ -289,10 +280,7 @@ def add_milestone(id):
 @goals_bp.route('/goals/milestones/<int:milestone_id>/delete', methods=['POST'])
 @login_required
 def delete_milestone(milestone_id):
-    milestone = GoalMilestone.query.get_or_404(milestone_id)
-    if milestone.goal.user_id != current_user.id:
-        flash('Unauthorized', 'danger')
-        return redirect(url_for('goals.goals'))
+    milestone = GoalMilestone.query.join(Goal).filter(Goal.user_id == current_user.id, GoalMilestone.id == milestone_id).first_or_404()
     
     db.session.delete(milestone)
     db.session.commit()

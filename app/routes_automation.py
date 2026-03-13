@@ -49,10 +49,7 @@ def add_rule():
 @automation_bp.route('/automation/toggle/<int:id>', methods=['POST'])
 @login_required
 def toggle_rule(id):
-    rule = AutomationRule.query.get_or_404(id)
-    if rule.user_id != current_user.id:
-        flash('Unauthorized.', 'error')
-        return redirect(url_for('automation.automation_list'))
+    rule = AutomationRule.query.filter_by(id=id, user_id=current_user.id).first_or_404()
     rule.is_active = not rule.is_active
     db.session.commit()
     flash(f'Rule {"activated" if rule.is_active else "deactivated"}.', 'success')
@@ -62,10 +59,7 @@ def toggle_rule(id):
 @automation_bp.route('/automation/delete/<int:id>', methods=['POST'])
 @login_required
 def delete_rule(id):
-    rule = AutomationRule.query.get_or_404(id)
-    if rule.user_id != current_user.id:
-        flash('Unauthorized.', 'error')
-        return redirect(url_for('automation.automation_list'))
+    rule = AutomationRule.query.filter_by(id=id, user_id=current_user.id).first_or_404()
     db.session.delete(rule)
     db.session.commit()
     flash('Rule deleted.', 'success')
@@ -76,10 +70,7 @@ def delete_rule(id):
 @login_required
 def test_rule(id):
     """Dry-run a rule with sample context to verify it works."""
-    rule = AutomationRule.query.get_or_404(id)
-    if rule.user_id != current_user.id:
-        flash('Unauthorized.', 'error')
-        return redirect(url_for('automation.automation_list'))
+    rule = AutomationRule.query.filter_by(id=id, user_id=current_user.id).first_or_404()
 
     # Build a sample context
     sample_context = {
@@ -137,10 +128,7 @@ def add_webhook():
 @automation_bp.route('/automation/webhooks/toggle/<int:id>', methods=['POST'])
 @login_required
 def toggle_webhook(id):
-    wh = WebhookEndpoint.query.get_or_404(id)
-    if wh.user_id != current_user.id:
-        flash('Unauthorized.', 'error')
-        return redirect(url_for('automation.automation_list'))
+    wh = WebhookEndpoint.query.filter_by(id=id, user_id=current_user.id).first_or_404()
     wh.is_active = not wh.is_active
     db.session.commit()
     flash(f'Webhook {"activated" if wh.is_active else "deactivated"}.', 'success')
@@ -150,10 +138,7 @@ def toggle_webhook(id):
 @automation_bp.route('/automation/webhooks/delete/<int:id>', methods=['POST'])
 @login_required
 def delete_webhook(id):
-    wh = WebhookEndpoint.query.get_or_404(id)
-    if wh.user_id != current_user.id:
-        flash('Unauthorized.', 'error')
-        return redirect(url_for('automation.automation_list'))
+    wh = WebhookEndpoint.query.filter_by(id=id, user_id=current_user.id).first_or_404()
     db.session.delete(wh)
     db.session.commit()
     flash('Webhook deleted.', 'success')

@@ -369,6 +369,7 @@ def register_routes(main):
         )
 
         debtor_payment = DebtorPayment(
+            user_id=current_user.id,
             debtor_id=debtor.id,
             amount=amount,
             date=payment_date,

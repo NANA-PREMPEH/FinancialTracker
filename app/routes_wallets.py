@@ -42,7 +42,8 @@ def register_routes(main):
                 icon=icon,
                 wallet_type=wallet_type,
                 account_number=account_number,
-                is_shared=is_shared
+                is_shared=is_shared,
+                user_id=current_user.id
             )
             db.session.add(wallet)
             db.session.commit()
@@ -55,7 +56,7 @@ def register_routes(main):
     @login_required
     def edit_wallet(id):
         from .currencies import CURRENCIES
-        wallet = Wallet.query.get_or_404(id)
+        wallet = Wallet.query.filter_by(id=id, user_id=current_user.id).first_or_404()
 
         if request.method == 'POST':
             wallet.name = request.form.get('name')
@@ -75,7 +76,7 @@ def register_routes(main):
     @main.route('/wallets/delete/<int:id>', methods=['POST'])
     @login_required
     def delete_wallet(id):
-        wallet = Wallet.query.get_or_404(id)
+        wallet = Wallet.query.filter_by(id=id, user_id=current_user.id).first_or_404()
 
         # Check if wallet has transactions
         expense_count = Expense.query.filter_by(wallet_id=id).count()
@@ -106,8 +107,8 @@ def register_routes(main):
             flash('Transfer amount must be greater than 0!', 'error')
             return redirect(url_for('main.wallets'))
 
-        source_wallet = Wallet.query.get_or_404(source_wallet_id)
-        dest_wallet = Wallet.query.get_or_404(dest_wallet_id)
+        source_wallet = Wallet.query.filter_by(id=source_wallet_id, user_id=current_user.id).first_or_404()
+        dest_wallet = Wallet.query.filter_by(id=dest_wallet_id, user_id=current_user.id).first_or_404()
 
         # Calculate destination amount based on exchange rate
         dest_amount = amount * exchange_rate

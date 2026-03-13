@@ -98,7 +98,7 @@ def add_projection():
 @cashflow_bp.route('/cash-flow/projections/delete/<int:id>', methods=['POST'])
 @login_required
 def delete_projection(id):
-    proj = CashFlowProjection.query.get_or_404(id)
+    proj = CashFlowProjection.query.filter_by(id=id, user_id=current_user.id).first_or_404()
     db.session.delete(proj)
     db.session.commit()
     flash('Projection deleted.', 'success')
@@ -123,7 +123,7 @@ def add_alert():
 @cashflow_bp.route('/cash-flow/alerts/delete/<int:id>', methods=['POST'])
 @login_required
 def delete_alert(id):
-    alert = CashFlowAlert.query.get_or_404(id)
+    alert = CashFlowAlert.query.filter_by(id=id, user_id=current_user.id).first_or_404()
     db.session.delete(alert)
     db.session.commit()
     flash('Alert deleted.', 'success')
@@ -133,7 +133,7 @@ def delete_alert(id):
 @cashflow_bp.route('/cash-flow/alerts/toggle/<int:id>', methods=['POST'])
 @login_required
 def toggle_alert(id):
-    alert = CashFlowAlert.query.get_or_404(id)
+    alert = CashFlowAlert.query.filter_by(id=id, user_id=current_user.id).first_or_404()
     alert.is_active = not alert.is_active
     db.session.commit()
     flash(f'Alert {"activated" if alert.is_active else "deactivated"}.', 'success')

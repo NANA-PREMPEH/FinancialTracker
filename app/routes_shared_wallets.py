@@ -41,10 +41,7 @@ def shared_wallets():
 @login_required
 def share_wallet(id):
     """Invite a user to share a wallet by email."""
-    wallet = Wallet.query.get_or_404(id)
-    if wallet.user_id != current_user.id:
-        flash('You can only share wallets you own.', 'error')
-        return redirect(url_for('main.wallets'))
+    wallet = Wallet.query.filter_by(id=id, user_id=current_user.id).first_or_404()
 
     email = request.form.get('email', '').strip().lower()
     permission = request.form.get('permission', 'view')
@@ -94,10 +91,7 @@ def share_wallet(id):
 @login_required
 def accept_invite(id):
     """Accept a wallet share invite."""
-    share = WalletShare.query.get_or_404(id)
-    if share.shared_with_id != current_user.id:
-        flash('Unauthorized.', 'error')
-        return redirect(url_for('shared_wallets.shared_wallets'))
+    share = WalletShare.query.filter_by(id=id, shared_with_id=current_user.id).first_or_404()
 
     share.accepted = True
     db.session.commit()
@@ -109,10 +103,7 @@ def accept_invite(id):
 @login_required
 def decline_invite(id):
     """Decline a wallet share invite."""
-    share = WalletShare.query.get_or_404(id)
-    if share.shared_with_id != current_user.id:
-        flash('Unauthorized.', 'error')
-        return redirect(url_for('shared_wallets.shared_wallets'))
+    share = WalletShare.query.filter_by(id=id, shared_with_id=current_user.id).first_or_404()
 
     db.session.delete(share)
     db.session.commit()
@@ -124,10 +115,10 @@ def decline_invite(id):
 @login_required
 def revoke_share(id):
     """Owner revokes a share or shared user leaves."""
-    share = WalletShare.query.get_or_404(id)
-    if share.owner_id != current_user.id and share.shared_with_id != current_user.id:
-        flash('Unauthorized.', 'error')
-        return redirect(url_for('shared_wallets.shared_wallets'))
+    share = WalletShare.query.filter(
+        WalletShare.id == id,
+        db.or_(WalletShare.owner_id == current_user.id, WalletShare.shared_with_id == current_user.id)
+    ).first_or_404()
 
     wallet = share.wallet
     db.session.delete(share)
@@ -147,10 +138,7 @@ def revoke_share(id):
 @login_required
 def update_permission(id):
     """Owner updates a share's permission level."""
-    share = WalletShare.query.get_or_404(id)
-    if share.owner_id != current_user.id:
-        flash('Only the wallet owner can change permissions.', 'error')
-        return redirect(url_for('shared_wallets.shared_wallets'))
+    share = WalletShare.query.filter_by(id=id, owner_id=current_user.id).first_or_404()
 
     permission = request.form.get('permission', 'view')
     if permission not in ('view', 'contribute', 'manage'):

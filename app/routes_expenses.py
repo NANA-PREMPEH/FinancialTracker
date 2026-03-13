@@ -60,7 +60,7 @@ def register_routes(main):
                     receipt_path = f"receipts/{filename}"
 
             # Currency Conversion Logic
-            wallet = Wallet.query.get(wallet_id)
+            wallet = Wallet.query.filter_by(id=wallet_id, user_id=current_user.id).first_or_404()
             converted_amount = input_amount
 
             if currency != wallet.currency:
@@ -79,7 +79,7 @@ def register_routes(main):
                     flash('Cannot transfer to the same wallet!', 'error')
                     return redirect(url_for('main.add_expense'))
 
-                to_wallet = Wallet.query.get(to_wallet_id)
+                to_wallet = Wallet.query.filter_by(id=to_wallet_id, user_id=current_user.id).first_or_404()
                 if not to_wallet:
                     flash('Destination wallet not found!', 'error')
                     return redirect(url_for('main.add_expense'))
@@ -173,10 +173,7 @@ def register_routes(main):
     @main.route('/edit/<int:id>', methods=['GET', 'POST'])
     @login_required
     def edit_expense(id):
-        expense = Expense.query.get_or_404(id)
-        if expense.user_id != current_user.id:
-            flash('Access denied.', 'error')
-            return redirect(url_for('main.all_expenses'))
+        expense = Expense.query.filter_by(id=id, user_id=current_user.id).first_or_404()
         categories = Category.query.filter_by(user_id=current_user.id).all()
         wallets = Wallet.query.filter_by(user_id=current_user.id).all()
 
@@ -211,8 +208,8 @@ def register_routes(main):
                     expense.receipt_path = f"receipts/{filename}"
 
             # Update wallet balances
-            old_wallet = Wallet.query.get(old_wallet_id)
-            new_wallet = Wallet.query.get(expense.wallet_id)
+            old_wallet = Wallet.query.filter_by(id=old_wallet_id, user_id=current_user.id).first_or_404()
+            new_wallet = Wallet.query.filter_by(id=expense.wallet_id, user_id=current_user.id).first_or_404()
 
             # Reverse old transaction
             if old_type == 'expense':
@@ -235,13 +232,10 @@ def register_routes(main):
     @main.route('/delete/<int:id>', methods=['POST'])
     @login_required
     def delete_expense(id):
-        expense = Expense.query.get_or_404(id)
-        if expense.user_id != current_user.id:
-            flash('Access denied.', 'error')
-            return redirect(url_for('main.all_expenses'))
+        expense = Expense.query.filter_by(id=id, user_id=current_user.id).first_or_404()
 
         # Update wallet balance
-        wallet = Wallet.query.get(expense.wallet_id)
+        wallet = Wallet.query.filter_by(id=expense.wallet_id, user_id=current_user.id).first_or_404()
         if expense.transaction_type == 'expense':
             wallet.balance += expense.amount
         elif expense.transaction_type == 'income':

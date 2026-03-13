@@ -10,7 +10,7 @@ def register_routes(main):
     @main.route('/projects')
     @login_required
     def projects():
-        projects = Project.query.order_by(Project.created_date.desc()).all()
+        projects = Project.query.filter_by(user_id=current_user.id).order_by(Project.created_date.desc()).all()
         return render_template('projects.html', projects=projects)
 
     @main.route('/projects/add', methods=['GET', 'POST'])
@@ -49,13 +49,13 @@ def register_routes(main):
             flash('Project created successfully!', 'success')
             return redirect(url_for('main.project_details', id=project.id))
 
-        wallets = Wallet.query.all()
+        wallets = Wallet.query.filter_by(user_id=current_user.id).all()
         return render_template('add_project.html', wallets=wallets)
 
     @main.route('/projects/<int:id>')
     @login_required
     def project_details(id):
-        project = Project.query.get_or_404(id)
+        project = Project.query.filter_by(id=id, user_id=current_user.id).first_or_404()
 
         completed_cost = project.paid_expense
         not_completed_cost = project.total_cost - project.paid_expense
@@ -72,7 +72,7 @@ def register_routes(main):
     @main.route('/projects/edit/<int:id>', methods=['GET', 'POST'])
     @login_required
     def edit_project(id):
-        project = Project.query.get_or_404(id)
+        project = Project.query.filter_by(id=id, user_id=current_user.id).first_or_404()
 
         if request.method == 'POST':
             project.name = request.form.get('name')
@@ -98,13 +98,13 @@ def register_routes(main):
             flash('Project updated successfully!', 'success')
             return redirect(url_for('main.project_details', id=project.id))
 
-        wallets = Wallet.query.all()
+        wallets = Wallet.query.filter_by(user_id=current_user.id).all()
         return render_template('edit_project.html', project=project, wallets=wallets)
 
     @main.route('/projects/delete/<int:id>', methods=['POST'])
     @login_required
     def delete_project(id):
-        project = Project.query.get_or_404(id)
+        project = Project.query.filter_by(id=id, user_id=current_user.id).first_or_404()
         db.session.delete(project)
         db.session.commit()
         flash('Project deleted successfully!', 'success')
@@ -113,13 +113,14 @@ def register_routes(main):
     @main.route('/projects/<int:project_id>/items/add', methods=['POST'])
     @login_required
     def add_project_item(project_id):
-        project = Project.query.get_or_404(project_id)
+        project = Project.query.filter_by(id=project_id, user_id=current_user.id).first_or_404()
         item_name = request.form.get('item_name')
         cost = float(request.form.get('cost', 0))
         description = request.form.get('description', '')
         item_type = request.form.get('item_type', 'expense')
 
         item = ProjectItem(
+            user_id=current_user.id,
             project_id=project_id,
             item_name=item_name,
             cost=cost,
@@ -135,7 +136,8 @@ def register_routes(main):
     @main.route('/projects/<int:project_id>/items/<int:item_id>/delete', methods=['POST'])
     @login_required
     def delete_project_item(project_id, item_id):
-        item = ProjectItem.query.get_or_404(item_id)
+        project = Project.query.filter_by(id=project_id, user_id=current_user.id).first_or_404()
+        item = ProjectItem.query.filter_by(id=item_id, project_id=project_id).first_or_404()
         db.session.delete(item)
         db.session.commit()
         flash('Item deleted successfully!', 'success')
@@ -144,8 +146,8 @@ def register_routes(main):
     @main.route('/projects/<int:project_id>/items/<int:item_id>/edit', methods=['GET', 'POST'])
     @login_required
     def edit_project_item(project_id, item_id):
-        item = ProjectItem.query.get_or_404(item_id)
-        project = Project.query.get_or_404(project_id)
+        project = Project.query.filter_by(id=project_id, user_id=current_user.id).first_or_404()
+        item = ProjectItem.query.filter_by(id=item_id, project_id=project_id).first_or_404()
 
         if request.method == 'POST':
             item.item_name = request.form.get('item_name')
@@ -161,7 +163,8 @@ def register_routes(main):
     @main.route('/projects/<int:project_id>/items/<int:item_id>/toggle', methods=['POST'])
     @login_required
     def toggle_project_item(project_id, item_id):
-        item = ProjectItem.query.get_or_404(item_id)
+        project = Project.query.filter_by(id=project_id, user_id=current_user.id).first_or_404()
+        item = ProjectItem.query.filter_by(id=item_id, project_id=project_id).first_or_404()
         item.is_completed = not item.is_completed
         db.session.commit()
         return jsonify({'success': True, 'is_completed': item.is_completed})
@@ -170,8 +173,8 @@ def register_routes(main):
     @main.route('/projects/<int:project_id>/items/<int:item_id>/payments/add', methods=['POST'])
     @login_required
     def add_project_item_payment(project_id, item_id):
-        project = Project.query.get_or_404(project_id)
-        item = ProjectItem.query.get_or_404(item_id)
+        project = Project.query.filter_by(id=project_id, user_id=current_user.id).first_or_404()
+        item = ProjectItem.query.filter_by(id=item_id, project_id=project_id).first_or_404()
 
         amount = float(request.form.get('payment_amount'))
         description = request.form.get('payment_description', '')
@@ -185,6 +188,7 @@ def register_routes(main):
                 pass
 
         payment = ProjectItemPayment(
+            user_id=current_user.id,
             project_item_id=item_id,
             amount=amount,
             description=description,
@@ -198,7 +202,12 @@ def register_routes(main):
     @main.route('/projects/<int:project_id>/items/<int:item_id>/payments/<int:payment_id>/toggle', methods=['POST'])
     @login_required
     def toggle_project_item_payment(project_id, item_id, payment_id):
-        payment = ProjectItemPayment.query.get_or_404(payment_id)
+        project = Project.query.filter_by(id=project_id, user_id=current_user.id).first_or_404()
+        payment = ProjectItemPayment.query.join(ProjectItem).filter(
+            ProjectItem.id == item_id,
+            ProjectItem.project_id == project_id,
+            ProjectItemPayment.id == payment_id
+        ).first_or_404()
         payment.is_paid = not payment.is_paid
         if payment.is_paid:
             payment.payment_date = datetime.utcnow()
@@ -207,10 +216,42 @@ def register_routes(main):
         db.session.commit()
         return jsonify({'success': True, 'is_paid': payment.is_paid})
 
+    @main.route('/projects/<int:project_id>/items/<int:item_id>/payments/<int:payment_id>/edit', methods=['POST'])
+    @login_required
+    def edit_project_item_payment(project_id, item_id, payment_id):
+        project = Project.query.filter_by(id=project_id, user_id=current_user.id).first_or_404()
+        payment = ProjectItemPayment.query.join(ProjectItem).filter(
+            ProjectItem.id == item_id,
+            ProjectItem.project_id == project_id,
+            ProjectItemPayment.id == payment_id
+        ).first_or_404()
+
+        amount = float(request.form.get('payment_amount', 0))
+        description = request.form.get('payment_description', '')
+        date_str = request.form.get('payment_date')
+
+        if date_str:
+            try:
+                payment.payment_date = datetime.strptime(date_str, '%Y-%m-%d')
+            except ValueError:
+                pass
+        
+        payment.amount = amount
+        payment.description = description
+        
+        db.session.commit()
+        flash('Payment updated successfully!', 'success')
+        return redirect(url_for('main.project_details', id=project_id) + f'#item-{item_id}')
+
     @main.route('/projects/<int:project_id>/items/<int:item_id>/payments/<int:payment_id>/delete', methods=['POST'])
     @login_required
     def delete_project_item_payment(project_id, item_id, payment_id):
-        payment = ProjectItemPayment.query.get_or_404(payment_id)
+        project = Project.query.filter_by(id=project_id, user_id=current_user.id).first_or_404()
+        payment = ProjectItemPayment.query.join(ProjectItem).filter(
+            ProjectItem.id == item_id,
+            ProjectItem.project_id == project_id,
+            ProjectItemPayment.id == payment_id
+        ).first_or_404()
         db.session.delete(payment)
         db.session.commit()
         flash('Payment deleted successfully!', 'success')

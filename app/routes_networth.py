@@ -127,12 +127,7 @@ def delete_snapshot(id):
     """
     Delete snapshot (POST)
     """
-    snapshot = NetWorthSnapshot.query.get_or_404(id)
-
-    # Check if the snapshot belongs to the current user
-    if snapshot.user_id != current_user.id:
-        flash('You do not have permission to delete this snapshot.', 'danger')
-        return redirect(url_for('networth.net_worth_dashboard'))
+    snapshot = NetWorthSnapshot.query.filter_by(id=id, user_id=current_user.id).first_or_404()
 
     db.session.delete(snapshot)
     db.session.commit()
