@@ -177,6 +177,8 @@ def register_routes(main):
                 flash('Invalid due date provided.', 'error')
                 return redirect(_safe_return_url_debtors())
 
+            lent_date = _parse_due_date(request.form.get('date')) or datetime.utcnow()
+
             payment_frequency = (request.form.get('payment_frequency') or '').strip() or None
             try:
                 minimum_payment = max(float(request.form.get('minimum_payment', 0) or 0), 0)
@@ -204,7 +206,7 @@ def register_routes(main):
                 description=f"Lent to {name}",
                 category_id=debt_lent_cat.id,
                 wallet_id=wallet.id,
-                date=datetime.utcnow(),
+                date=lent_date,
                 transaction_type='expense',
                 tags='debt_lent',
                 notes=notes
@@ -221,6 +223,7 @@ def register_routes(main):
                 interest_rate=interest_rate,
                 original_amount=original_amount,
                 due_date=due_date,
+                created_at=lent_date,
                 payment_frequency=payment_frequency,
                 minimum_payment=minimum_payment,
                 contact_info=contact_info,
