@@ -242,6 +242,10 @@ def register_routes(main):
     @login_required
     def edit_debtor(id):
         debtor = _debtor_for_current_user_or_404(id)
+        
+        # Store original values for balance adjustment
+        old_wallet_id = debtor.wallet_id
+        old_original_amount = debtor.original_amount or debtor.amount
 
         name = (request.form.get('name') or '').strip()
         if not name:
@@ -311,14 +315,48 @@ def register_routes(main):
             pass
         debtor.notes = (request.form.get('notes') or '').strip() or None
         
+        # Wallet and Balance adjustments
         try:
-            new_wallet_id = int(request.form.get('wallet_id'))
-            if new_wallet_id != debtor.wallet_id:
+            new_wallet_id_raw = request.form.get('wallet_id')
+            new_wallet_id = int(new_wallet_id_raw) if new_wallet_id_raw else old_wallet_id
+            
+            # Check if wallet or original amount changed
+            amount_changed = abs(original_amount - old_original_amount) > 0.001
+            wallet_changed = new_wallet_id != old_wallet_id
+            
+            if wallet_changed or amount_changed:
+                # 1. Reverse the old transaction from the old wallet
+                if old_wallet_id:
+                    old_wallet = Wallet.query.get(old_wallet_id)
+                    if old_wallet and old_wallet.user_id == current_user.id:
+                        old_wallet.balance += old_original_amount
+                
+                # 2. Check and apply new deduction from the new wallet
+                new_wallet = Wallet.query.get(new_wallet_id)
+                if not new_wallet or new_wallet.user_id != current_user.id:
+                    flash('Selected wallet is not available.', 'error')
+                    return redirect(_safe_return_url_debtors() + f'#debtor-{id}')
+                
+                if original_amount > new_wallet.balance:
+                    flash(f'Insufficient balance in {new_wallet.name} to cover the revised lending amount.', 'error')
+                    # Rollback wallet balances (though DB session will handle it if we flash/redirect)
+                    db.session.rollback()
+                    return redirect(_safe_return_url_debtors() + f'#debtor-{id}')
+                
+                new_wallet.balance -= original_amount
                 debtor.wallet_id = new_wallet_id
-                # Update the associated expense if it exists
-                expense = Expense.query.filter_by(user_id=current_user.id, tags='debt_lent').filter(Expense.description.like(f"%{debtor.name}%")).order_by(Expense.date.desc()).first()
+                
+                # 3. Update the associated 'debt_lent' expense record
+                # We update both the wallet AND the amount to match the new original_amount
+                expense = Expense.query.filter_by(
+                    user_id=current_user.id, 
+                    tags='debt_lent'
+                ).filter(Expense.description.like(f"%{debtor.name}%")).order_by(Expense.date.desc()).first()
+                
                 if expense:
                     expense.wallet_id = new_wallet_id
+                    expense.amount = original_amount
+                    
         except (TypeError, ValueError):
             pass
 
