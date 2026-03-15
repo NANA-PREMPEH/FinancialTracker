@@ -36,6 +36,7 @@ def register_routes(main):
             is_shared = request.form.get('is_shared') == 'on'
 
             wallet = Wallet(
+                user_id=current_user.id,
                 name=name,
                 balance=balance,
                 currency=currency,
