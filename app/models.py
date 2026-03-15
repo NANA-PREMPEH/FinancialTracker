@@ -329,9 +329,11 @@ class Debtor(db.Model):
     contact_info = db.Column(db.String(200), nullable=True)
     priority = db.Column(db.Integer, default=3)
     notes = db.Column(db.Text, nullable=True)
+    wallet_id = db.Column(db.Integer, db.ForeignKey('wallet.id'), nullable=True)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     user = db.relationship('User', backref=db.backref('_user_debtors', cascade='all, delete-orphan'), lazy=True)
+    wallet = db.relationship('Wallet', backref='debtors', lazy=True)
 
     @property
     def computed_status(self):
@@ -959,3 +961,21 @@ class PushSubscription(db.Model):
 
     def __repr__(self):
         return f'<PushSubscription {self.id}>'
+
+
+class BackupHistory(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    backup_type = db.Column(db.String(20), nullable=False)  # manual, pre_restore, scheduled
+    file_name = db.Column(db.String(200), nullable=False)
+    file_size = db.Column(db.Integer, default=0)
+    record_count = db.Column(db.Integer, default=0)
+    checksum = db.Column(db.String(64), nullable=True)
+    status = db.Column(db.String(20), default='completed')  # completed, failed
+    notes = db.Column(db.Text, nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    user = db.relationship('User', backref=db.backref('_user_backuphistories', cascade='all, delete-orphan'), lazy=True)
+
+    def __repr__(self):
+        return f'<BackupHistory {self.file_name}: {self.backup_type}>'

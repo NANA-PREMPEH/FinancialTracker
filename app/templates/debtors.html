@@ -228,7 +228,7 @@
                 </button>
                 {% endif %}
                 <button class="flex-1 btn-secondary flex items-center justify-center gap-2 py-2 px-3 text-sm shadow-sm hover:shadow"
-                        onclick="showEditDebtorModal(`{{ debtor.id }}`, `{{ debtor.name|replace('`', '') }}`, `{{ debtor.amount }}`, `{{ debtor.description|default('', true)|replace('`', '') }}`, `{{ debtor.original_amount or '' }}`)">
+                        onclick="showEditDebtorModal(`{{ debtor.id }}`, `{{ debtor.name|replace('`', '') }}`, `{{ debtor.amount }}`, `{{ debtor.description|default('', true)|replace('`', '') }}`, `{{ debtor.original_amount or '' }}`, `{{ debtor.created_at.strftime('%Y-%m-%d') if debtor.created_at else '' }}`, `{{ debtor.wallet_id or '' }}`)">
                     <i data-lucide="pencil" class="w-4 h-4"></i> Edit
                 </button>
 
@@ -456,6 +456,15 @@
                 <textarea name="description" id="edit_description" class="form-control rounded-xl border-border bg-surface focus:ring-2 focus:ring-primary/50 transition-all resize-none" rows="2"></textarea>
             </div>
             <div class="form-group mb-0">
+                <label class="text-sm font-semibold text-text mb-1 block">Date Incurred</label>
+                <div class="relative">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <i data-lucide="calendar" class="w-4 h-4 text-text-muted"></i>
+                    </div>
+                    <input type="date" name="date" id="edit_date" class="form-control rounded-xl border-border bg-surface focus:ring-2 focus:ring-primary/50 transition-all" style="padding-left: 2.5rem !important;" required>
+                </div>
+            </div>
+            <div class="form-group mb-0">
                 <label class="text-sm font-semibold text-text mb-1 flex items-center gap-2">
                     Original Amount 
                     <span class="group relative cursor-help">
@@ -468,6 +477,20 @@
                         <span class="text-text-muted font-medium font-heading">GHS</span>
                     </div>
                     <input type="number" name="original_amount" id="edit_original_amount" step="0.01" class="form-control rounded-xl border-border bg-surface focus:ring-2 focus:ring-primary/50 transition-all font-heading" style="padding-left: 3.5rem !important;">
+                </div>
+            </div>
+            <div class="form-group mb-0">
+                <label class="text-sm font-semibold text-text mb-1 block">Associated Wallet</label>
+                <div class="relative">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <i data-lucide="wallet" class="w-4 h-4 text-text-muted"></i>
+                    </div>
+                    <select name="wallet_id" id="edit_wallet_id" class="form-control rounded-xl border-border bg-surface focus:ring-2 focus:ring-primary/50 transition-all" style="padding-left: 2.5rem !important;" required>
+                        <option value="" disabled>Select Wallet</option>
+                        {% for wallet in wallets %}
+                            <option value="{{ wallet.id }}">{{ wallet.name }} ({{ wallet.currency }} {{ "%.2f"|format(wallet.balance or 0) }})</option>
+                        {% endfor %}
+                    </select>
                 </div>
             </div>
             <div class="flex gap-3 justify-end pt-4 border-t border-border mt-6">
@@ -648,14 +671,18 @@
         collectModal.style.display = 'none';
     }
 
-    function showEditDebtorModal(id, name, amount, description, original_amount) {
+    function showEditDebtorModal(id, name, amount, description, original_amount, date, wallet_id) {
         document.getElementById('edit_name').value = name;
         document.getElementById('edit_amount').value = amount;
         document.getElementById('edit_description').value = description;
+        document.getElementById('edit_date').value = date || new Date().toISOString().split('T')[0];
         if (original_amount) {
             document.getElementById('edit_original_amount').value = original_amount;
         } else {
             document.getElementById('edit_original_amount').value = amount;
+        }
+        if (wallet_id) {
+            document.getElementById('edit_wallet_id').value = wallet_id;
         }
         editForm.action = `/debtors/edit/${id}`;
         editModal.style.display = 'flex';

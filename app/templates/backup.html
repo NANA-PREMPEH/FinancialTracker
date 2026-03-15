@@ -4,142 +4,525 @@
 {% block header_title %}Backup & Recovery{% endblock %}
 
 {% block content %}
-<div class="max-w-7xl mx-auto space-y-8">
-    <div class="bg-surface p-6 rounded-2xl border border-border shadow-sm">
-        <h2 class="text-xl font-bold font-heading text-text m-0 mb-1 flex items-center gap-2">
-            <i data-lucide="hard-drive" class="w-6 h-6 text-primary"></i> Data Management
-        </h2>
-        <p class="text-sm font-medium text-text-muted m-0">Protect your financial data by creating backups and restoring from previous saves.</p>
-    </div>
-
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <!-- Create Backup Section -->
-        <div class="bg-surface rounded-2xl border border-border shadow-sm overflow-hidden flex flex-col group hover:border-primary/30 transition-colors">
-            <div class="p-6 border-b border-border bg-surface-active/30 flex items-center gap-3">
-                <div class="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
-                    <i data-lucide="download" class="w-5 h-5"></i>
-                </div>
-                <div>
-                    <h2 class="text-lg font-bold font-heading m-0 text-text">Create Backup</h2>
-                    <p class="text-xs font-medium text-text-muted m-0">Export data to a JSON file</p>
+<div class="max-w-7xl mx-auto space-y-8 pb-12">
+    <!-- Hero Stats Banner -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div class="md:col-span-2 bg-gradient-to-r from-primary to-primary-hover p-6 rounded-3xl text-white shadow-lg overflow-hidden relative">
+            <div class="relative z-10">
+                <h2 class="text-2xl font-bold font-heading m-0 flex items-center gap-2">
+                    <i data-lucide="shield-check" class="w-8 h-8"></i> Data Protection
+                </h2>
+                <p class="text-primary-content/80 mt-1 font-medium italic">Keep your finances safe and portable</p>
+                <div class="mt-6 flex flex-wrap gap-4">
+                    <div class="bg-white/20 backdrop-blur-md px-4 py-2 rounded-2xl border border-white/10">
+                        <span class="text-xs font-bold uppercase tracking-wider opacity-70 block">Last Backup</span>
+                        <span class="text-lg font-bold">{% if last_backup %}{{ last_backup.created_at.strftime('%b %d, %Y') }}{% else %}Never{% endif %}</span>
+                    </div>
+                    <div class="bg-white/20 backdrop-blur-md px-4 py-2 rounded-2xl border border-white/10">
+                        <span class="text-xs font-bold uppercase tracking-wider opacity-70 block">Total Records</span>
+                        <span class="text-lg font-bold">{{ total_records }}</span>
+                    </div>
                 </div>
             </div>
-            
-            <div class="p-6 flex-1 flex flex-col justify-between gap-6">
-                <p class="text-sm text-text-muted m-0 leading-relaxed">
-                    Export all your financial data including transactions, wallets, categories, budgets, and settings into a downloadable JSON file. Store this file securely for safekeeping.
+            <i data-lucide="database" class="absolute -right-8 -bottom-8 w-48 h-48 opacity-10 pointer-events-none"></i>
+        </div>
+        
+        <div class="bg-surface p-6 rounded-3xl border border-border shadow-sm flex flex-col justify-between">
+            <div>
+                <span class="text-xs font-bold uppercase tracking-wider text-text-muted block">Integrity Status</span>
+                <p class="mt-1 flex items-center gap-2 text-success font-bold">
+                    <i data-lucide="check-circle" class="w-5 h-5"></i> All systems nominal
                 </p>
-                
-                <form method="POST" action="{{ url_for('backup.create_backup') }}" class="mt-auto">
-                    <button type="submit" class="w-full inline-flex items-center justify-center gap-2 px-5 py-3 bg-primary text-primary-content font-bold rounded-xl hover:bg-primary-hover transition-colors focus:outline-none focus:ring-2 focus:ring-primary/50 shadow-sm">
-                        <i data-lucide="hard-drive-download" class="w-5 h-5"></i> Create Backup
-                    </button>
-                </form>
+            </div>
+            <div class="mt-4 pt-4 border-t border-border/50">
+                <p class="text-xs text-text-muted leading-tight">SHA-256 Checksums enabled on all exports</p>
             </div>
         </div>
 
-        <!-- Restore Backup Section -->
-        <div class="bg-surface rounded-2xl border border-border shadow-sm overflow-hidden flex flex-col group hover:border-warning/30 transition-colors">
-            <div class="p-6 border-b border-border bg-surface-active/30 flex items-center gap-3">
-                <div class="w-10 h-10 rounded-xl bg-warning/10 text-warning flex items-center justify-center shrink-0">
-                    <i data-lucide="upload" class="w-5 h-5"></i>
-                </div>
-                <div>
-                    <h2 class="text-lg font-bold font-heading m-0 text-text">Restore Backup</h2>
-                    <p class="text-xs font-medium text-text-muted m-0">Import data from a JSON file</p>
-                </div>
-            </div>
-            
-            <div class="p-6 flex-1 flex flex-col justify-between gap-6">
-                <p class="text-sm text-text-muted m-0 leading-relaxed">
-                    Upload a previously created backup file to restore your financial data. <strong class="text-text font-bold">Warning:</strong> This will replace your current data with the contents of the backup file.
+        <div class="bg-surface p-6 rounded-3xl border border-border shadow-sm flex flex-col justify-between">
+            <div>
+                <span class="text-xs font-bold uppercase tracking-wider text-text-muted block">Storage</span>
+                <p class="mt-1 flex items-center gap-2 text-primary font-bold">
+                    <i data-lucide="hard-drive" class="w-5 h-5"></i> Local + Cloud Ready
                 </p>
-                
-                <form method="POST" action="{{ url_for('backup.restore_backup') }}" enctype="multipart/form-data" class="mt-auto space-y-4">
-                    <div>
-                        <label for="backup_file" class="sr-only">Select Backup File</label>
-                        <div class="relative flex items-center justify-center w-full">
-                            <label for="backup_file" class="flex flex-col items-center justify-center w-full h-32 border-2 border-border border-dashed rounded-xl cursor-pointer bg-surface-active/30 hover:bg-surface-active/80 hover:border-primary/50 transition-all group-hover:border-warning/30">
-                                <div class="flex flex-col items-center justify-center pt-5 pb-6">
-                                    <i data-lucide="file-json" class="w-8 h-8 text-text-muted mb-2 group-hover:text-warning transition-colors"></i>
-                                    <p class="mb-1 text-sm text-text-muted"><span class="font-bold text-text">Click to upload</span> or drag and drop</p>
-                                    <p class="text-xs text-text-muted/70">JSON files only</p>
-                                </div>
-                                <input id="backup_file" name="backup_file" type="file" accept=".json" required class="hidden" />
-                            </label>
+            </div>
+            <div class="mt-4 pt-4 border-t border-border/50 text-xs text-text-muted leading-tight">
+                JSON v2.0 Standard Export Format
+            </div>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <!-- Main Actions Column -->
+        <div class="lg:col-span-2 space-y-8">
+            <!-- Create Backup Section -->
+            <div class="bg-surface rounded-3xl border border-border shadow-sm overflow-hidden group">
+                <div class="p-6 border-b border-border flex items-center justify-between">
+                    <div class="flex items-center gap-4">
+                        <div class="w-12 h-12 rounded-2xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                            <i data-lucide="download" class="w-6 h-6"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-xl font-bold font-heading m-0">Create Full Backup</h3>
+                            <p class="text-sm text-text-muted m-0">Export 30+ data entities to a secure JSON file</p>
                         </div>
                     </div>
+                </div>
+                
+                <div class="p-8">
+                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
+                        {% for label, count in model_counts.items() %}
+                        <div class="bg-surface-hover/50 p-3 rounded-2xl border border-border/50">
+                            <span class="text-xs font-bold text-text-muted uppercase block leading-none mb-1">{{ label }}</span>
+                            <span class="text-lg font-bold">{{ count }}</span>
+                        </div>
+                        {% endfor %}
+                    </div>
                     
-                    <button type="submit" class="w-full inline-flex items-center justify-center gap-2 px-5 py-3 bg-warning text-white font-bold rounded-xl hover:bg-warning-hover transition-colors focus:outline-none focus:ring-2 focus:ring-warning/50 shadow-sm" onclick="return confirm('WARNING: Are you sure you want to restore from this backup? ALL CURRENT DATA WILL BE REPLACED WITH THE BACKUP DATA. This action cannot be undone.');">
-                        <i data-lucide="rotate-ccw" class="w-5 h-5"></i> Restore Backup
-                    </button>
-                </form>
+                    <form method="POST" action="{{ url_for('backup.create_backup') }}" id="backupForm">
+                        <input type="hidden" name="backup_type" value="manual">
+                        <button type="submit" id="backupBtn" class="w-full h-16 inline-flex items-center justify-center gap-3 bg-primary text-primary-content font-bold text-lg rounded-2xl hover:bg-primary-hover transition-all focus:outline-none focus:ring-4 focus:ring-primary/20 shadow-lg shadow-primary/10 group active:scale-[0.98]">
+                            <i data-lucide="hard-drive-download" class="w-6 h-6 group-hover:scale-110 transition-transform"></i>
+                            Generate & Download Backup
+                        </button>
+                    </form>
+                    
+                    <div id="backupProgress" class="hidden mt-6 space-y-2">
+                        <div class="flex justify-between text-sm font-bold">
+                            <span class="text-primary flex items-center gap-2">
+                                <i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i>
+                                Compiling database snapshots...
+                            </span>
+                            <span id="progressPercent">0%</span>
+                        </div>
+                        <div class="h-2 w-full bg-border rounded-full overflow-hidden">
+                            <div id="progressBar" class="h-full bg-primary transition-all duration-300" style="width: 0%"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Restore Backup Section -->
+            <div class="bg-surface rounded-3xl border border-border shadow-sm overflow-hidden group">
+                <div class="p-6 border-b border-border flex items-center justify-between">
+                    <div class="flex items-center gap-4">
+                        <div class="w-12 h-12 rounded-2xl bg-warning/10 text-warning flex items-center justify-center shrink-0">
+                            <i data-lucide="upload" class="w-6 h-6"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-xl font-bold font-heading m-0">Restore Data</h3>
+                            <p class="text-sm text-text-muted m-0">Upload a backup file to recover your data</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="p-8">
+                    <form method="POST" action="{{ url_for('backup.restore_backup') }}" enctype="multipart/form-data" id="restoreForm">
+                        <div id="dropZone" class="relative flex flex-col items-center justify-center w-full h-48 border-2 border-border border-dashed rounded-3xl cursor-pointer bg-surface-active/10 hover:bg-surface-active/30 hover:border-warning/50 transition-all overflow-hidden group">
+                            <div class="flex flex-col items-center justify-center pt-5 pb-6 text-center px-4">
+                                <div class="w-16 h-16 rounded-2xl bg-warning/5 text-warning/40 mb-3 flex items-center justify-center group-hover:bg-warning/10 group-hover:text-warning group-hover:scale-110 transition-all duration-300">
+                                    <i data-lucide="file-json" class="w-8 h-8"></i>
+                                </div>
+                                <p class="mb-1 text-sm text-text font-bold">Click to upload or drag and drop</p>
+                                <p class="text-xs text-text-muted">Only .json backup files are supported</p>
+                            </div>
+                            <input id="restore_file" name="file" type="file" accept=".json" required class="hidden" />
+                        </div>
+
+                        <!-- Preview Container (Initially Hidden) -->
+                        <div id="restorePreview" class="hidden mt-8 space-y-6 animate-in slide-in-from-top duration-300">
+                            <div class="bg-surface-active/30 p-6 rounded-2xl border border-border flex flex-col sm:flex-row gap-6 items-center">
+                                <div id="previewIcon" class="w-16 h-16 rounded-2xl flex items-center justify-center text-white shrink-0">
+                                    <i data-lucide="file-check" class="w-8 h-8"></i>
+                                </div>
+                                <div class="flex-1 text-center sm:text-left">
+                                    <h4 id="previewFileName" class="text-lg font-bold m-0 truncate max-w-[250px]">filename.json</h4>
+                                    <p id="previewMeta" class="text-sm text-text-muted m-0">Metadata loading...</p>
+                                </div>
+                                <div id="previewIntegrity" class="px-4 py-2 rounded-xl text-xs font-bold uppercase">
+                                    Checking...
+                                </div>
+                            </div>
+
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div class="bg-surface p-4 rounded-2xl border border-border">
+                                    <label class="flex items-center gap-3 cursor-pointer">
+                                        <input type="radio" name="restore_mode" value="replace" checked class="w-5 h-5 text-warning border-border focus:ring-warning cursor-pointer">
+                                        <div>
+                                            <span class="font-bold block">Replace Mode</span>
+                                            <span class="text-xs text-text-muted">Clear all current data and replace with backup. Recommended.</span>
+                                        </div>
+                                    </label>
+                                </div>
+                                <div class="bg-surface p-4 rounded-2xl border border-border">
+                                    <label class="flex items-center gap-3 cursor-pointer opacity-80 hover:opacity-100 transition-opacity">
+                                        <input type="radio" name="restore_mode" value="merge" class="w-5 h-5 text-warning border-border focus:ring-warning cursor-pointer">
+                                        <div>
+                                            <span class="font-bold block">Merge Mode</span>
+                                            <span class="text-xs text-text-muted">Only add missing records. Existing data is kept.</span>
+                                        </div>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <div class="bg-danger/5 border border-danger/20 p-4 rounded-2xl flex items-start gap-3">
+                                <i data-lucide="alert-triangle" class="w-5 h-5 text-danger shrink-0 mt-0.5"></i>
+                                <div class="text-xs text-danger font-medium leading-relaxed">
+                                    <strong>WARNING:</strong> A safety snapshot of your current data will be created automatically before restore. Restoring in "Replace" mode will permanently clear current data.
+                                </div>
+                            </div>
+
+                            <button type="submit" class="w-full h-16 inline-flex items-center justify-center gap-3 bg-warning text-white font-bold text-lg rounded-2xl hover:bg-warning-hover transition-all focus:outline-none focus:ring-4 focus:ring-warning/20 shadow-lg shadow-warning/10" onclick="return confirm('CRITICAL: Are you absolutely sure? In Replace mode, ALL CURRENT DATA will be permanently cleared before restoring from the backup file.');">
+                                <i data-lucide="rotate-ccw" class="w-6 h-6"></i>
+                                Begin Data Restoration
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            
+            <!-- Backup History Section -->
+            <div class="bg-surface rounded-3xl border border-border shadow-sm overflow-hidden">
+                <div class="p-6 border-b border-border flex items-center justify-between">
+                    <div class="flex items-center gap-4">
+                        <div class="w-12 h-12 rounded-2xl bg-success/10 text-success flex items-center justify-center shrink-0">
+                            <i data-lucide="history" class="w-6 h-6"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-xl font-bold font-heading m-0">Activity History</h3>
+                            <p class="text-sm text-text-muted m-0">Timeline of backup and restoration events</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="bg-surface-active/30">
+                                <th class="px-6 py-4 text-xs font-bold uppercase tracking-wider text-text-muted">Type / Date</th>
+                                <th class="px-6 py-4 text-xs font-bold uppercase tracking-wider text-text-muted">Record Count</th>
+                                <th class="px-6 py-4 text-xs font-bold uppercase tracking-wider text-text-muted">File Details</th>
+                                <th class="px-6 py-4 text-xs font-bold uppercase tracking-wider text-text-muted">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-border/50">
+                            {% for entry in history %}
+                            <tr class="hover:bg-surface-hover/30 transition-colors">
+                                <td class="px-6 py-4">
+                                    <div class="flex items-center gap-3">
+                                        <div class="w-8 h-8 rounded-lg flex items-center justify-center
+                                            {% if entry.backup_type == 'manual' %}bg-primary/10 text-primary
+                                            {% elif entry.backup_type == 'restore' %}bg-warning/10 text-warning
+                                            {% elif entry.backup_type == 'pre_restore' %}bg-secondary/10 text-secondary
+                                            {% else %}bg-surface-active text-text-muted{% endif %}">
+                                            {% if entry.backup_type == 'manual' %}<i data-lucide="download" class="w-4 h-4"></i>
+                                            {% elif entry.backup_type == 'restore' %}<i data-lucide="rotate-ccw" class="w-4 h-4"></i>
+                                            {% elif entry.backup_type == 'pre_restore' %}<i data-lucide="shield-check" class="w-4 h-4"></i>
+                                            {% else %}<i data-lucide="database" class="w-4 h-4"></i>{% endif %}
+                                        </div>
+                                        <div>
+                                            <span class="text-sm font-bold block leading-none">
+                                                {% if entry.backup_type == 'manual' %}Manual Export
+                                                {% elif entry.backup_type == 'restore' %}Data Restore
+                                                {% elif entry.backup_type == 'pre_restore' %}Safety Snapshot
+                                                {% else %}{{ entry.backup_type|title }}{% endif %}
+                                            </span>
+                                            <span class="text-[10px] text-text-muted font-medium mt-1 block uppercase">{{ entry.created_at.strftime('%Y-%m-%d %H:%M') }}</span>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td class="px-6 py-4">
+                                    <span class="text-sm font-bold text-text">{{ entry.record_count }} records</span>
+                                </td>
+                                <td class="px-6 py-4">
+                                    <div class="text-[11px] font-medium text-text-muted max-w-[150px] truncate" title="{{ entry.file_name }}">{{ entry.file_name }}</div>
+                                    <div class="text-[10px] text-text-muted/60 mt-0.5">{{ (entry.file_size / 1024)|round(1) }} KB</div>
+                                </td>
+                                <td class="px-6 py-4">
+                                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase
+                                        {% if entry.status == 'completed' %}bg-success/10 text-success{% else %}bg-danger/10 text-danger{% endif %} border
+                                        {% if entry.status == 'completed' %}border-success/20{% else %}border-danger/20{% endif %}">
+                                        {{ entry.status }}
+                                    </span>
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="4" class="px-6 py-12 text-center text-text-muted">
+                                    <div class="flex flex-col items-center gap-2 opacity-30">
+                                        <i data-lucide="database-zap" class="w-12 h-12"></i>
+                                        <p class="font-medium">No backup history available yet</p>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
-    </div>
 
-    <!-- Tips Section -->
-    <div class="bg-surface rounded-2xl border border-border shadow-sm p-6 sm:p-8 relative overflow-hidden group">
-        <!-- Decorative accent -->
-        <div class="absolute left-0 top-0 bottom-0 w-1.5 bg-primary"></div>
-        
-        <div class="absolute right-[-20px] bottom-[-20px] opacity-5 pointer-events-none group-hover:scale-110 transition-transform duration-500">
-            <i data-lucide="lightbulb" class="w-48 h-48"></i>
-        </div>
+        <!-- Sidebar Info Column -->
+        <div class="space-y-8">
+            <!-- Integrity Verification Card -->
+            <div class="bg-surface rounded-3xl border border-border shadow-sm p-8 group relative overflow-hidden">
+                <div class="absolute right-[-20px] top-[-20px] opacity-[0.03] group-hover:scale-110 transition-transform duration-500">
+                    <i data-lucide="fingerprint" class="w-32 h-32"></i>
+                </div>
+                
+                <h3 class="text-lg font-bold font-heading m-0 mb-4 flex items-center gap-2">
+                    <i data-lucide="fingerprint" class="w-5 h-5 text-primary"></i> Integrity Verification
+                </h3>
+                <p class="text-sm text-text-muted mb-6 leading-relaxed">
+                    Upload a backup file to verify its digital fingerprint and ensure the data hasn't been corrupted.
+                </p>
+                
+                <form id="verifyForm">
+                    <label for="verify_file" class="w-full h-24 border-2 border-border border-dashed rounded-2xl flex flex-col items-center justify-center cursor-pointer hover:bg-surface-active/20 hover:border-primary/50 transition-all group/verify">
+                        <i data-lucide="search" class="w-6 h-6 text-text-muted mb-1 group-hover/verify:text-primary transition-colors"></i>
+                        <span class="text-xs font-bold text-text-muted group-hover/verify:text-text">Select File to Verify</span>
+                        <input type="file" id="verify_file" accept=".json" class="hidden">
+                    </label>
+                </form>
 
-        <div class="relative z-10">
-            <h3 class="text-lg font-bold font-heading text-text m-0 mb-4 flex items-center gap-2">
-                <i data-lucide="lightbulb" class="w-5 h-5 text-primary"></i> Backup Best Practices
-            </h3>
-            
-            <ul class="space-y-3 text-sm text-text-muted pl-1 m-0 list-none">
-                <li class="flex items-start gap-3">
-                    <i data-lucide="check-circle-2" class="w-4 h-4 text-success mt-0.5 shrink-0"></i>
-                    <span>Create regular backups, ideally at least once a week, to avoid data loss.</span>
-                </li>
-                <li class="flex items-start gap-3">
-                    <i data-lucide="check-circle-2" class="w-4 h-4 text-success mt-0.5 shrink-0"></i>
-                    <span>Store backup files in a secure location, such as cloud storage or an encrypted external drive.</span>
-                </li>
-                <li class="flex items-start gap-3">
-                    <i data-lucide="check-circle-2" class="w-4 h-4 text-success mt-0.5 shrink-0"></i>
-                    <span>Before restoring, ensure the backup file is from a trusted source and has not been modified.</span>
-                </li>
-                <li class="flex items-start gap-3">
-                    <i data-lucide="alert-triangle" class="w-4 h-4 text-warning mt-0.5 shrink-0"></i>
-                    <span>Restoring a backup will overwrite all current data. Consider creating a fresh backup before restoring an old one.</span>
-                </li>
-                <li class="flex items-start gap-3">
-                    <i data-lucide="check-circle-2" class="w-4 h-4 text-success mt-0.5 shrink-0"></i>
-                    <span>Keep multiple backup versions so you can recover from different points in time.</span>
-                </li>
-            </ul>
+                <div id="verifyResult" class="hidden mt-6 animate-in fade-in zoom-in duration-300">
+                    <!-- Result injected here via JS -->
+                </div>
+            </div>
+
+            <!-- Best Practices Section -->
+            <div class="bg-surface rounded-3xl border border-border shadow-sm p-8 group relative overflow-hidden">
+                <div class="absolute right-[-20px] bottom-[-20px] opacity-[0.03] group-hover:rotate-12 transition-transform duration-500">
+                    <i data-lucide="lightbulb" class="w-32 h-32"></i>
+                </div>
+
+                <div class="relative z-10">
+                    <h3 class="text-lg font-bold font-heading m-0 mb-4 flex items-center gap-2">
+                        <i data-lucide="lightbulb" class="w-5 h-5 text-warning"></i> Pro Tips
+                    </h3>
+                    
+                    <ul class="space-y-4 m-0 p-0 list-none">
+                        <li class="flex items-start gap-4 p-3 rounded-2xl border border-border/50 bg-white/5">
+                            <i data-lucide="clock" class="w-5 h-5 text-primary shrink-0 mt-0.5"></i>
+                            <div class="text-xs leading-relaxed">
+                                <span class="font-bold block mb-1">Weekly Routine</span>
+                                Back up every Sunday evening to start your financial week with a fresh safety net.
+                            </div>
+                        </li>
+                        <li class="flex items-start gap-4 p-3 rounded-2xl border border-border/50 bg-white/5">
+                            <i data-lucide="cloud" class="w-5 h-5 text-success shrink-0 mt-0.5"></i>
+                            <div class="text-xs leading-relaxed">
+                                <span class="font-bold block mb-1">Off-Site Storage</span>
+                                Upload your backup JSON to Google Drive or iCloud for protection against hardware loss.
+                            </div>
+                        </li>
+                        <li class="flex items-start gap-4 p-3 rounded-2xl border border-border/50 bg-white/5">
+                            <i data-lucide="lock" class="w-5 h-5 text-danger shrink-0 mt-0.5"></i>
+                            <div class="text-xs leading-relaxed">
+                                <span class="font-bold block mb-1">Data Privacy</span>
+                                Your backup contains full financial details. Protect it with the same care as your passwords.
+                            </div>
+                        </li>
+                        <li class="flex items-start gap-4 p-3 rounded-2xl border border-border/50 bg-white/5">
+                            <i data-lucide="refresh-cw" class="w-5 h-5 text-secondary shrink-0 mt-0.5"></i>
+                            <div class="text-xs leading-relaxed">
+                                <span class="font-bold block mb-1">Verify First</span>
+                                Always use the "Verify" tool before restoring a backup from a secondary device.
+                            </div>
+                        </li>
+                    </ul>
+                </div>
+            </div>
         </div>
     </div>
 </div>
 
+<!-- Styles for custom elements -->
+<style>
+    @keyframes progress-shimmer {
+        0% { transform: translateX(-100%); }
+        100% { transform: translateX(100%); }
+    }
+    .progress-shimmer {
+        position: relative;
+        overflow: hidden;
+    }
+    .progress-shimmer::after {
+        content: '';
+        position: absolute;
+        top: 0; left: 0; right: 0; bottom: 0;
+        background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+        animation: progress-shimmer 2s infinite;
+    }
+</style>
+
 <script>
 document.addEventListener('DOMContentLoaded', () => {
-    lucide.createIcons();
-    
-    // File input UX enhancement
-    const fileInput = document.getElementById('backup_file');
-    if(fileInput) {
-        fileInput.addEventListener('change', function() {
-            if(this.files && this.files.length > 0) {
-                const fileName = this.files[0].name;
-                const uploadContainer = this.closest('label');
-                uploadContainer.innerHTML = `
-                    <div class="flex flex-col items-center justify-center pt-5 pb-6">
-                        <i data-lucide="file-check-2" class="w-8 h-8 text-success mb-2"></i>
-                        <p class="mb-1 text-sm font-bold text-text truncate max-w-[200px]">${fileName}</p>
-                        <p class="text-xs text-text-muted/70">Ready to restore</p>
-                    </div>
-                `;
-                lucide.createIcons();
+    // UI Elements
+    const dropZone = document.getElementById('dropZone');
+    const restoreInput = document.getElementById('restore_file');
+    const restorePreview = document.getElementById('restorePreview');
+    const backupForm = document.getElementById('backupForm');
+    const backupBtn = document.getElementById('backupBtn');
+    const backupProgress = document.getElementById('backupProgress');
+    const progressBar = document.getElementById('progressBar');
+    const progressPercent = document.getElementById('progressPercent');
+    const verifyInput = document.getElementById('verify_file');
+    const verifyResult = document.getElementById('verifyResult');
+
+    // ── Create Backup UX ──
+    backupForm.addEventListener('submit', (e) => {
+        backupBtn.disabled = true;
+        backupBtn.classList.add('opacity-50', 'pointer-events-none');
+        backupProgress.classList.remove('hidden');
+        
+        let progress = 0;
+        const interval = setInterval(() => {
+            progress += Math.random() * 15;
+            if (progress >= 95) {
+                progress = 95;
+                clearInterval(interval);
             }
+            progressBar.style.width = `${progress}%`;
+            progressPercent.innerText = `${Math.round(progress)}%`;
+        }, 300);
+
+        // Reset UI after response (approximate trigger)
+        window.setTimeout(() => {
+            progressBar.style.width = `100%`;
+            progressPercent.innerText = `100%`;
+            window.setTimeout(() => {
+                backupBtn.disabled = false;
+                backupBtn.classList.remove('opacity-50', 'pointer-events-none');
+                backupProgress.classList.add('hidden');
+                progressBar.style.width = '0%';
+            }, 1000);
+        }, 3000);
+    });
+
+    // ── Restore Preview UX ──
+    restoreInput.addEventListener('change', function(e) {
+        if (this.files && this.files[0]) {
+            handleFileSelect(this.files[0]);
+        }
+    });
+
+    dropZone.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        dropZone.classList.add('bg-warning/10', 'border-warning');
+    });
+
+    dropZone.addEventListener('dragleave', () => {
+        dropZone.classList.remove('bg-warning/10', 'border-warning');
+    });
+
+    dropZone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        dropZone.classList.remove('bg-warning/10', 'border-warning');
+        if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+            restoreInput.files = e.dataTransfer.files;
+            handleFileSelect(e.dataTransfer.files[0]);
+        }
+    });
+
+    function handleFileSelect(file) {
+        if (!file.name.endsWith('.json')) {
+            alert('Please select a valid .json file');
+            return;
+        }
+
+        // Show loading state in preview
+        restorePreview.classList.remove('hidden');
+        document.getElementById('previewFileName').innerText = file.name;
+        document.getElementById('previewMeta').innerText = 'Analyzing backup payload...';
+        
+        const formData = new FormData();
+        formData.append('file', file);
+
+        fetch('/backup/preview', {
+            method: 'POST',
+            body: formData
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.error) throw new Error(data.error);
+            
+            const dateStr = data.backup_date ? new Date(data.backup_date).toLocaleString() : 'Unknown date';
+            document.getElementById('previewMeta').innerHTML = `
+                <span class="block">Exported: <strong>${dateStr}</strong></span>
+                <span class="block">Containers: <strong>${Object.keys(data.entities).length}</strong> | Total Records: <strong>${data.record_count}</strong></span>
+            `;
+
+            const integrity = document.getElementById('previewIntegrity');
+            const previewIcon = document.getElementById('previewIcon');
+
+            if (data.checksum_valid === true) {
+                integrity.innerText = 'Fingerprint Verified';
+                integrity.className = 'px-4 py-2 rounded-xl text-xs font-bold uppercase bg-success/10 text-success border border-success/20';
+                previewIcon.className = 'w-16 h-16 rounded-2xl flex items-center justify-center bg-success text-white shrink-0';
+                previewIcon.innerHTML = '<i data-lucide="shield-check" class="w-8 h-8"></i>';
+            } else if (data.checksum_valid === false) {
+                integrity.innerText = 'Fingerprint Mismatch';
+                integrity.className = 'px-4 py-2 rounded-xl text-xs font-bold uppercase bg-danger/10 text-danger border border-danger/20';
+                previewIcon.className = 'w-16 h-16 rounded-2xl flex items-center justify-center bg-danger text-white shrink-0';
+                previewIcon.innerHTML = '<i data-lucide="shield-alert" class="w-8 h-8"></i>';
+            } else {
+                integrity.innerText = 'Legacy Backup';
+                integrity.className = 'px-4 py-2 rounded-xl text-xs font-bold uppercase bg-surface-active text-text-muted border border-border';
+                previewIcon.className = 'w-16 h-16 rounded-2xl flex items-center justify-center bg-surface-active text-text-muted shrink-0';
+                previewIcon.innerHTML = '<i data-lucide="file-warning" class="w-8 h-8"></i>';
+            }
+            lucide.createIcons();
+        })
+        .catch(err => {
+            document.getElementById('previewMeta').innerHTML = `<span class="text-danger font-bold">${err.message}</span>`;
+            document.getElementById('previewIntegrity').className = 'hidden';
         });
     }
+
+    // ── Integrity Verify UX ──
+    verifyInput.addEventListener('change', function(e) {
+        if (!this.files || !this.files[0]) return;
+        
+        verifyResult.classList.remove('hidden');
+        verifyResult.innerHTML = `
+            <div class="flex items-center gap-3 text-text-muted text-sm italic">
+                <i data-lucide="loader-2" class="w-4 h-4 animate-spin text-primary"></i>
+                Calculating SHA-256 hash...
+            </div>
+        `;
+        lucide.createIcons();
+
+        const formData = new FormData();
+        formData.append('file', this.files[0]);
+
+        fetch('/backup/verify', {
+            method: 'POST',
+            body: formData
+        })
+        .then(res => res.json())
+        .then(data => {
+            verifyResult.innerHTML = `
+                <div class="p-4 rounded-2xl border ${data.valid ? 'bg-success/5 border-success/20' : 'bg-danger/5 border-danger/20'} space-y-2">
+                    <div class="flex items-center gap-2 font-bold ${data.valid ? 'text-success' : 'text-danger'}">
+                        <i data-lucide="${data.valid ? 'shield-check' : 'shield-x'}" class="w-5 h-5"></i>
+                        ${data.valid ? 'Integrity Validated' : 'Validation Failed'}
+                    </div>
+                    <p class="text-xs text-text-muted">${data.message}</p>
+                    <div class="pt-2 flex justify-between text-[10px] font-mono text-text-muted/60 border-t border-border/30">
+                        <span>Expected: ${data.expected_checksum || 'N/A'}</span>
+                    </div>
+                </div>
+            `;
+            lucide.createIcons();
+        })
+        .catch(err => {
+            verifyResult.innerHTML = `<div class="p-4 rounded-2xl bg-danger/10 text-danger text-xs font-bold">Error: ${err.message}</div>`;
+        });
+    });
+
+    // Re-init icons
+    lucide.createIcons();
 });
 </script>
 {% endblock %}

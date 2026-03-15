@@ -177,7 +177,7 @@
                 </button>
                 {% endif %}
                 <button class="flex-1 btn-secondary flex items-center justify-center gap-2 py-2 px-3 text-sm shadow-sm hover:shadow"
-                        onclick="showEditCreditorModal(`{{ creditor.id }}`, `{{ creditor.name | replace('`', '') }}`, `{{ creditor.amount }}`, `{{ creditor.description | default('', true) | replace('`', '') }}`, `{{ creditor.original_amount or '' }}`)">
+                        onclick="showEditCreditorModal(`{{ creditor.id }}`, `{{ creditor.name | replace('`', '') }}`, `{{ creditor.amount }}`, `{{ creditor.description | default('', true) | replace('`', '') }}`, `{{ creditor.original_amount or '' }}`, `{{ creditor.created_at.strftime('%Y-%m-%d') if creditor.created_at else '' }}`)">
                     <i data-lucide="pencil" class="w-4 h-4"></i> Edit
                 </button>
                 <form action="{{ url_for('main.delete_creditor', id=creditor.id) }}" method="POST" class="flex-shrink-0" onsubmit="return confirm('Delete this creditor record?');">
@@ -343,6 +343,15 @@
                 <p class="text-xs text-text-muted mt-1">If selected, the amount will be added to this wallet's balance.</p>
             </div>
             <div class="form-group mb-0">
+                <label class="text-sm font-semibold text-text mb-1 block">Date Incurred</label>
+                <div class="relative">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <i data-lucide="calendar" class="w-4 h-4 text-text-muted"></i>
+                    </div>
+                    <input type="date" name="date" value="{{ now_date }}" class="form-control rounded-xl border-border bg-surface focus:ring-2 focus:ring-primary/50 transition-all" style="padding-left: 2.5rem !important;" required>
+                </div>
+            </div>
+            <div class="form-group mb-0">
                 <label class="text-sm font-semibold text-text mb-1 block">Description (Optional)</label>
                 <textarea name="description" class="form-control rounded-xl border-border bg-surface focus:ring-2 focus:ring-primary/50 transition-all resize-none" rows="3" placeholder="Additional details"></textarea>
             </div>
@@ -390,6 +399,15 @@
                 <textarea name="description" id="edit_description" class="form-control rounded-xl border-border bg-surface focus:ring-2 focus:ring-primary/50 transition-all resize-none" rows="2"></textarea>
             </div>
             <div class="form-group mb-0">
+                <label class="text-sm font-semibold text-text mb-1 block">Date Incurred</label>
+                <div class="relative">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <i data-lucide="calendar" class="w-4 h-4 text-text-muted"></i>
+                    </div>
+                    <input type="date" name="date" id="edit_date" class="form-control rounded-xl border-border bg-surface focus:ring-2 focus:ring-primary/50 transition-all" style="padding-left: 2.5rem !important;" required>
+                </div>
+            </div>
+            <div class="form-group mb-0">
                 <label class="text-sm font-semibold text-text mb-1 flex items-center gap-2">
                     Original Amount 
                     <span class="group relative cursor-help">
@@ -426,11 +444,12 @@
 
     function showAddCreditorModal() { document.getElementById('addCreditorModal').style.display = 'flex'; }
     function hideAddCreditorModal() { document.getElementById('addCreditorModal').style.display = 'none'; }
-    function showEditCreditorModal(id, name, amount, desc, original) {
+    function showEditCreditorModal(id, name, amount, desc, original, date) {
         document.getElementById('edit_name').value = name;
         document.getElementById('edit_amount').value = amount;
         document.getElementById('edit_description').value = desc;
         document.getElementById('edit_original_amount').value = original || amount;
+        document.getElementById('edit_date').value = date || new Date().toISOString().split('T')[0];
         document.getElementById('editCreditorForm').action = `/creditor/edit/${id}`;
         document.getElementById('editCreditorModal').style.display = 'flex';
     }

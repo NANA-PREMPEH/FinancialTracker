@@ -156,6 +156,7 @@ def register_routes(main):
             except (TypeError, ValueError):
                 priority = 3
             notes = (request.form.get('notes') or '').strip() or None
+            created_at = _parse_due_date(request.form.get('date')) or datetime.utcnow()
 
             creditor = Creditor(
                 user_id=current_user.id,
@@ -167,6 +168,7 @@ def register_routes(main):
                 interest_rate=interest_rate,
                 original_amount=original_amount,
                 due_date=due_date,
+                created_at=created_at,
                 payment_frequency=payment_frequency,
                 minimum_payment=minimum_payment,
                 contact_info=contact_info,
@@ -198,7 +200,7 @@ def register_routes(main):
                             description=f"Loan from {name}",
                             category_id=loan_cat.id,
                             wallet_id=wallet.id,
-                            date=datetime.utcnow(),
+                            date=created_at,
                             transaction_type='income',
                             tags='loan_received',
                             notes=f"Creditor ID: {creditor.id}"
@@ -280,6 +282,11 @@ def register_routes(main):
         except (TypeError, ValueError):
             pass
         creditor.notes = (request.form.get('notes') or '').strip() or None
+
+        # Update creation date if provided
+        new_created_at = _parse_due_date(request.form.get('date'))
+        if new_created_at:
+            creditor.created_at = new_created_at
 
         db.session.commit()
         flash('Debt updated successfully!', 'success')

@@ -228,7 +228,8 @@ def register_routes(main):
                 minimum_payment=minimum_payment,
                 contact_info=contact_info,
                 priority=priority,
-                notes=notes
+                notes=notes,
+                wallet_id=wallet_id
             )
             db.session.add(debtor)
             db.session.commit()
@@ -291,6 +292,12 @@ def register_routes(main):
         debtor.interest_rate = interest_rate
         debtor.original_amount = original_amount
         debtor.due_date = due_date if request.form.get('due_date') else None
+        
+        # Update creation date if provided
+        new_created_at = _parse_due_date(request.form.get('date'))
+        if new_created_at:
+            debtor.created_at = new_created_at
+            
         debtor.payment_frequency = (request.form.get('payment_frequency') or '').strip() or None
         try:
             debtor.minimum_payment = max(float(request.form.get('minimum_payment', debtor.minimum_payment or 0) or 0), 0)
@@ -303,6 +310,17 @@ def register_routes(main):
         except (TypeError, ValueError):
             pass
         debtor.notes = (request.form.get('notes') or '').strip() or None
+        
+        try:
+            new_wallet_id = int(request.form.get('wallet_id'))
+            if new_wallet_id != debtor.wallet_id:
+                debtor.wallet_id = new_wallet_id
+                # Update the associated expense if it exists
+                expense = Expense.query.filter_by(user_id=current_user.id, tags='debt_lent').filter(Expense.description.like(f"%{debtor.name}%")).order_by(Expense.date.desc()).first()
+                if expense:
+                    expense.wallet_id = new_wallet_id
+        except (TypeError, ValueError):
+            pass
 
         db.session.commit()
         flash('Debtor updated successfully!', 'success')

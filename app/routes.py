@@ -2,7 +2,8 @@ from flask import Blueprint, render_template, request, redirect, url_for, flash,
 from flask_login import login_required, current_user
 from . import db
 from .models import (Expense, Category, Wallet, Budget, FinancialSummary,
-                     Creditor, WalletShare)
+                     Creditor, WalletShare, ProjectItem, ProjectItemPayment,
+                     DebtPayment, DebtorPayment, ContractPayment)
 from .utils import get_exchange_rate
 from datetime import datetime, timedelta
 from sqlalchemy import func, or_
@@ -54,11 +55,11 @@ def dashboard():
     transfer_cat = Category.query.filter_by(name='Transfer', user_id=current_user.id).first()
     transfer_id = transfer_cat.id if transfer_cat else -1
     transfer_types = ('transfer', 'transfer_out', 'transfer_in')
+    # Updated Robust Transfer Filter (Handles NULL tags/description)
     transfer_filters = [
         Expense.transaction_type.in_(transfer_types),
-        Expense.tags.ilike('%transfer%'),
-        Expense.description.ilike('Transfer to %'),
-        Expense.description.ilike('Transfer from %')
+        func.coalesce(Expense.tags, '').ilike('%transfer%'),
+        func.coalesce(Expense.description, '').ilike('Transfer %')
     ]
     if transfer_id != -1:
         transfer_filters.append(Expense.category_id == transfer_id)
@@ -71,17 +72,31 @@ def dashboard():
 
     dashboard_start_date = datetime(2024, 1, 1)
 
-    # Exclude transfers from totals
+    # --- De-duplication Logic ---
+    # Find latest month covered by summaries to avoid double-counting in totals
+    latest_summary = FinancialSummary.query.filter_by(user_id=current_user.id).order_by(
+        FinancialSummary.year.desc(), FinancialSummary.month.desc()).first()
+    
+    if latest_summary:
+        ly, lm = latest_summary.year, latest_summary.month or 12
+        if lm == 12:
+            live_totals_start = datetime(ly + 1, 1, 1)
+        else:
+            live_totals_start = datetime(ly, lm + 1, 1)
+    else:
+        live_totals_start = dashboard_start_date
+
+    # Live totals from the Expense table (starting after latest history)
     total_expenses = db.session.query(func.sum(Expense.amount)).filter(
         Expense.user_id == current_user.id,
         Expense.transaction_type == 'expense',
-        Expense.date >= dashboard_start_date,
+        Expense.date >= live_totals_start,
         ~transfer_filter
     ).scalar() or 0
     total_income = db.session.query(func.sum(Expense.amount)).filter(
         Expense.user_id == current_user.id,
         Expense.transaction_type == 'income',
-        Expense.date >= dashboard_start_date,
+        Expense.date >= live_totals_start,
         ~transfer_filter
     ).scalar() or 0
 
@@ -97,6 +112,31 @@ def dashboard():
 
     total_expenses += hist_expenses
     total_income += hist_income
+    # --- Unified Actuals: Extra Payments (Live) ---
+    # Only include payments from months NOT covered by historical sums
+    # Debt Payments (Expense)
+    extra_debt_expense = db.session.query(func.sum(DebtPayment.amount)).filter(
+        DebtPayment.user_id == current_user.id,
+        DebtPayment.date >= live_totals_start
+    ).scalar() or 0
+
+    # Debtor Payments (Income)
+    extra_debtor_income = db.session.query(func.sum(DebtorPayment.amount)).filter(
+        DebtorPayment.user_id == current_user.id,
+        DebtorPayment.date >= live_totals_start
+    ).scalar() or 0
+
+    # Contract Payments (Income)
+    extra_contract_income = db.session.query(func.sum(ContractPayment.amount)).filter(
+        ContractPayment.user_id == current_user.id,
+        ContractPayment.payment_date >= live_totals_start
+    ).scalar() or 0
+
+    total_expenses += extra_debt_expense
+    total_income += extra_debtor_income + extra_contract_income
+    # ---------------------------------------------
+    # ---------------------------------------------
+
 
     # Get all-time Money Lent (Live) - starting from 2024
     debt_lent_cat = Category.query.filter_by(name='Money Lent', user_id=current_user.id).first()
@@ -172,6 +212,15 @@ def dashboard():
         Expense.date >= month_start,
         ~transfer_filter
     ).scalar() or 0
+
+    # Current month's extra expenses
+    curr_extra_debt_exp = db.session.query(func.sum(DebtPayment.amount)).filter(
+        DebtPayment.user_id == current_user.id,
+        DebtPayment.date >= month_start
+    ).scalar() or 0
+
+    monthly_expenses += curr_extra_debt_exp
+
 
     # Calculate current year's expenses
     year_start = datetime(now.year, 1, 1)
@@ -273,13 +322,34 @@ def dashboard():
             m_end = datetime(y + 1, 1, 1)
         else:
             m_end = datetime(y, m + 1, 1)
-        m_total = db.session.query(func.sum(Expense.amount)).filter(
-            Expense.user_id == current_user.id,
-            Expense.transaction_type == 'expense',
-            Expense.date >= m_start,
-            Expense.date < m_end,
-            ~transfer_filter
+        hist_summary = FinancialSummary.query.filter_by(
+            user_id=current_user.id,
+            year=y,
+            month=m
+        ).first()
+
+        if hist_summary:
+            # If historical summary exists, use it as ground truth for that month
+            m_total = hist_summary.total_expense
+        else:
+            # Otherwise use live data
+            m_total = db.session.query(func.sum(Expense.amount)).filter(
+                Expense.user_id == current_user.id,
+                Expense.transaction_type == 'expense',
+                Expense.date >= m_start,
+                Expense.date < m_end,
+                ~transfer_filter
+            ).scalar() or 0
+
+        # Extra payments for this month (Debt Only)
+        m_extra_debt_exp = db.session.query(func.sum(DebtPayment.amount)).filter(
+            DebtPayment.user_id == current_user.id,
+            DebtPayment.date >= m_start,
+            DebtPayment.date < m_end
         ).scalar() or 0
+
+        m_total += m_extra_debt_exp
+
 
         m_lent = db.session.query(func.sum(Expense.amount)).filter(
             Expense.user_id == current_user.id,

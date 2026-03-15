@@ -1,9 +1,9 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash
 from flask_login import login_required, current_user
 from . import db
-from .models import CashFlowProjection, CashFlowAlert, Expense
+from .models import CashFlowProjection, CashFlowAlert, Expense, ProjectItem, ProjectItemPayment, DebtPayment, DebtorPayment, ContractPayment, Category, FinancialSummary
 from datetime import datetime, timedelta
-from sqlalchemy import func
+from sqlalchemy import func, or_
 import calendar as cal_module
 
 cashflow_bp = Blueprint('cashflow', __name__)
@@ -29,6 +29,20 @@ def cash_flow():
             curr_y -= 1
     months_list.reverse()
 
+    # Exclude Transfer category
+    transfer_cat = Category.query.filter_by(name='Transfer', user_id=current_user.id).first()
+    transfer_id = transfer_cat.id if transfer_cat else -1
+    transfer_types = ('transfer', 'transfer_out', 'transfer_in')
+    
+    # Robust Transfer Filter (Handles NULLs)
+    transfer_filter = or_(
+        Expense.transaction_type.in_(transfer_types),
+        func.coalesce(Expense.tags, '').ilike('%transfer%'),
+        func.coalesce(Expense.description, '').ilike('Transfer %')
+    )
+    if transfer_id != -1:
+        transfer_filter = or_(transfer_filter, Expense.category_id == transfer_id)
+
     for y, m in months_list:
         month_start = datetime(y, m, 1)
         if m == 12:
@@ -36,19 +50,52 @@ def cash_flow():
         else:
             month_end = datetime(y, m + 1, 1)
 
-        actual_income = db.session.query(func.sum(Expense.amount)).filter(
-            Expense.user_id == current_user.id,
-            Expense.transaction_type == 'income',
-            Expense.date >= month_start,
-            Expense.date < month_end
-        ).scalar() or 0
+        # Check for historical summary
+        hist_summary = FinancialSummary.query.filter_by(
+            user_id=current_user.id, year=y, month=m).first()
 
-        actual_expenses = db.session.query(func.sum(Expense.amount)).filter(
-            Expense.user_id == current_user.id,
-            Expense.transaction_type == 'expense',
-            Expense.date >= month_start,
-            Expense.date < month_end
-        ).scalar() or 0
+        if hist_summary:
+            actual_income = hist_summary.total_income
+            actual_expenses = hist_summary.total_expense
+        else:
+            actual_income = db.session.query(func.sum(Expense.amount)).filter(
+                Expense.user_id == current_user.id,
+                Expense.transaction_type == 'income',
+                Expense.date >= month_start,
+                Expense.date < month_end,
+                ~transfer_filter
+            ).scalar() or 0
+
+            actual_expenses = db.session.query(func.sum(Expense.amount)).filter(
+                Expense.user_id == current_user.id,
+                Expense.transaction_type == 'expense',
+                Expense.date >= month_start,
+                Expense.date < month_end,
+                ~transfer_filter
+            ).scalar() or 0
+
+            # Extra payments for this month (Cash Flow)
+            m_extra_debt_exp = db.session.query(func.sum(DebtPayment.amount)).filter(
+                DebtPayment.user_id == current_user.id,
+                DebtPayment.date >= month_start,
+                DebtPayment.date < month_end
+            ).scalar() or 0
+
+            m_extra_debtor_inc = db.session.query(func.sum(DebtorPayment.amount)).filter(
+                DebtorPayment.user_id == current_user.id,
+                DebtorPayment.date >= month_start,
+                DebtorPayment.date < month_end
+            ).scalar() or 0
+
+            m_extra_contract_inc = db.session.query(func.sum(ContractPayment.amount)).filter(
+                ContractPayment.user_id == current_user.id,
+                ContractPayment.payment_date >= month_start,
+                ContractPayment.payment_date < month_end
+            ).scalar() or 0
+
+            actual_expenses += m_extra_debt_exp
+            actual_income += m_extra_debtor_inc + m_extra_contract_inc
+
 
         # Find matching projection
         proj = CashFlowProjection.query.filter_by(
