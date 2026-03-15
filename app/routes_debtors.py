@@ -368,9 +368,33 @@ def register_routes(main):
     @login_required
     def delete_debtor(id):
         debtor = _debtor_for_current_user_or_404(id)
+        
+        # Refund remaining amount to wallet if applicable
+        if debtor.amount > 0 and debtor.wallet_id:
+            wallet = Wallet.query.get(debtor.wallet_id)
+            if wallet and wallet.user_id == current_user.id:
+                wallet.balance += debtor.amount
+                
+            # Clean up or update the associated 'debt_lent' expense
+            expense = Expense.query.filter_by(
+                user_id=current_user.id, 
+                tags='debt_lent'
+            ).filter(Expense.description.like(f"%{debtor.name}%")).order_by(Expense.date.desc()).first()
+            
+            if expense:
+                if debtor.amount >= debtor.original_amount:
+                    # Fully unpaid loan being deleted - remove the expense entirely
+                    db.session.delete(expense)
+                else:
+                    # Partially paid loan being deleted - reduce the expense to the amount already collected
+                    # (since that amount was technically 'spent' and then 'recovered' through collections)
+                    # However, typical user expectation for 'delete' is to undo the transaction if refunding.
+                    # Given the user says "refund back to associated wallet", deleting the expense reflects the reversal.
+                    db.session.delete(expense)
+
         db.session.delete(debtor)
         db.session.commit()
-        flash('Debtor removed successfully!', 'success')
+        flash('Debtor removed and balance refunded to wallet (if applicable).', 'success')
         return redirect(_safe_return_url_debtors())
 
     @main.route('/debtors/collect/<int:id>', methods=['POST'])
