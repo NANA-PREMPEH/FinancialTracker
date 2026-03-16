@@ -1,7 +1,8 @@
 from flask import render_template, request, redirect, url_for, flash
 from flask_login import login_required, current_user
 from . import db
-from .models import Expense, Category, Wallet
+from .models import Expense, Category, Wallet, WalletShare
+from .utils import get_exchange_rate
 from datetime import datetime
 
 
@@ -11,7 +12,55 @@ def register_routes(main):
     @login_required
     def wallets():
         all_wallets = Wallet.query.filter_by(user_id=current_user.id).all()
+        
+        # Wallets shared with me (accepted)
+        shared_shares = WalletShare.query.filter_by(
+            shared_with_id=current_user.id, accepted=True
+        ).all()
+        shared_with_me = shared_shares
+        
+        # Wallets I've shared with others
+        # sent = WalletShare.query.filter_by(owner_id=current_user.id).all()
+        
+        # Pending invites for me
+        pending_invites = WalletShare.query.filter_by(
+            shared_with_id=current_user.id, accepted=False
+        ).all()
 
+        # Calculate totals
+        totals_by_currency = {}
+        grand_total = 0.0
+        primary_currency = current_user.default_currency or 'GHS'
+        
+        # Process owned wallets
+        for wallet in all_wallets:
+            currency = wallet.currency
+            if currency not in totals_by_currency:
+                totals_by_currency[currency] = 0.0
+            totals_by_currency[currency] += wallet.balance
+            
+            # Convert to primary currency for grand total
+            if currency == primary_currency:
+                grand_total += wallet.balance
+            else:
+                rate = get_exchange_rate(currency, primary_currency)
+                grand_total += wallet.balance * rate
+
+        # Process shared wallets (that I have access to)
+        for share in shared_shares:
+            wallet = share.wallet
+            currency = wallet.currency
+            if currency not in totals_by_currency:
+                totals_by_currency[currency] = 0.0
+            totals_by_currency[currency] += wallet.balance
+            
+            # Convert to primary currency for grand total
+            if currency == primary_currency:
+                grand_total += wallet.balance
+            else:
+                rate = get_exchange_rate(currency, primary_currency)
+                grand_total += wallet.balance * rate
+        
         # Fetch recent transfers
         transfers = []
         transfer_category = Category.query.filter_by(name='Transfer', user_id=current_user.id).first()
@@ -20,7 +69,14 @@ def register_routes(main):
                 .order_by(Expense.date.desc())\
                 .limit(10).all()
 
-        return render_template('wallets.html', wallets=all_wallets, transfers=transfers)
+        return render_template('wallets.html', 
+                               wallets=all_wallets, 
+                               shared_with_me=shared_with_me,
+                               pending_invites=pending_invites,
+                               transfers=transfers, 
+                               totals_by_currency=totals_by_currency, 
+                               grand_total=grand_total,
+                               primary_currency=primary_currency)
 
     @main.route('/wallets/add', methods=['GET', 'POST'])
     @login_required

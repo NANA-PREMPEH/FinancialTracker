@@ -168,7 +168,7 @@ def dashboard():
     ).scalar() or 0
 
     actual_total_expenses = total_expenses - total_money_lent
-    actual_total_income = total_income - total_m_recovered
+    actual_total_income = total_income - total_m_recovered - extra_debtor_income - extra_contract_income
 
     # Get the oldest date for Total Expenses context (respecting 2024 start)
     oldest_expense = db.session.query(func.min(Expense.date)).filter(

@@ -68,6 +68,8 @@ def register_routes(main):
                 # (Models show they are separate: actual_expense is there too but maybe not filled).
                 m_lent = 0 
                 m_recovered = 0
+                m_extra_debtor_inc = 0
+                m_extra_contract_inc = 0
             else:
                 # Live query
                 expense_total = db.session.query(func.sum(Expense.amount)).filter(
@@ -137,7 +139,7 @@ def register_routes(main):
                 'expense': expense_total,
                 'actual_expense': expense_total - m_lent,
                 'income': income_total,
-                'actual_income': income_total - m_recovered
+                'actual_income': income_total - m_recovered - m_extra_debtor_inc - m_extra_contract_inc
             })
 
         # Yearly trend (Last 12 Months)
@@ -163,6 +165,8 @@ def register_routes(main):
                 income_total = hist_summary.total_income
                 m_lent = 0
                 m_recovered = 0
+                y_extra_debtor_inc = 0
+                y_extra_contract_inc = 0
             else:
                 expense_total = db.session.query(func.sum(Expense.amount)).filter(
                     Expense.user_id == current_user.id,
@@ -227,7 +231,7 @@ def register_routes(main):
                 'expense': expense_total,
                 'actual_expense': expense_total - m_lent,
                 'income': income_total,
-                'actual_income': income_total - m_recovered
+                'actual_income': income_total - m_recovered - y_extra_debtor_inc - y_extra_contract_inc
             })
 
         # Annual Overview (All Years)
@@ -322,7 +326,7 @@ def register_routes(main):
                     y_expense += (m_live_exp + m_extra_d_exp)
                     y_income += (m_live_inc + m_extra_dr_inc + m_extra_c_inc)
                     y_lent += m_live_lent
-                    y_recovered += m_live_recovered
+                    y_recovered += (m_live_recovered + m_extra_dr_inc + m_extra_c_inc)
 
             annual_data.append({
                 'year': year,

@@ -94,7 +94,6 @@ def cash_flow():
             ).scalar() or 0
 
             actual_expenses += m_extra_debt_exp
-            actual_income += m_extra_debtor_inc + m_extra_contract_inc
 
 
         # Find matching projection

@@ -7,7 +7,39 @@
 <div class="space-y-8 max-w-7xl mx-auto">
     <!-- Header Actions -->
     <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-surface p-6 rounded-2xl border border-border shadow-sm">
-        <h2 class="text-xl font-bold font-heading text-text m-0">Your Accounts</h2>
+        <div class="flex-1">
+            <h2 class="text-xl font-bold font-heading text-text m-0 mb-4">Your Financial Overview</h2>
+            <div class="flex flex-col md:flex-row gap-6">
+                <!-- Total Balance Card -->
+                <div class="bg-primary/5 border border-primary/20 rounded-2xl p-5 flex-1 min-w-[240px]">
+                    <div class="flex items-center gap-2 mb-2">
+                        <div class="w-8 h-8 rounded-lg bg-primary/20 text-primary flex items-center justify-center">
+                            <i data-lucide="banknote" class="w-4 h-4"></i>
+                        </div>
+                        <span class="text-xs font-bold text-primary uppercase tracking-wider">Total Balance</span>
+                    </div>
+                    <div class="flex items-baseline gap-2">
+                        <span class="text-2xl font-black text-text font-heading">{{ primary_currency }} {{ "{:,.2f}".format(grand_total) }}</span>
+                    </div>
+                    <p class="text-[10px] text-text-muted mt-1 uppercase font-bold tracking-tighter opacity-70">Unified across all your accounts</p>
+                </div>
+
+                <!-- Breakdown by Currency -->
+                {% if totals_by_currency %}
+                <div class="flex-1">
+                    <span class="text-[10px] font-bold text-text-muted uppercase tracking-widest mb-2 block">Breakdown by Currency</span>
+                    <div class="flex flex-wrap gap-2">
+                        {% for currency, total in totals_by_currency.items() %}
+                        <div class="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-surface-active/50 rounded-xl border border-border/50">
+                            <span class="text-[10px] font-black text-text-muted uppercase">{{ currency }}</span>
+                            <span class="text-xs font-bold text-text">{{ "{:,.2f}".format(total) }}</span>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
         <div class="flex flex-wrap gap-3 w-full sm:w-auto">
             <a href="{{ url_for('shared_wallets.shared_wallets') }}" class="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-surface border border-border text-text font-bold rounded-xl hover:bg-surface-hover transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-primary/50 no-underline relative">
                 <i data-lucide="users" class="w-4 h-4 text-primary"></i> Shared
