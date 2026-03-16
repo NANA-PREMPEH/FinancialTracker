@@ -39,13 +39,13 @@ class TestAPIKeyAuthentication:
             
             assert response.status_code == 200
     
-    def test_api_invalid_key(self, client):
+    def test_api_invalid_key(self, client, db):
         """Test API with invalid key."""
         response = client.get(
             '/api/v1/wallets',
             headers={'X-API-Key': 'invalid-key'}
         )
-        
+
         assert response.status_code == 401
     
     def test_api_query_param_key(self, client, app, test_user, db):
@@ -100,8 +100,8 @@ class TestAPIWallets:
             data = response.get_json()
             assert 'data' in data
     
-    def test_create_wallet_api(self, client, app, test_user, db):
-        """Test creating wallet via API."""
+    def test_create_wallet_api_not_supported(self, client, app, test_user, db):
+        """Test that POST to wallets API is not supported (GET only)."""
         with app.app_context():
             api_key = ApiKey(
                 user_id=test_user.id,
@@ -112,7 +112,7 @@ class TestAPIWallets:
             api_key.set_key('create-wallet-key')
             db.session.add(api_key)
             db.session.commit()
-            
+
             response = client.post(
                 '/api/v1/wallets',
                 headers={'X-API-Key': 'create-wallet-key'},
@@ -122,8 +122,8 @@ class TestAPIWallets:
                     'currency': 'USD'
                 }
             )
-            
-            assert response.status_code == 201
+
+            assert response.status_code == 405
 
 
 class TestAPITransactions:

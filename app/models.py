@@ -119,7 +119,7 @@ class Budget(db.Model):
     user = db.relationship('User', backref=db.backref('_user_budgets', cascade='all, delete-orphan'), lazy=True)
 
     def __repr__(self):
-        return f'<Budget {self.category.name} - {self.amount}>'
+        return f'<Budget category_id={self.category_id} - {self.amount}>'
 
 class RecurringTransaction(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -695,7 +695,7 @@ class ChartOfAccount(db.Model):
     parent_id = db.Column(db.Integer, db.ForeignKey('chart_of_account.id'), nullable=True)
     balance = db.Column(db.Float, default=0.0)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    children = db.relationship('ChartOfAccount', backref=db.backref('parent', remote_side='ChartOfAccount.id'), lazy=True)
+    children = db.relationship('ChartOfAccount', backref=db.backref('parent', remote_side=[id]), lazy=True)
 
     user = db.relationship('User', backref=db.backref('_user_chartofaccounts', cascade='all, delete-orphan'), lazy=True)
 
@@ -839,6 +839,10 @@ class ApiKey(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     user = db.relationship('User', backref=db.backref('_user_apikeies', cascade='all, delete-orphan'), lazy=True)
+
+    def set_key(self, raw_key):
+        from werkzeug.security import generate_password_hash
+        self.key_hash = generate_password_hash(raw_key)
 
     def __repr__(self):
         return f'<ApiKey {self.name}>'

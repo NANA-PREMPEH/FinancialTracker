@@ -17,10 +17,9 @@ def serialize_commitment(c):
         'name': c.name,
         'amount': c.amount,
         'frequency': c.frequency,
-        'category': c.category,
-        'start_date': c.start_date.isoformat() if c.start_date else None,
-        'end_date': c.end_date.isoformat() if c.end_date else None,
-        'is_active': c.is_active,
+        'category': c.commitment_category,
+        'due_date': c.due_date.isoformat() if c.due_date else None,
+        'status': c.status,
         'notes': c.notes,
         'created_at': c.created_at.isoformat() if c.created_at else None,
     }
@@ -38,7 +37,7 @@ def list_commitments():
 @require_api_key('read')
 def list_active_commitments():
     """Get only active commitments (useful for budget calculations)."""
-    commitments = Commitment.query.filter_by(user_id=g.api_user_id, is_active=True).order_by(Commitment.name).all()
+    commitments = Commitment.query.filter_by(user_id=g.api_user_id, status='pending').order_by(Commitment.name).all()
     return jsonify({'data': [serialize_commitment(c) for c in commitments]})
 
 
@@ -66,10 +65,9 @@ def create_commitment():
         name=data['name'],
         amount=float(data['amount']),
         frequency=data['frequency'],
-        category=data.get('category', 'other'),
-        start_date=datetime.fromisoformat(data['start_date']) if data.get('start_date') else datetime.utcnow(),
-        end_date=datetime.fromisoformat(data['end_date']) if data.get('end_date') else None,
-        is_active=data.get('is_active', True),
+        commitment_category=data.get('category', 'Custom'),
+        due_date=datetime.fromisoformat(data['due_date']) if data.get('due_date') else None,
+        status=data.get('status', 'pending'),
         notes=data.get('notes'),
     )
     db.session.add(c)
@@ -92,13 +90,11 @@ def update_commitment(id):
     if 'frequency' in data:
         c.frequency = data['frequency']
     if 'category' in data:
-        c.category = data['category']
-    if 'start_date' in data:
-        c.start_date = datetime.fromisoformat(data['start_date']) if data['start_date'] else None
-    if 'end_date' in data:
-        c.end_date = datetime.fromisoformat(data['end_date']) if data['end_date'] else None
-    if 'is_active' in data:
-        c.is_active = data['is_active']
+        c.commitment_category = data['category']
+    if 'due_date' in data:
+        c.due_date = datetime.fromisoformat(data['due_date']) if data['due_date'] else None
+    if 'status' in data:
+        c.status = data['status']
     if 'notes' in data:
         c.notes = data['notes']
     
@@ -126,6 +122,6 @@ def toggle_commitment(id):
     if not c:
         return jsonify({'error': 'Commitment not found'}), 404
     
-    c.is_active = not c.is_active
+    c.status = 'paid' if c.status == 'pending' else 'pending'
     db.session.commit()
     return jsonify({'data': serialize_commitment(c)})

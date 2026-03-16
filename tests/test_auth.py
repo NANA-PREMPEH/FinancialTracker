@@ -22,13 +22,11 @@ class TestRegistration:
         with app.app_context():
             response = client.post('/auth/register', data={
                 'email': 'newuser@example.com',
-                'username': 'newuser',
-                'first_name': 'New',
-                'last_name': 'User',
+                'name': 'New User',
                 'password': 'securepassword123',
                 'confirm_password': 'securepassword123'
             }, follow_redirects=True)
-            
+
             # Should redirect to login or dashboard
             assert response.status_code == 200
     
@@ -36,13 +34,11 @@ class TestRegistration:
         """Test registration with password mismatch."""
         response = client.post('/auth/register', data={
             'email': 'user@example.com',
-            'username': 'user',
-            'first_name': 'User',
-            'last_name': 'Test',
+            'name': 'User Test',
             'password': 'password123',
             'confirm_password': 'differentpassword'
         })
-        
+
         # Should show error
         assert b'password' in response.data.lower() or b'match' in response.data.lower()
     
@@ -51,13 +47,11 @@ class TestRegistration:
         with app.app_context():
             response = client.post('/auth/register', data={
                 'email': test_user.email,  # Already exists
-                'username': 'different',
-                'first_name': 'Test',
-                'last_name': 'User',
+                'name': 'Test User',
                 'password': 'password123',
                 'confirm_password': 'password123'
             })
-            
+
             # Should show error about email
             assert response.status_code == 200  # Or 400 depending on implementation
 
@@ -92,13 +86,13 @@ class TestLogin:
             # Should show error
             assert b'invalid' in response.data.lower() or b'error' in response.data.lower()
     
-    def test_login_nonexistent_user(self, client):
+    def test_login_nonexistent_user(self, client, db):
         """Test login with non-existent user."""
         response = client.post('/auth/login', data={
             'email': 'nonexistent@example.com',
             'password': 'password123'
         })
-        
+
         # Should show error
         assert response.status_code == 200
 
@@ -106,27 +100,27 @@ class TestLogin:
 class TestPasswordReset:
     """Tests for password reset functionality."""
     
-    def test_request_reset_get(self, client):
+    def test_request_reset_get(self, client, db):
         """Test password reset request page loads."""
-        response = client.get('/auth/request_reset')
+        response = client.get('/auth/reset-password')
         assert response.status_code == 200
-    
+
     def test_request_reset_valid_email(self, client, app, test_user, db):
         """Test password reset request with valid email."""
         with app.app_context():
-            response = client.post('/auth/request_reset', data={
+            response = client.post('/auth/reset-password', data={
                 'email': test_user.email
-            })
-            
-            # Should show success message (even if email doesn't actually send in test)
+            }, follow_redirects=True)
+
+            # Should show success message or redirect to login
             assert response.status_code == 200
-    
-    def test_request_reset_invalid_email(self, client):
+
+    def test_request_reset_invalid_email(self, client, db):
         """Test password reset request with invalid email."""
-        response = client.post('/auth/request_reset', data={
+        response = client.post('/auth/reset-password', data={
             'email': 'nonexistent@example.com'
-        })
-        
+        }, follow_redirects=True)
+
         # Should still show success (to prevent email enumeration)
         assert response.status_code == 200
 
@@ -136,13 +130,13 @@ class TestTwoFactor:
     
     def test_setup_2fa_get(self, authenticated_client):
         """Test 2FA setup page loads for authenticated user."""
-        response = authenticated_client.get('/auth/setup_2fa')
+        response = authenticated_client.get('/auth/setup-2fa')
         # Should either load or redirect if already set up
         assert response.status_code in [200, 302]
-    
+
     def test_verify_2fa_get(self, client):
         """Test 2FA verification page loads."""
-        response = authenticated_client.get('/auth/verify_2fa')
+        response = client.get('/auth/verify-2fa')
         assert response.status_code in [200, 302]
 
 
@@ -164,9 +158,7 @@ class TestAuthenticationFlows:
             # Register
             register_response = client.post('/auth/register', data={
                 'email': 'flowtest@example.com',
-                'username': 'flowtest',
-                'first_name': 'Flow',
-                'last_name': 'Test',
+                'name': 'Flow Test',
                 'password': 'testpass123',
                 'confirm_password': 'testpass123'
             }, follow_redirects=True)

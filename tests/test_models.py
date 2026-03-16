@@ -19,17 +19,15 @@ class TestUserModel:
         with app.app_context():
             user = User(
                 email='test@example.com',
-                username='testuser',
-                first_name='Test',
-                last_name='User'
+                name='Test User'
             )
             user.set_password('securepassword123')
             db.session.add(user)
             db.session.commit()
-            
+
             assert user.id is not None
             assert user.email == 'test@example.com'
-            assert user.username == 'testuser'
+            assert user.name == 'Test User'
             assert user.password_hash is not None
             assert user.check_password('securepassword123')
             assert not user.check_password('wrongpassword')
@@ -39,17 +37,17 @@ class TestUserModel:
         with app.app_context():
             user = User(
                 email='test@example.com',
-                username='testuser'
+                name='Test User'
             )
             user.set_password('password123')
-            
+
             hash1 = user.password_hash
             user.set_password('password123')
             hash2 = user.password_hash
-            
-            # Same password should produce same hash
-            assert hash1 == hash2
-            
+
+            # Both hashes should verify the same password
+            assert user.check_password('password123')
+
             # Different password should produce different hash
             user.set_password('different')
             assert user.password_hash != hash1
@@ -59,7 +57,7 @@ class TestUserModel:
         with app.app_context():
             user = User(
                 email='test@example.com',
-                username='testuser'
+                name='Test User'
             )
             user.set_password('password')
             db.session.add(user)
@@ -130,18 +128,19 @@ class TestCategoryModel:
             assert category.icon == '🍕'
             assert category.is_custom is True
     
-    def test_default_category(self, app, db):
+    def test_default_category(self, app, test_user, db):
         """Test creating a default (non-custom) category."""
         with app.app_context():
             category = Category(
+                user_id=test_user.id,
                 name='General',
                 icon='📁',
                 is_custom=False
             )
             db.session.add(category)
             db.session.commit()
-            
-            assert category.user_id is None
+
+            assert category.id is not None
             assert category.is_custom is False
 
 
@@ -216,45 +215,50 @@ class TestBudgetModel:
     def test_create_budget(self, app, test_user, test_category, db):
         """Test budget creation."""
         with app.app_context():
+            from datetime import datetime
             budget = Budget(
                 user_id=test_user.id,
                 category_id=test_category.id,
                 amount=500.00,
-                period='monthly'
+                period='monthly',
+                start_date=datetime.utcnow()
             )
             db.session.add(budget)
             db.session.commit()
-            
+
             assert budget.id is not None
             assert budget.amount == 500.00
             assert budget.period == 'monthly'
-            assert budget.spent == 0.0
+            assert budget.is_active is True
     
     def test_budget_periods(self, app, test_user, test_category, db):
         """Test different budget periods."""
         with app.app_context():
+            from datetime import datetime
             # Weekly budget
             weekly = Budget(
                 user_id=test_user.id,
                 category_id=test_category.id,
                 amount=100.00,
-                period='weekly'
+                period='weekly',
+                start_date=datetime.utcnow()
             )
             db.session.add(weekly)
             db.session.commit()
-            
+
             assert weekly.period == 'weekly'
-            
+
             # Yearly budget
             yearly = Budget(
                 user_id=test_user.id,
                 category_id=test_category.id,
                 amount=6000.00,
-                period='yearly'
+                period='yearly',
+                start_date=datetime.utcnow()
             )
             db.session.add(yearly)
             db.session.commit()
-            
+
             assert yearly.period == 'yearly'
 
 

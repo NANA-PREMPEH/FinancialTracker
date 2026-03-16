@@ -39,6 +39,8 @@ def register_routes(main):
                 next_due = start_date + timedelta(days=30)
             elif frequency == 'yearly':
                 next_due = start_date + timedelta(days=365)
+            else:
+                next_due = start_date + timedelta(days=30)  # Default to monthly
 
             recurring = RecurringTransaction(
                 user_id=current_user.id,
@@ -88,6 +90,8 @@ def register_routes(main):
                 recurring.next_due = recurring.start_date + timedelta(days=30)
             elif recurring.frequency == 'yearly':
                 recurring.next_due = recurring.start_date + timedelta(days=365)
+            else:
+                recurring.next_due = recurring.start_date + timedelta(days=30)
 
             db.session.commit()
             flash('Recurring transaction updated successfully!', 'success')

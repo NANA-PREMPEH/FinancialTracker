@@ -18,7 +18,7 @@ def serialize_transaction(t):
         'wallet_id': t.wallet_id,
         'tags': t.tags,
         'notes': t.notes,
-        'created_at': t.created_at.isoformat() if t.created_at else None,
+        'date_created': t.date.isoformat() if t.date else None,
     }
 
 
@@ -101,6 +101,11 @@ def update_transaction(id):
     if not data:
         return jsonify({'error': 'JSON body required'}), 400
 
+    # Capture old values for wallet balance adjustment
+    old_amount = t.amount
+    old_type = t.transaction_type
+    old_wallet_id = t.wallet_id
+
     if 'description' in data:
         t.description = data['description']
     if 'amount' in data:
@@ -109,12 +114,30 @@ def update_transaction(id):
         t.transaction_type = data['transaction_type']
     if 'category_id' in data:
         t.category_id = int(data['category_id'])
+    if 'wallet_id' in data:
+        t.wallet_id = int(data['wallet_id'])
     if 'date' in data:
         t.date = datetime.fromisoformat(data['date'])
     if 'tags' in data:
         t.tags = data['tags']
     if 'notes' in data:
         t.notes = data['notes']
+
+    # Reverse old wallet effect
+    old_wallet = Wallet.query.filter_by(id=old_wallet_id, user_id=g.api_user_id).first()
+    if old_wallet:
+        if old_type == 'income':
+            old_wallet.balance -= old_amount
+        elif old_type == 'expense':
+            old_wallet.balance += old_amount
+
+    # Apply new wallet effect
+    new_wallet = Wallet.query.filter_by(id=t.wallet_id, user_id=g.api_user_id).first()
+    if new_wallet:
+        if t.transaction_type == 'income':
+            new_wallet.balance += t.amount
+        elif t.transaction_type == 'expense':
+            new_wallet.balance -= t.amount
 
     db.session.commit()
     return jsonify({'data': serialize_transaction(t)})

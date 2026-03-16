@@ -21,11 +21,11 @@ def app():
     """Create and configure a test Flask application."""
     from app import create_app
     from app.config import TestingConfig
-    
+
     app = create_app(TestingConfig)
     app.config['TESTING'] = True
     app.config['WTF_CSRF_ENABLED'] = False
-    
+
     return app
 
 
@@ -39,7 +39,7 @@ def client(app):
 def db(app):
     """Create a fresh database for each test."""
     from app import db as db_instance
-    
+
     with app.app_context():
         db_instance.create_all()
         yield db_instance
@@ -54,109 +54,95 @@ def session(db):
 
 
 @pytest.fixture
-def authenticated_client(client, app):
+def authenticated_client(client, app, db):
     """Create an authenticated test client with a logged-in user."""
     from app.models import User
-    from app import db
-    
-    with app.app_context():
-        # Create test user
-        user = User(
-            email='test@example.com',
-            username='testuser',
-            first_name='Test',
-            last_name='User'
-        )
-        user.set_password('testpassword123')
-        db.session.add(user)
-        db.session.commit()
-        
-        # Login the user
-        with client.session_transaction() as sess:
-            sess['_user_id'] = str(user.id)
-            sess['_fresh'] = True
-        
-        return client
+
+    user = User(
+        email='authuser@example.com',
+        name='Auth User'
+    )
+    user.set_password('testpassword123')
+    db.session.add(user)
+    db.session.commit()
+
+    # Login the user
+    with client.session_transaction() as sess:
+        sess['_user_id'] = str(user.id)
+        sess['_fresh'] = True
+
+    return client
 
 
 @pytest.fixture
 def test_user(app, db):
     """Create a test user and return it."""
     from app.models import User
-    
-    with app.app_context():
-        user = User(
-            email='test@example.com',
-            username='testuser',
-            first_name='Test',
-            last_name='User'
-        )
-        user.set_password('testpassword123')
-        db.session.add(user)
-        db.session.commit()
-        
-        # Refresh to get the ID
-        db.session.refresh(user)
-        
-        return user
+
+    user = User(
+        email='test@example.com',
+        name='Test User'
+    )
+    user.set_password('testpassword123')
+    db.session.add(user)
+    db.session.commit()
+    db.session.refresh(user)
+
+    return user
 
 
 @pytest.fixture
-def test_wallet(app, test_user):
+def test_wallet(app, test_user, db):
     """Create a test wallet for the test user."""
     from app.models import Wallet
-    
-    with app.app_context():
-        wallet = Wallet(
-            user_id=test_user.id,
-            name='Test Wallet',
-            balance=1000.00,
-            currency='USD'
-        )
-        app.db.session.add(wallet)
-        app.db.session.commit()
-        
-        return wallet
+
+    wallet = Wallet(
+        user_id=test_user.id,
+        name='Test Wallet',
+        balance=1000.00,
+        currency='USD'
+    )
+    db.session.add(wallet)
+    db.session.commit()
+
+    return wallet
 
 
 @pytest.fixture
-def test_category(app, test_user):
+def test_category(app, test_user, db):
     """Create a test category for the test user."""
     from app.models import Category
-    
-    with app.app_context():
-        category = Category(
-            user_id=test_user.id,
-            name='Test Category',
-            icon='💰',
-            is_custom=True
-        )
-        app.db.session.add(category)
-        app.db.session.commit()
-        
-        return category
+
+    category = Category(
+        user_id=test_user.id,
+        name='Test Category',
+        icon='💰',
+    )
+    db.session.add(category)
+    db.session.commit()
+
+    return category
 
 
 @pytest.fixture
-def test_expense(app, test_user, test_wallet, test_category):
+def test_expense(app, test_user, test_wallet, test_category, db):
     """Create a test expense."""
     from app.models import Expense
     from datetime import datetime
-    
-    with app.app_context():
-        expense = Expense(
-            user_id=test_user.id,
-            description='Test Expense',
-            amount=50.00,
-            transaction_type='expense',
-            category_id=test_category.id,
-            wallet_id=test_wallet.id,
-            date=datetime.utcnow()
-        )
-        app.db.session.add(expense)
-        app.db.session.commit()
-        
-        return expense
+
+    expense = Expense(
+        user_id=test_user.id,
+        description='Test Expense',
+        amount=50.00,
+        transaction_type='expense',
+        category_id=test_category.id,
+        wallet_id=test_wallet.id,
+        date=datetime.utcnow()
+    )
+    db.session.add(expense)
+    db.session.commit()
+
+    return expense
 
 
 def pytest_configure(config):

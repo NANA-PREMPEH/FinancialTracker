@@ -186,7 +186,7 @@ def calc_debt_payoff_strategies(creditors_data, extra_payment=0):
         })
 
     snowball = simulate(debts, 'balance')
-    avalanche = simulate(debts, lambda d: -d['rate'] if callable else 'balance')
+    # Note: avalanche is computed manually below, so skip the broken simulate call
 
     # Redo avalanche properly with correct sort
     debts_aval = []
@@ -283,6 +283,7 @@ def calc_net_worth_projection(current_assets, current_debts, monthly_savings, an
 
 
 @calculator_bp.route("/calculator")
+@login_required
 def calculator_view():
     # Pre-load user creditors for debt payoff calculator if logged in
     creditors = []
