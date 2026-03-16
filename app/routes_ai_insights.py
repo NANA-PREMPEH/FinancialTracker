@@ -3,7 +3,7 @@ from flask_login import login_required, current_user
 from . import db
 from .models import Expense, Category, Budget, Creditor, Goal, Wallet
 from datetime import datetime, timedelta
-from sqlalchemy import func, extract
+from sqlalchemy import func, extract, or_
 import statistics
 
 ai_insights_bp = Blueprint('ai_insights', __name__)
@@ -408,22 +408,80 @@ def get_spending_insights(user_id):
 @ai_insights_bp.route('/ai-insights')
 @login_required
 def ai_insights():
-    insights = get_spending_insights(current_user.id)
-
     # Summary stats
     now = datetime.utcnow()
     month_ago = now - timedelta(days=30)
+    
+    # Exclude Transfer category
+    transfer_cat = Category.query.filter_by(name='Transfer', user_id=current_user.id).first()
+    transfer_id = transfer_cat.id if transfer_cat else -1
+    transfer_filter = or_(
+        Expense.transaction_type.in_(['transfer', 'transfer_out', 'transfer_in']),
+        func.coalesce(Expense.tags, '').ilike('%transfer%'),
+        func.coalesce(Expense.description, '').ilike('Transfer %')
+    )
+    if transfer_id != -1:
+        transfer_filter = or_(transfer_filter, Expense.category_id == transfer_id)
+
     monthly_income = db.session.query(func.sum(Expense.amount)).filter(
         Expense.user_id == current_user.id, Expense.transaction_type == 'income',
-        Expense.date >= month_ago
+        Expense.date >= month_ago,
+        ~transfer_filter
     ).scalar() or 0
     monthly_expenses = db.session.query(func.sum(Expense.amount)).filter(
         Expense.user_id == current_user.id, Expense.transaction_type == 'expense',
-        Expense.date >= month_ago
+        Expense.date >= month_ago,
+        ~transfer_filter
     ).scalar() or 0
-    net_savings = monthly_income - monthly_expenses
-    savings_rate = ((monthly_income - monthly_expenses) / monthly_income * 100) if monthly_income > 0 else 0
 
+    # Actuals Calculations
+    # 1. Money Lent (Expense to exclude)
+    debt_lent_cat = Category.query.filter_by(name='Money Lent', user_id=current_user.id).first()
+    debt_lent_id = debt_lent_cat.id if debt_lent_cat else -1
+    m_lent = db.session.query(func.sum(Expense.amount)).filter(
+        Expense.user_id == current_user.id,
+        Expense.transaction_type == 'expense',
+        Expense.date >= month_ago,
+        or_(Expense.category_id == debt_lent_id, Expense.tags.ilike('%debt_lent%'))
+    ).scalar() or 0
+
+    # 2. Debt Recoveries (Income to exclude)
+    coll_cat = Category.query.filter_by(name='Debt Collection', user_id=current_user.id).first()
+    coll_id = coll_cat.id if coll_cat else -1
+    rec_cat = Category.query.filter_by(name='Bad Debt Recovery', user_id=current_user.id).first()
+    rec_id = rec_cat.id if rec_cat else -1
+    m_recovered = db.session.query(func.sum(Expense.amount)).filter(
+        Expense.user_id == current_user.id,
+        Expense.transaction_type == 'income',
+        Expense.date >= month_ago,
+        or_(
+            Expense.category_id.in_([coll_id, rec_id]),
+            func.coalesce(Expense.tags, '').ilike('%debt_collection%'),
+            func.coalesce(Expense.tags, '').ilike('%bad_debt_recovery%')
+        )
+    ).scalar() or 0
+
+    # 3. Extra Payments
+    from .models import DebtPayment, DebtorPayment, ContractPayment
+    extra_debt_expense = db.session.query(func.sum(DebtPayment.amount)).filter(
+        DebtPayment.user_id == current_user.id,
+        DebtPayment.date >= month_ago
+    ).scalar() or 0
+    extra_debtor_income = db.session.query(func.sum(DebtorPayment.amount)).filter(
+        DebtorPayment.user_id == current_user.id,
+        DebtorPayment.date >= month_ago
+    ).scalar() or 0
+    extra_contract_income = db.session.query(func.sum(ContractPayment.amount)).filter(
+        ContractPayment.user_id == current_user.id,
+        ContractPayment.payment_date >= month_ago
+    ).scalar() or 0
+
+    actual_income = monthly_income - m_recovered
+    actual_expenses = monthly_expenses + extra_debt_expense - m_lent
+    actual_net_savings = actual_income - actual_expenses
+    actual_savings_rate = (actual_net_savings / actual_income * 100) if actual_income > 0 else 0
+
+    insights = get_spending_insights(current_user.id)
     forecast = get_spending_forecast(current_user.id)
     recommendations = get_top_recommendations(current_user.id)
     heatmap = get_weekly_heatmap(current_user.id)
@@ -432,7 +490,8 @@ def ai_insights():
 
     return render_template('ai_insights.html', insights=insights,
                            monthly_income=monthly_income, monthly_expenses=monthly_expenses,
-                           net_savings=net_savings, savings_rate=savings_rate,
+                           actual_income=actual_income, actual_expenses=actual_expenses,
+                           net_savings=actual_net_savings, savings_rate=actual_savings_rate,
                            forecast=forecast, recommendations=recommendations,
                            heatmap=heatmap, income_stability=income_stability,
                            health_score=health_score)

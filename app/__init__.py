@@ -22,6 +22,9 @@ def create_app(config_name=None):
     migrate.init_app(app, db)
     mail.init_app(app)
 
+    # Add max and min to Jinja2 globals
+    app.jinja_env.globals.update(max=max, min=min)
+
     from .oauth import init_oauth
     init_oauth(app)
 

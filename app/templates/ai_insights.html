@@ -22,20 +22,20 @@
         <div class="bg-surface rounded-2xl border border-border shadow-sm p-5 sm:p-6 flex flex-col justify-center">
             <div class="flex items-center gap-2 mb-2">
                 <i data-lucide="trending-up" class="w-5 h-5 text-success"></i>
-                <span class="text-sm font-semibold text-text-muted uppercase tracking-wider">Monthly Income</span>
+                <span class="text-sm font-semibold text-text-muted uppercase tracking-wider">Actual Income</span>
             </div>
-            <div class="text-xl sm:text-2xl font-black font-heading text-success truncate" title="GHS {{ '{:,.2f}'.format(monthly_income) }}">
-                GHS {{ "{:,.2f}".format(monthly_income) }}
+            <div class="text-xl sm:text-2xl font-black font-heading text-success truncate" title="Gross: GHS {{ '{:,.2f}'.format(monthly_income) }}">
+                GHS {{ "{:,.2f}".format(actual_income) }}
             </div>
         </div>
 
         <div class="bg-surface rounded-2xl border border-border shadow-sm p-5 sm:p-6 flex flex-col justify-center">
             <div class="flex items-center gap-2 mb-2">
                 <i data-lucide="trending-down" class="w-5 h-5 text-danger"></i>
-                <span class="text-sm font-semibold text-text-muted uppercase tracking-wider">Monthly Expenses</span>
+                <span class="text-sm font-semibold text-text-muted uppercase tracking-wider">Actual Expenses</span>
             </div>
-            <div class="text-xl sm:text-2xl font-black font-heading text-danger truncate" title="GHS {{ '{:,.2f}'.format(monthly_expenses) }}">
-                GHS {{ "{:,.2f}".format(monthly_expenses) }}
+            <div class="text-xl sm:text-2xl font-black font-heading text-danger truncate" title="Gross: GHS {{ '{:,.2f}'.format(monthly_expenses) }}">
+                GHS {{ "{:,.2f}".format(actual_expenses) }}
             </div>
         </div>
 
