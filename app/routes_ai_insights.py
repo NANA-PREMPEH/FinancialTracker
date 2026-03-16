@@ -92,12 +92,14 @@ def get_top_recommendations(user_id):
 
     # Goal progress check
     active_goals = Goal.query.filter(
-        Goal.user_id == user_id, Goal.status != 'completed'
+        Goal.user_id == user_id, Goal.is_completed == False
     ).all()
     for goal in active_goals[:3]:
         progress = (goal.current_amount / goal.target_amount * 100) if goal.target_amount > 0 else 0
         if progress < 25 and goal.deadline:
-            days_left = (goal.deadline - now.date()).days if hasattr(goal.deadline, 'day') else (goal.deadline - now).days
+            # Handle both date and datetime types
+            deadline_date = goal.deadline.date() if isinstance(goal.deadline, datetime) else goal.deadline
+            days_left = (deadline_date - now.date()).days
             if 0 < days_left < 90:
                 remaining = goal.target_amount - goal.current_amount
                 monthly_needed = remaining / max(days_left / 30, 1)
@@ -123,19 +125,20 @@ def get_weekly_heatmap(user_id):
     three_months_ago = now - timedelta(days=90)
 
     daily_spending = db.session.query(
-        extract('dow', Expense.date).label('dow'),
+        func.dayofweek(Expense.date).label('dow'),
         func.sum(Expense.amount),
         func.count(Expense.id)
     ).filter(
         Expense.user_id == user_id,
         Expense.transaction_type == 'expense',
         Expense.date >= three_months_ago
-    ).group_by(extract('dow', Expense.date)).all()
+    ).group_by(func.dayofweek(Expense.date)).all()
 
     day_names = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
     heatmap = []
     for i, name in enumerate(day_names):
-        match = next((row for row in daily_spending if int(row[0]) == i), None)
+        # MySQL DAYOFWEEK is 1 (Sun) - 7 (Sat)
+        match = next((row for row in daily_spending if int(row[0]) == i + 1), None)
         heatmap.append({
             'day': name,
             'short': name[:3],
@@ -239,8 +242,8 @@ def get_financial_health_score(user_id):
         budget_score = 12  # Neutral if no budgets set
 
     # 4. Goal progress (0-20 points)
-    goals = Goal.query.filter(Goal.user_id == user_id, Goal.status != 'completed').all()
-    completed_goals = Goal.query.filter_by(user_id=user_id, status='completed').count()
+    goals = Goal.query.filter(Goal.user_id == user_id, Goal.is_completed == False).all()
+    completed_goals = Goal.query.filter_by(user_id=user_id, is_completed=True).count()
     if goals or completed_goals:
         goal_progresses = []
         for g in goals:
