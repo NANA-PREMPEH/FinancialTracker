@@ -1,6 +1,6 @@
 # FinancialTracker Enhancement Plan
 
-**Date:** March 10, 2026
+**Date:** March 10, 2026 --
 **Scope:** 22 enhancements covering critical fixes, stub completions, API gaps, and code quality
 **Project:** Flask + SQLAlchemy Financial Tracker (MySQL, Jinja2, Chart.js)
 
