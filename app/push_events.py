@@ -190,8 +190,8 @@ def check_large_transaction(user_id, amount, description, transaction_type):
     if avg_amount <= 0:
         return
 
-    # Trigger if 3x average or above GHS 1000 (whichever is lower)
-    threshold = min(avg_amount * 3, max(avg_amount * 3, 1000))
+    # Trigger if 3x average or above 1000 (whichever is lower)
+    threshold = min(avg_amount * 3, 1000)
     if amount >= threshold:
         _create_notification(
             user_id,

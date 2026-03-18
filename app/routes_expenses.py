@@ -19,8 +19,23 @@ def register_routes(main):
         if request.method == 'POST':
             description = request.form.get('description')
             category_id_str = request.form.get('category')
-            category_id = int(category_id_str) if category_id_str else Category.query.filter_by(user_id=current_user.id).first().id
-            wallet_id = int(request.form.get('wallet', 1))
+            if category_id_str:
+                category_id = int(category_id_str)
+            else:
+                first_cat = Category.query.filter_by(user_id=current_user.id).first()
+                if not first_cat:
+                    flash('No categories found. Please create a category first.', 'error')
+                    return redirect(url_for('main.add_expense'))
+                category_id = first_cat.id
+            wallet_id_str = request.form.get('wallet')
+            if wallet_id_str:
+                wallet_id = int(wallet_id_str)
+            else:
+                default_wallet = Wallet.query.filter_by(user_id=current_user.id).first()
+                if not default_wallet:
+                    flash('No wallet found. Please create a wallet first.', 'error')
+                    return redirect(url_for('main.add_expense'))
+                wallet_id = default_wallet.id
             date_str = request.form.get('date')
             notes = request.form.get('notes', '')
             tags = request.form.get('tags', '')
@@ -80,9 +95,6 @@ def register_routes(main):
                     return redirect(url_for('main.add_expense'))
 
                 to_wallet = Wallet.query.filter_by(id=to_wallet_id, user_id=current_user.id).first_or_404()
-                if not to_wallet:
-                    flash('Destination wallet not found!', 'error')
-                    return redirect(url_for('main.add_expense'))
 
                 # Ensure "Transfer" category exists for this user
                 transfer_cat = Category.query.filter_by(name='Transfer', user_id=current_user.id).first()

@@ -16,7 +16,11 @@ def create_app(config_name=None):
     if config_name is None:
         config_name = os.environ.get('FLASK_ENV', 'development')
     from .config import config_by_name
-    app.config.from_object(config_by_name.get(config_name, config_by_name['development']))
+    if isinstance(config_name, str):
+        app.config.from_object(config_by_name.get(config_name, config_by_name['development']))
+    else:
+        # Accept config class objects directly (e.g. TestingConfig)
+        app.config.from_object(config_name)
 
     db.init_app(app)
     migrate.init_app(app, db)

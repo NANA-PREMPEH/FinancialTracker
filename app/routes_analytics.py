@@ -31,6 +31,11 @@ def register_routes(main):
         debt_lent_cat = Category.query.filter_by(name='Money Lent', user_id=current_user.id).first()
         debt_lent_id = debt_lent_cat.id if debt_lent_cat else -1
 
+        coll_cat = Category.query.filter_by(name='Debt Collection', user_id=current_user.id).first()
+        coll_id = coll_cat.id if coll_cat else -1
+        rec_cat = Category.query.filter_by(name='Bad Debt Recovery', user_id=current_user.id).first()
+        rec_id = rec_cat.id if rec_cat else -1
+
         category_data = db.session.query(
             Category.name, Category.icon, func.sum(Expense.amount)
         ).join(Expense).filter(
@@ -116,11 +121,6 @@ def register_routes(main):
 
                 expense_total += m_extra_debt_exp
                 income_total += m_extra_debtor_inc + m_extra_contract_inc
-
-                coll_cat = Category.query.filter_by(name='Debt Collection', user_id=current_user.id).first()
-                coll_id = coll_cat.id if coll_cat else -1
-                rec_cat = Category.query.filter_by(name='Bad Debt Recovery', user_id=current_user.id).first()
-                rec_id = rec_cat.id if rec_cat else -1
 
                 m_recovered = db.session.query(func.sum(Expense.amount)).filter(
                     Expense.user_id == current_user.id,
@@ -354,10 +354,10 @@ def register_routes(main):
 
         for expense in expenses:
             writer.writerow([
-                expense.date.strftime('%Y-%m-%d'),
+                expense.date.strftime('%Y-%m-%d') if expense.date else '',
                 expense.description,
-                expense.category.name,
-                expense.wallet.name,
+                expense.category.name if expense.category else '',
+                expense.wallet.name if expense.wallet else '',
                 expense.amount,
                 expense.transaction_type,
                 expense.tags or '',

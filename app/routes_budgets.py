@@ -63,6 +63,8 @@ def register_routes(main):
                 end_date = start_date + timedelta(days=30)
             elif period == 'yearly':
                 end_date = start_date + timedelta(days=365)
+            else:
+                end_date = start_date + timedelta(days=30)  # Default to monthly
 
             budget = Budget(
                 user_id=current_user.id,

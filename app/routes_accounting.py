@@ -55,13 +55,22 @@ def add_journal_entry():
         amount=float(request.form.get('amount', 0)),
         reference=request.form.get('reference', '').strip() or None,
     )
-    # Update account balances
+    # Update account balances using proper double-entry rules:
+    # Asset & Expense accounts: debits increase, credits decrease
+    # Liability, Equity, Revenue accounts: debits decrease, credits increase
     debit_acc = ChartOfAccount.query.filter_by(id=entry.debit_account_id, user_id=current_user.id).first()
     credit_acc = ChartOfAccount.query.filter_by(id=entry.credit_account_id, user_id=current_user.id).first()
+    debit_normal_types = ('Asset', 'Expense')
     if debit_acc:
-        debit_acc.balance += entry.amount
+        if debit_acc.account_type in debit_normal_types:
+            debit_acc.balance += entry.amount
+        else:
+            debit_acc.balance -= entry.amount
     if credit_acc:
-        credit_acc.balance -= entry.amount
+        if credit_acc.account_type in debit_normal_types:
+            credit_acc.balance -= entry.amount
+        else:
+            credit_acc.balance += entry.amount
 
     db.session.add(entry)
     db.session.commit()
@@ -73,13 +82,20 @@ def add_journal_entry():
 @login_required
 def delete_journal_entry(id):
     entry = JournalEntry.query.filter_by(id=id, user_id=current_user.id).first_or_404()
-    # Reverse account balances
+    # Reverse account balances using proper double-entry rules
     debit_acc = ChartOfAccount.query.filter_by(id=entry.debit_account_id, user_id=current_user.id).first()
     credit_acc = ChartOfAccount.query.filter_by(id=entry.credit_account_id, user_id=current_user.id).first()
+    debit_normal_types = ('Asset', 'Expense')
     if debit_acc:
-        debit_acc.balance -= entry.amount
+        if debit_acc.account_type in debit_normal_types:
+            debit_acc.balance -= entry.amount
+        else:
+            debit_acc.balance += entry.amount
     if credit_acc:
-        credit_acc.balance += entry.amount
+        if credit_acc.account_type in debit_normal_types:
+            credit_acc.balance += entry.amount
+        else:
+            credit_acc.balance -= entry.amount
     db.session.delete(entry)
     db.session.commit()
     flash('Journal entry deleted.', 'success')

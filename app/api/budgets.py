@@ -49,11 +49,26 @@ def create_budget():
     if not data:
         return jsonify({'error': 'JSON body required'}), 400
 
+    if not data.get('category_id') or not data.get('amount'):
+        return jsonify({'error': 'category_id and amount are required'}), 400
+
+    period = data.get('period', 'monthly')
+    start_date = datetime.fromisoformat(data['start_date']) if data.get('start_date') else datetime.utcnow()
+
+    if period == 'weekly':
+        end_date = start_date + timedelta(days=7)
+    elif period == 'yearly':
+        end_date = start_date + timedelta(days=365)
+    else:
+        end_date = start_date + timedelta(days=30)
+
     b = Budget(
         user_id=g.api_user_id,
         category_id=int(data['category_id']),
         amount=float(data['amount']),
-        period=data.get('period', 'monthly'),
+        period=period,
+        start_date=start_date,
+        end_date=end_date,
     )
     db.session.add(b)
     db.session.commit()

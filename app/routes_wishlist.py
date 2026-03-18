@@ -93,9 +93,13 @@ def register_routes(main):
         # Deduct from wallet
         wallet.balance -= item.amount
 
+        # Save names before deleting (accessing after commit may cause DetachedInstanceError)
+        item_name = item.name
+        wallet_name = wallet.name
+
         db.session.add(expense)
         db.session.delete(item)
         db.session.commit()
 
-        flash(f"Executed '{item.name}'! Transaction added to {wallet.name}.", 'success')
+        flash(f"Executed '{item_name}'! Transaction added to {wallet_name}.", 'success')
         return redirect(url_for('main.wishlist'))

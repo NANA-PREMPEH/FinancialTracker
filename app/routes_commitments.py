@@ -76,24 +76,28 @@ def delete_commitment(id):
 def pay_commitment(id):
     c = Commitment.query.filter_by(id=id, user_id=current_user.id).first_or_404()
     wallet_id = request.form.get('wallet_id')
-    if wallet_id:
-        wallet = Wallet.query.filter_by(id=int(wallet_id), user_id=current_user.id).first()
-        if wallet and wallet.balance >= c.amount:
-            wallet.balance -= c.amount
-            # Create expense record
-            cat = Category.query.filter_by(name='Donation', user_id=current_user.id).first()
-            if not cat:
-                cat = Category.query.filter_by(user_id=current_user.id).first()
-            expense = Expense(
-                user_id=current_user.id, amount=c.amount,
-                description=f'Commitment: {c.name}', date=datetime.utcnow(),
-                category_id=cat.id, wallet_id=wallet.id,
-                transaction_type='expense', tags='commitment'
-            )
-            db.session.add(expense)
-        else:
-            flash('Insufficient wallet balance.', 'error')
-            return redirect(url_for('commitments.commitments_list'))
+    if not wallet_id:
+        flash('Please select a wallet.', 'error')
+        return redirect(url_for('commitments.commitments_list'))
+    wallet = Wallet.query.filter_by(id=int(wallet_id), user_id=current_user.id).first()
+    if not wallet or wallet.balance < c.amount:
+        flash('Insufficient wallet balance.', 'error')
+        return redirect(url_for('commitments.commitments_list'))
+    wallet.balance -= c.amount
+    # Create expense record
+    cat = Category.query.filter_by(name='Donation', user_id=current_user.id).first()
+    if not cat:
+        cat = Category.query.filter_by(user_id=current_user.id).first()
+    if not cat:
+        flash('No categories found. Please create a category first.', 'error')
+        return redirect(url_for('commitments.commitments_list'))
+    expense = Expense(
+        user_id=current_user.id, amount=c.amount,
+        description=f'Commitment: {c.name}', date=datetime.utcnow(),
+        category_id=cat.id, wallet_id=wallet.id,
+        transaction_type='expense', tags='commitment'
+    )
+    db.session.add(expense)
     c.status = 'paid'
     db.session.commit()
     flash(f'Commitment "{c.name}" marked as paid.', 'success')

@@ -141,6 +141,7 @@ def create_dividend(id):
     
     dividend = Dividend(
         investment_id=id,
+        user_id=g.api_user_id,
         amount=float(data['amount']),
         date=datetime.fromisoformat(data['date']),
         notes=data.get('notes'),

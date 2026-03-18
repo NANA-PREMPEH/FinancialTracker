@@ -109,12 +109,12 @@ def list_creditor_payments(id):
     if not c:
         return jsonify({'error': 'Creditor not found'}), 404
     
-    payments = DebtPayment.query.filter_by(creditor_id=id).order_by(DebtPayment.payment_date.desc()).all()
+    payments = DebtPayment.query.filter_by(creditor_id=id).order_by(DebtPayment.date.desc()).all()
     return jsonify({
         'data': [{
             'id': p.id,
             'amount': p.amount,
-            'payment_date': p.payment_date.isoformat() if p.payment_date else None,
+            'date': p.date.isoformat() if p.date else None,
             'notes': p.notes,
         } for p in payments]
     })
@@ -133,8 +133,9 @@ def create_creditor_payment(id):
     
     payment = DebtPayment(
         creditor_id=id,
+        user_id=g.api_user_id,
         amount=float(data['amount']),
-        payment_date=datetime.fromisoformat(data['payment_date']) if data.get('payment_date') else datetime.utcnow(),
+        date=datetime.fromisoformat(data['date']) if data.get('date') else datetime.utcnow(),
         notes=data.get('notes'),
     )
     db.session.add(payment)
