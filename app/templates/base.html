@@ -70,11 +70,13 @@
         <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
 
         <!-- Sidebar -->
-        <aside class="sidebar" id="sidebar">
-            <div class="sidebar-header">
-                <a href="{{ url_for('main.dashboard') }}" class="logo">
-                    <i data-lucide="calculator"></i>
-                    <span>FinTracker</span>
+        <aside class="sidebar group/sidebar" id="sidebar">
+            <div class="sidebar-header border-b-0 py-8 px-6">
+                <a href="{{ url_for('main.dashboard') }}" class="logo flex items-center gap-3">
+                    <div class="p-2 bg-primary/10 rounded-xl text-primary transition-transform group-hover/sidebar:rotate-12">
+                        <i data-lucide="calculator" class="w-6 h-6"></i>
+                    </div>
+                    <span class="font-black tracking-tight text-xl">FinTracker</span>
                 </a>
                 <button class="menu-toggle" onclick="toggleSidebar()" aria-label="Close Sidebar" style="display: none;">
                     <i data-lucide="x"></i>
@@ -312,17 +314,38 @@
 
         <!-- Main Content Wrapper -->
         <div class="main-content">
-            <header class="app-header">
-                <div class="header-left" style="display: flex; align-items: center; gap: 1rem;">
-                    <button class="menu-toggle" onclick="toggleSidebar()" aria-label="Toggle Sidebar">
-                        <i data-lucide="menu"></i>
+            <header class="app-header mb-12 flex items-center justify-between py-6">
+                <div class="header-left flex items-center gap-6">
+                    <button class="menu-toggle p-2.5 hover:bg-surface-hover rounded-2xl transition-all active:scale-95" onclick="toggleSidebar()" aria-label="Toggle Sidebar">
+                        <i data-lucide="menu" class="w-6 h-6 text-text"></i>
                     </button>
-                    <h1 class="page-title">
+                    <h1 class="page-title text-3xl font-black tracking-tight text-text">
                         {% block header_title %}Overview{% endblock %}
                     </h1>
                 </div>
-                <div class="header-actions">
-                    <!-- Additional header actions -->
+                <div class="header-actions flex items-center gap-2">
+                    <div class="flex items-center bg-surface border border-border rounded-2xl p-1 shadow-sm mr-4">
+                        <button id="searchToggle" class="p-2 hover:bg-surface-hover rounded-xl transition-colors text-text-muted">
+                            <i data-lucide="search" class="w-5 h-5"></i>
+                        </button>
+                        <button id="notificationToggle" class="p-2 hover:bg-surface-hover rounded-xl transition-colors text-text-muted relative">
+                            <i data-lucide="bell" class="w-5 h-5"></i>
+                            {% if unread_notification_count %}
+                            <span class="absolute top-2 right-2 w-2 h-2 bg-danger rounded-full ring-2 ring-white dark:ring-slate-900"></span>
+                            {% endif %}
+                        </button>
+                    </div>
+                    {% if current_user.is_authenticated %}
+                    <div class="flex items-center gap-3 pl-4 border-l border-border/50">
+                        <div class="flex flex-col items-end mr-1 hidden sm:flex">
+                            <span class="text-xs font-bold text-text">{{ current_user.name }}</span>
+                            <span class="text-[10px] text-text-muted">{{ current_user.email }}</span>
+                        </div>
+                        <div class="user-avatar w-12 h-12 bg-gradient-to-tr from-primary to-indigo-600 text-white flex items-center justify-center font-black text-xl rounded-2xl shadow-lg cursor-pointer hover:shadow-primary/20 hover:-translate-y-0.5 transition-all">
+                            {{ current_user.name[0]|upper }}
+                        </div>
+                    </div>
+                    {% endif %}
                 </div>
             </header>
 
