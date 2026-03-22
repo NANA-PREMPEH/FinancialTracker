@@ -11,21 +11,25 @@ def register_routes(main):
     @main.route('/wallets')
     @login_required
     def wallets():
-        all_wallets = Wallet.query.filter_by(user_id=current_user.id).all()
+        all_wallets = Wallet.query.filter_by(user_id=current_user.id) \
+            .order_by(Wallet.balance.desc(), Wallet.name.asc()) \
+            .all()
         
         # Wallets shared with me (accepted)
         shared_shares = WalletShare.query.filter_by(
             shared_with_id=current_user.id, accepted=True
-        ).all()
+        ).order_by(WalletShare.created_at.desc()).all()
         shared_with_me = shared_shares
         
         # Wallets I've shared with others
-        # sent = WalletShare.query.filter_by(owner_id=current_user.id).all()
+        shared_wallets = WalletShare.query.filter_by(
+            owner_id=current_user.id
+        ).order_by(WalletShare.created_at.desc()).all()
         
         # Pending invites for me
         pending_invites = WalletShare.query.filter_by(
             shared_with_id=current_user.id, accepted=False
-        ).all()
+        ).order_by(WalletShare.created_at.desc()).all()
 
         # Calculate totals
         totals_by_currency = {}
@@ -67,16 +71,19 @@ def register_routes(main):
         if transfer_category:
             transfers = Expense.query.filter_by(user_id=current_user.id, category_id=transfer_category.id)\
                 .order_by(Expense.date.desc())\
-                .limit(10).all()
+                .limit(8).all()
 
         return render_template('wallets.html', 
                                wallets=all_wallets, 
+                               shared_wallets=shared_wallets,
                                shared_with_me=shared_with_me,
                                pending_invites=pending_invites,
                                transfers=transfers, 
                                totals_by_currency=totals_by_currency, 
                                grand_total=grand_total,
-                               primary_currency=primary_currency)
+                               primary_currency=primary_currency,
+                               can_transfer=len(all_wallets) > 1,
+                               now_date=datetime.utcnow().date().isoformat())
 
     @main.route('/wallets/add', methods=['GET', 'POST'])
     @login_required
@@ -148,10 +155,15 @@ def register_routes(main):
     @main.route('/wallets/transfer', methods=['POST'])
     @login_required
     def transfer_funds():
-        source_wallet_id = int(request.form.get('source_wallet_id'))
-        dest_wallet_id = int(request.form.get('dest_wallet_id'))
-        amount = float(request.form.get('amount'))
-        exchange_rate = float(request.form.get('exchange_rate', 1.0))
+        try:
+            source_wallet_id = int(request.form.get('source_wallet_id', ''))
+            dest_wallet_id = int(request.form.get('dest_wallet_id', ''))
+            amount = float(request.form.get('amount', ''))
+            exchange_rate = float(request.form.get('exchange_rate', 1.0))
+        except (TypeError, ValueError):
+            flash('Please complete the transfer form with valid values.', 'error')
+            return redirect(url_for('main.wallets'))
+
         date_str = request.form.get('date')
         reason = request.form.get('reason', '').strip()
 
@@ -163,8 +175,16 @@ def register_routes(main):
             flash('Transfer amount must be greater than 0!', 'error')
             return redirect(url_for('main.wallets'))
 
+        if exchange_rate <= 0:
+            flash('Exchange rate must be greater than 0.', 'error')
+            return redirect(url_for('main.wallets'))
+
         source_wallet = Wallet.query.filter_by(id=source_wallet_id, user_id=current_user.id).first_or_404()
         dest_wallet = Wallet.query.filter_by(id=dest_wallet_id, user_id=current_user.id).first_or_404()
+
+        if amount > source_wallet.balance:
+            flash(f'Insufficient balance in {source_wallet.name}.', 'error')
+            return redirect(url_for('main.wallets'))
 
         # Calculate destination amount based on exchange rate
         dest_amount = amount * exchange_rate
@@ -177,7 +197,11 @@ def register_routes(main):
             db.session.commit()
 
         if date_str:
-            date_obj = datetime.strptime(date_str, '%Y-%m-%d')
+            try:
+                date_obj = datetime.strptime(date_str, '%Y-%m-%d')
+            except ValueError:
+                flash('Please select a valid transfer date.', 'error')
+                return redirect(url_for('main.wallets'))
         else:
             date_obj = datetime.utcnow()
 

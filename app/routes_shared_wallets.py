@@ -42,25 +42,28 @@ def shared_wallets():
 def share_wallet(id):
     """Invite a user to share a wallet by email."""
     wallet = Wallet.query.filter_by(id=id, user_id=current_user.id).first_or_404()
+    redirect_target = request.form.get('next', '').strip()
+    if not redirect_target.startswith('/') or redirect_target.startswith('//'):
+        redirect_target = url_for('main.wallets')
 
     email = request.form.get('email', '').strip().lower()
-    permission = request.form.get('permission', 'view')
+    permission = request.form.get('permission') or request.form.get('permission_level', 'view')
     if permission not in ('view', 'contribute', 'manage'):
         permission = 'view'
 
     if not email:
         flash('Please enter an email address.', 'error')
-        return redirect(url_for('main.wallets'))
+        return redirect(redirect_target)
 
     if email == current_user.email:
         flash('You cannot share a wallet with yourself.', 'error')
-        return redirect(url_for('main.wallets'))
+        return redirect(redirect_target)
 
     # Find the target user
     target_user = User.query.filter_by(email=email).first()
     if not target_user:
         flash(f'No user found with email "{email}". They must have an account first.', 'error')
-        return redirect(url_for('main.wallets'))
+        return redirect(redirect_target)
 
     # Check for existing share
     existing = WalletShare.query.filter_by(
@@ -68,7 +71,7 @@ def share_wallet(id):
     ).first()
     if existing:
         flash(f'This wallet is already shared with {target_user.name}.', 'error')
-        return redirect(url_for('main.wallets'))
+        return redirect(redirect_target)
 
     share = WalletShare(
         wallet_id=wallet.id,
@@ -84,7 +87,7 @@ def share_wallet(id):
     db.session.commit()
 
     flash(f'Invite sent to {target_user.name} ({email}) with {permission} access.', 'success')
-    return redirect(url_for('shared_wallets.shared_wallets'))
+    return redirect(redirect_target)
 
 
 @shared_wallets_bp.route('/wallets/invites/<int:id>/accept', methods=['POST'])
