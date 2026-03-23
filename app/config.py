@@ -6,9 +6,11 @@ class Config:
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 
     # Database
-    SQLALCHEMY_DATABASE_URI = os.environ.get(
-        'DATABASE_URL', 'mysql+pymysql://root:root@localhost/fintrackdb'
-    )
+    _database_url = os.environ.get('DATABASE_URL') or os.environ.get('POSTGRES_URL')
+    if _database_url and _database_url.startswith('postgres://'):
+        _database_url = _database_url.replace('postgres://', 'postgresql://', 1)
+    
+    SQLALCHEMY_DATABASE_URI = _database_url or 'mysql+pymysql://root:root@localhost/fintrackdb'
 
     # Flask-Mail
     MAIL_SERVER = os.environ.get('MAIL_SERVER', 'smtp.gmail.com')

@@ -25,3 +25,4 @@ Authlib==1.6.8
 python-dotenv
 PyJWT
 pandas
+psycopg2-binary
