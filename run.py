@@ -4,9 +4,7 @@ load_dotenv()
 from app import create_app, db
 from app.models import Category, Wallet
 
-app = create_app()
-
-def init_db():
+def init_db(app):
     with app.app_context():
         # Create default wallet
         if not Wallet.query.first():
@@ -38,6 +36,7 @@ def init_db():
             print("Initialized default categories.")
 
 if __name__ == '__main__':
-    init_db()
-    app.run(debug=True, port=5001)
+    app = create_app()
+    init_db(app)
+    app.run(debug=True, port=int(os.environ.get('PORT', 5001)))
 
