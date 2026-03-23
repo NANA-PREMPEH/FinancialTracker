@@ -10,11 +10,7 @@ import csv
 
 
 def register_routes(main):
-
-    @main.route('/analytics')
-    @login_required
-    def analytics():
-        # Category breakdown for pie chart (Expenses only) - Exclude Transfers
+    def _get_transfer_filter():
         transfer_cat = Category.query.filter_by(name='Transfer', user_id=current_user.id).first()
         transfer_id = transfer_cat.id if transfer_cat else -1
         transfer_types = ('transfer', 'transfer_out', 'transfer_in')
@@ -27,6 +23,14 @@ def register_routes(main):
         )
         if transfer_id != -1:
             transfer_filter = or_(transfer_filter, Expense.category_id == transfer_id)
+        return transfer_filter
+
+
+    @main.route('/analytics')
+    @login_required
+    def analytics():
+        # Category breakdown for pie chart (Expenses only) - Exclude Transfers
+        transfer_filter = _get_transfer_filter()
 
         debt_lent_cat = Category.query.filter_by(name='Money Lent', user_id=current_user.id).first()
         debt_lent_id = debt_lent_cat.id if debt_lent_cat else -1
@@ -250,83 +254,93 @@ def register_routes(main):
             y_lent = 0
             y_recovered = 0
 
-            # Process each month in the year for correct de-duplication
-            for m in range(1, 13):
-                m_start = datetime(year, m, 1)
-                if m == 12:
-                    m_end = datetime(year + 1, 1, 1)
-                else:
-                    m_end = datetime(year, m + 1, 1)
+            # Check for a Yearly Summary first (month=None)
+            yearly_hist = FinancialSummary.query.filter_by(
+                user_id=current_user.id, year=year, month=None
+            ).first()
 
-                hist_m = FinancialSummary.query.filter_by(
-                    user_id=current_user.id, year=year, month=m
-                ).first()
+            if yearly_hist:
+                y_expense = yearly_hist.total_expense or 0
+                y_income = yearly_hist.total_income or 0
+                # If a yearly summary exists, we assume it covers the historical ground truth
+                # and Act will default to Total unless we have more info.
+            else:
+                # Process each month in the year for correct de-duplication
+                for m in range(1, 13):
+                    m_start = datetime(year, m, 1)
+                    if m == 12:
+                        m_end = datetime(year + 1, 1, 1)
+                    else:
+                        m_end = datetime(year, m + 1, 1)
 
-                if hist_m:
-                    y_expense += (hist_m.total_expense or 0)
-                    y_income += (hist_m.total_income or 0)
-                    # For historical months, we assume actuals == total or we'd need more fields
-                else:
-                    # Sum Live Expenses + Extras
-                    m_live_exp = db.session.query(func.sum(Expense.amount)).filter(
-                        Expense.user_id == current_user.id,
-                        Expense.transaction_type == 'expense',
-                        Expense.date >= m_start,
-                        Expense.date < m_end,
-                        ~transfer_filter
-                    ).scalar() or 0
+                    hist_m = FinancialSummary.query.filter_by(
+                        user_id=current_user.id, year=year, month=m
+                    ).first()
 
-                    m_live_inc = db.session.query(func.sum(Expense.amount)).filter(
-                        Expense.user_id == current_user.id,
-                        Expense.transaction_type == 'income',
-                        Expense.date >= m_start,
-                        Expense.date < m_end,
-                        ~transfer_filter
-                    ).scalar() or 0
+                    if hist_m:
+                        y_expense += (hist_m.total_expense or 0)
+                        y_income += (hist_m.total_income or 0)
+                    else:
+                        # Sum Live Expenses + Extras
+                        m_live_exp = db.session.query(func.sum(Expense.amount)).filter(
+                            Expense.user_id == current_user.id,
+                            Expense.transaction_type == 'expense',
+                            Expense.date >= m_start,
+                            Expense.date < m_end,
+                            ~transfer_filter
+                        ).scalar() or 0
 
-                    m_live_lent = db.session.query(func.sum(Expense.amount)).filter(
-                        Expense.user_id == current_user.id,
-                        Expense.transaction_type == 'expense',
-                        Expense.date >= m_start,
-                        Expense.date < m_end,
-                        or_(Expense.category_id == debt_lent_id, Expense.tags.ilike('%debt_lent%'))
-                    ).scalar() or 0
+                        m_live_inc = db.session.query(func.sum(Expense.amount)).filter(
+                            Expense.user_id == current_user.id,
+                            Expense.transaction_type == 'income',
+                            Expense.date >= m_start,
+                            Expense.date < m_end,
+                            ~transfer_filter
+                        ).scalar() or 0
 
-                    # Extra payments (Annual)
-                    m_extra_d_exp = db.session.query(func.sum(DebtPayment.amount)).filter(
-                        DebtPayment.user_id == current_user.id,
-                        DebtPayment.date >= m_start,
-                        DebtPayment.date < m_end
-                    ).scalar() or 0
+                        m_live_lent = db.session.query(func.sum(Expense.amount)).filter(
+                            Expense.user_id == current_user.id,
+                            Expense.transaction_type == 'expense',
+                            Expense.date >= m_start,
+                            Expense.date < m_end,
+                            or_(Expense.category_id == debt_lent_id, Expense.tags.ilike('%debt_lent%'))
+                        ).scalar() or 0
 
-                    m_extra_dr_inc = db.session.query(func.sum(DebtorPayment.amount)).filter(
-                        DebtorPayment.user_id == current_user.id,
-                        DebtorPayment.date >= m_start,
-                        DebtorPayment.date < m_end
-                    ).scalar() or 0
+                        # Extra payments (Annual)
+                        m_extra_d_exp = db.session.query(func.sum(DebtPayment.amount)).filter(
+                            DebtPayment.user_id == current_user.id,
+                            DebtPayment.date >= m_start,
+                            DebtPayment.date < m_end
+                        ).scalar() or 0
 
-                    m_extra_c_inc = db.session.query(func.sum(ContractPayment.amount)).filter(
-                        ContractPayment.user_id == current_user.id,
-                        ContractPayment.payment_date >= m_start,
-                        ContractPayment.payment_date < m_end
-                    ).scalar() or 0
+                        m_extra_dr_inc = db.session.query(func.sum(DebtorPayment.amount)).filter(
+                            DebtorPayment.user_id == current_user.id,
+                            DebtorPayment.date >= m_start,
+                            DebtorPayment.date < m_end
+                        ).scalar() or 0
 
-                    m_live_recovered = db.session.query(func.sum(Expense.amount)).filter(
-                        Expense.user_id == current_user.id,
-                        Expense.transaction_type == 'income',
-                        Expense.date >= m_start,
-                        Expense.date < m_end,
-                        or_(
-                            Expense.category_id.in_([coll_id, rec_id]),
-                            func.coalesce(Expense.tags, '').ilike('%debt_collection%'),
-                            func.coalesce(Expense.tags, '').ilike('%bad_debt_recovery%')
-                        )
-                    ).scalar() or 0
+                        m_extra_c_inc = db.session.query(func.sum(ContractPayment.amount)).filter(
+                            ContractPayment.user_id == current_user.id,
+                            ContractPayment.payment_date >= m_start,
+                            ContractPayment.payment_date < m_end
+                        ).scalar() or 0
 
-                    y_expense += (m_live_exp + m_extra_d_exp)
-                    y_income += (m_live_inc + m_extra_dr_inc + m_extra_c_inc)
-                    y_lent += m_live_lent
-                    y_recovered += (m_live_recovered + m_extra_dr_inc + m_extra_c_inc)
+                        m_live_recovered = db.session.query(func.sum(Expense.amount)).filter(
+                            Expense.user_id == current_user.id,
+                            Expense.transaction_type == 'income',
+                            Expense.date >= m_start,
+                            Expense.date < m_end,
+                            or_(
+                                Expense.category_id.in_([coll_id, rec_id]),
+                                func.coalesce(Expense.tags, '').ilike('%debt_collection%'),
+                                func.coalesce(Expense.tags, '').ilike('%bad_debt_recovery%')
+                            )
+                        ).scalar() or 0
+
+                        y_expense += (m_live_exp + m_extra_d_exp)
+                        y_income += (m_live_inc + m_extra_dr_inc + m_extra_c_inc)
+                        y_lent += m_live_lent
+                        y_recovered += (m_live_recovered + m_extra_dr_inc + m_extra_c_inc)
 
             annual_data.append({
                 'year': year,
@@ -398,6 +412,7 @@ def register_routes(main):
 
         # Weekly (last 7 days)
         # Reports Queries with Transfer Filter
+        transfer_filter = _get_transfer_filter()
         week_start = now - timedelta(days=7)
         weekly_expenses = db.session.query(
             Category.name, func.sum(Expense.amount)
