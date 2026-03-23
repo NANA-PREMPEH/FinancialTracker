@@ -1,66 +1,83 @@
 {% extends "base.html" %}
 
-{% block title %}Edit Item - {{ project.name }} - Financial Tracker{% endblock
-%}
+{% block title %}Edit Item - {{ project.name }} - Financial Tracker{% endblock %}
 
 {% block content %}
-<div class="card">
-    <div
-        style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+<div class="max-w-4xl mx-auto space-y-8">
+    <!-- Header -->
+    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6">
         <div>
-            <h1>Edit Item</h1>
-            <p style="color: var(--color-text-muted); margin-top: 0.5rem;">
-                Project: {{ project.name }}
-            </p>
+            <h1 class="text-4xl font-black font-heading text-text m-0 tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-primary to-purple-500 italic uppercase">Modify Item</h1>
+            <p class="text-text-muted mt-2 font-medium">Updating item for project: <span class="text-text font-black">"{{ project.name }}"</span></p>
         </div>
+        <a href="{{ url_for('main.project_detail', id=project.id) }}" class="inline-flex items-center justify-center gap-2 px-6 py-3 bg-surface/40 backdrop-blur-xl border border-white/10 text-text font-black rounded-2xl hover:bg-surface transition-all active:scale-95 shadow-sm">
+            <i data-lucide="arrow-left" class="w-5 h-5"></i> Back to Details
+        </a>
     </div>
 
-    <form method="POST" style="max-width: 40rem;">
-        <!-- Item Name -->
-        <div class="form-group">
-            <label for="item_name">Item Name</label>
-            <input type="text" id="item_name" name="item_name"
-                value="{{ item.item_name }}" required>
-        </div>
+    <!-- Form container -->
+    <div class="bg-surface/40 backdrop-blur-xl rounded-3xl border border-white/10 shadow-2xl relative overflow-hidden">
+        <div class="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-purple-500/10 pointer-events-none"></div>
+        
+        <form method="POST" class="relative z-10 p-8 sm:p-10 space-y-8">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <!-- Item Name -->
+                <div class="md:col-span-2 space-y-3">
+                    <label for="item_name" class="block text-[10px] font-black text-text-muted uppercase tracking-widest">Item Name</label>
+                    <input type="text" id="item_name" name="item_name" value="{{ item.item_name }}" required
+                        class="w-full h-14 px-6 bg-surface/30 border border-white/10 rounded-2xl text-text text-lg font-black focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all shadow-sm">
+                </div>
 
-        <!-- Cost -->
-        <div class="form-group">
-            <label for="cost">Amount ({{ current_user.default_currency }})</label>
-            <input type="number" id="cost" name="cost" step="0.01" min="0"
-                value="{{ "%.2f"|format(item.cost) }}" required>
-        </div>
+                <!-- Cost -->
+                <div class="space-y-3">
+                    <label for="cost" class="block text-[10px] font-black text-text-muted uppercase tracking-widest">Total Amount ({{ current_user.default_currency }})</label>
+                    <div class="relative">
+                        <span class="absolute left-6 top-1/2 -translate-y-1/2 text-text-muted font-black">{{ current_user.default_currency }}</span>
+                        <input type="number" id="cost" name="cost" step="0.01" min="0" value="{{ "%.2f"|format(item.cost) }}" required
+                            class="w-full h-14 pl-14 pr-6 bg-surface/30 border border-white/10 rounded-2xl text-text text-lg font-black focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all shadow-sm">
+                    </div>
+                </div>
 
-        <!-- Type -->
-        <div class="form-group">
-            <label>Type</label>
-            <div style="display: flex; gap: 1.5rem; margin-top: 0.5rem;">
-                <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
-                    <input type="radio" name="item_type" value="expense" {% if item.item_type != 'income' %}checked{% endif %} style="width: auto;">
-                    <span style="color: var(--color-danger); font-weight: 500;">Outgoing Payment (Expense)</span>
-                </label>
-                <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
-                    <input type="radio" name="item_type" value="income" {% if item.item_type == 'income' %}checked{% endif %} style="width: auto;">
-                    <span style="color: var(--color-success); font-weight: 500;">Payment Received (Income)</span>
-                </label>
+                <!-- Type Selection -->
+                <div class="space-y-3">
+                    <label class="block text-[10px] font-black text-text-muted uppercase tracking-widest">Transaction Type</label>
+                    <div class="flex p-1.5 bg-surface/30 border border-white/10 rounded-2xl h-14">
+                        <label class="flex-1 relative cursor-pointer">
+                            <input type="radio" name="item_type" value="expense" {% if item.item_type != 'income' %}checked{% endif %} class="peer sr-only">
+                            <div class="w-full h-full flex items-center justify-center rounded-xl peer-checked:bg-danger/10 peer-checked:text-danger text-text-muted font-black text-xs uppercase tracking-widest transition-all">
+                                <i data-lucide="minus-circle" class="w-4 h-4 mr-2"></i> Expense
+                            </div>
+                        </label>
+                        <label class="flex-1 relative cursor-pointer">
+                            <input type="radio" name="item_type" value="income" {% if item.item_type == 'income' %}checked{% endif %} class="peer sr-only">
+                            <div class="w-full h-full flex items-center justify-center rounded-xl peer-checked:bg-success/10 peer-checked:text-success text-text-muted font-black text-xs uppercase tracking-widest transition-all">
+                                <i data-lucide="plus-circle" class="w-4 h-4 mr-2"></i> Income
+                            </div>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Description -->
+                <div class="md:col-span-2 space-y-3">
+                    <label for="description" class="block text-[10px] font-black text-text-muted uppercase tracking-widest">Item Details (Optional)</label>
+                    <textarea id="description" name="description" rows="4" placeholder="Add specific notes about this item..."
+                        class="w-full p-6 bg-surface/30 border border-white/10 rounded-2xl text-text font-medium focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all resize-none shadow-sm placeholder:text-text-muted/30">{{ item.description or '' }}</textarea>
+                </div>
             </div>
-        </div>
 
-        <!-- Description -->
-        <div class="form-group">
-            <label for="description">Description (Optional)</label>
-            <textarea id="description" name="description" rows="4"
-                placeholder="Add details about this item...">{{ item.description or '' }}</textarea>
-        </div>
-
-        <!-- Buttons -->
-        <div style="display: flex; gap: 1rem; margin-top: 2rem;">
-            <button type="submit"
-                style="flex: 1; background-color: #22c55e; color: white;">Save
-                Changes</button>
-            <a href="{{ url_for('main.project_details', id=project.id) }}"
-                class="btn-secondary"
-                style="flex: 1; display: flex; align-items: center; justify-content: center; text-decoration: none; border-radius: var(--radius-md); background-color: #6b7280; color: white;">Cancel</a>
-        </div>
-    </form>
+            <!-- Submit Buttons -->
+            <div class="flex flex-col sm:flex-row gap-4 pt-8 border-t border-white/5 mx-[-10px] px-[10px]">
+                <button type="submit" class="flex-1 inline-flex items-center justify-center gap-3 px-10 py-5 bg-gradient-to-r from-primary via-indigo-600 to-purple-600 text-white font-black rounded-2xl hover:scale-[1.02] active:scale-95 transition-all shadow-xl hover:shadow-primary/25 focus:outline-none focus:ring-2 focus:ring-primary/50 text-lg uppercase tracking-widest">
+                    <i data-lucide="save" class="w-6 h-6"></i> Save Item Changes
+                </button>
+            </div>
+        </form>
+    </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    lucide.createIcons();
+});
+</script>
 {% endblock %}

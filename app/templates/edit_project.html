@@ -1,120 +1,193 @@
 {% extends "base.html" %}
 
-{% block title %}Edit Project - Financial Tracker{% endblock %}
-{% block header_title %}Edit Project{% endblock %}
+{% block title %}Edit Project - {{ project.name }} - Financial Tracker{% endblock %}
 
 {% block content %}
-<div class="max-w-3xl mx-auto">
-    <div class="bg-surface rounded-2xl border border-border shadow-sm overflow-hidden text-text">
-        <div class="p-6 border-b border-border bg-surface-active/30 flex items-center gap-3">
-            <div class="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
-                <i data-lucide="edit-3" class="w-5 h-5"></i>
-            </div>
-            <div>
-                <h2 class="text-xl font-bold font-heading m-0 text-text">Edit Details</h2>
-                <p class="text-sm font-medium text-text-muted m-0">{{ project.name }}</p>
-            </div>
+<div class="max-w-4xl mx-auto space-y-8">
+    <!-- Header -->
+    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6">
+        <div>
+            <h1 class="text-4xl font-black font-heading text-text m-0 tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-primary to-purple-500 italic uppercase">Reconfigure Project</h1>
+            <p class="text-text-muted mt-2 font-medium">Update the project details and funding source for <span class="text-text font-black">"{{ project.name }}"</span>.</p>
         </div>
+        <div class="flex gap-3">
+             <button onclick="showDeleteProjectDialog()" class="inline-flex items-center justify-center gap-2 px-6 py-3 bg-danger/10 border border-danger/20 text-danger font-black rounded-2xl hover:bg-danger/20 transition-all active:scale-95 shadow-sm">
+                <i data-lucide="trash-2" class="w-5 h-5"></i> Delete
+            </button>
+            <a href="{{ url_for('main.project_detail', id=project.id) }}" class="inline-flex items-center justify-center gap-2 px-6 py-3 bg-surface/40 backdrop-blur-xl border border-white/10 text-text font-black rounded-2xl hover:bg-surface transition-all active:scale-95 shadow-sm">
+                <i data-lucide="arrow-left" class="w-5 h-5"></i> Back
+            </a>
+        </div>
+    </div>
 
-        <div class="p-6 sm:p-8">
-            <form method="POST" class="space-y-6">
-                
-                <div class="space-y-2">
-                    <label for="name" class="block text-sm font-semibold text-text">Project Name</label>
-                    <input type="text" id="name" name="name" value="{{ project.name }}" placeholder="e.g., Wedding Planning, Home Renovation" required autofocus
-                        class="w-full h-12 px-4 bg-surface border border-border rounded-xl text-text focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors font-medium">
+    <!-- Form container -->
+    <div class="bg-surface/40 backdrop-blur-xl rounded-3xl border border-white/10 shadow-2xl relative overflow-hidden">
+        <div class="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-purple-500/10 pointer-events-none"></div>
+        
+        <form method="POST" class="relative z-10 p-8 sm:p-10 space-y-8">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <!-- Project Name -->
+                <div class="md:col-span-2 space-y-3">
+                    <label for="name" class="block text-[10px] font-black text-text-muted uppercase tracking-widest">Project Name</label>
+                    <input type="text" id="name" name="name" value="{{ project.name }}" required
+                        class="w-full h-14 px-6 bg-surface/30 border border-white/10 rounded-2xl text-text text-lg font-black focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all shadow-sm">
                 </div>
 
-                <div class="space-y-2">
-                    <label for="description" class="block text-sm font-semibold text-text">Description (Optional)</label>
-                    <textarea id="description" name="description" rows="3" placeholder="Add details about your project..."
-                        class="w-full p-4 bg-surface border border-border rounded-xl text-text focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors resize-none">{{ project.description or '' }}</textarea>
+                <!-- Description -->
+                <div class="md:col-span-2 space-y-3">
+                    <label for="description" class="block text-[10px] font-black text-text-muted uppercase tracking-widest">Description (Optional)</label>
+                    <textarea id="description" name="description" rows="4"
+                        class="w-full p-6 bg-surface/30 border border-white/10 rounded-2xl text-text font-medium focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all resize-none shadow-sm placeholder:text-text-muted/30">{{ project.description }}</textarea>
                 </div>
 
-                <div class="space-y-2">
-                    <label for="funding_source" class="block text-sm font-semibold text-text">Source of Funding</label>
-                    <select id="funding_source" name="funding_source" onchange="toggleFundingOptions()" required
-                        class="w-full h-12 px-4 bg-surface border border-border rounded-xl text-text focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors font-medium appearance-none bg-no-repeat bg-[right_1rem_center]" style="background-image: url('data:image/svg+xml;charset=utf-8,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' fill=\'none\' viewBox=\'0 0 24 24\' stroke=\'%2364748b\'%3E%3Cpath stroke-linecap=\'round\' stroke-linejoin=\'round\' stroke-width=\'2\' d=\'M19 9l-7 7-7-7\'/%3E%3C/svg%3E'); background-size: 1.25rem;">
-                        <option value="" disabled>Select funding source...</option>
-                        <option value="ticket_sales" {% if project.funding_source == 'ticket_sales' %}selected{% endif %}>Ticket Sales/Registration Fees</option>
-                        <option value="sponsorships" {% if project.funding_source == 'sponsorships' %}selected{% endif %}>Sponsorships/Donations/Grants</option>
-                        <option value="merchandise" {% if project.funding_source == 'merchandise' %}selected{% endif %}>Merchandise Sales/Vendor Fees</option>
-                        <option value="company_funding" {% if project.funding_source == 'company_funding' %}selected{% endif %}>Company/Institutional Funding</option>
-                        <option value="wallet" {% if project.funding_source == 'wallet' %}selected{% endif %}>From Wallet</option>
-                        <option value="other" {% if project.funding_source == 'other' %}selected{% endif %}>Other (Custom)</option>
-                    </select>
-                </div>
-
-                <!-- Wallet Selection (shown when "From Wallet" is selected) -->
-                <div class="space-y-2 hidden animate-fade-in" id="wallet_selection">
-                    <label for="wallet_id" class="block text-sm font-semibold text-text flex items-center gap-2">
-                        <i data-lucide="wallet" class="w-4 h-4 text-primary"></i> Select Wallet
-                    </label>
-                    <select id="wallet_id" name="wallet_id"
-                        class="w-full h-12 px-4 bg-surface border border-border rounded-xl text-text focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors font-medium appearance-none bg-no-repeat bg-[right_1rem_center]" style="background-image: url('data:image/svg+xml;charset=utf-8,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' fill=\'none\' viewBox=\'0 0 24 24\' stroke=\'%2364748b\'%3E%3Cpath stroke-linecap=\'round\' stroke-linejoin=\'round\' stroke-width=\'2\' d=\'M19 9l-7 7-7-7\'/%3E%3C/svg%3E'); background-size: 1.25rem;">
-                        <option value="" disabled selected>Choose a wallet...</option>
-                        {% for wallet in wallets %}
-                        <option value="{{ wallet.id }}" {% if project.wallet_id == wallet.id %}selected{% endif %}>
-                            {{ wallet.icon }} {{ wallet.name }} ({{ wallet.currency }} {{ "{:,.2f}".format(wallet.balance) }})
-                        </option>
+                <!-- Funding Source Section -->
+                <div class="md:col-span-2 space-y-6">
+                    <label class="block text-[10px] font-black text-text-muted uppercase tracking-widest">Update Funding Source</label>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                        {% for value, label in [('wallet', 'Wallet'), ('bank', 'Bank'), ('saving', 'Savings'), ('other', 'Other')] %}
+                        <label class="relative group cursor-pointer">
+                            <input type="radio" name="funding_source" value="{{ value }}" 
+                                {% if project.funding_source == value or (project.funding_source not in ['wallet', 'bank', 'saving'] and value == 'other') %}checked{% endif %}
+                                class="peer sr-only" onchange="toggleCustomFunding(this.value)">
+                            <div class="w-full p-4 rounded-2xl border border-white/10 bg-surface/30 peer-checked:border-primary peer-checked:bg-primary/10 peer-checked:shadow-[0_0_15px_rgba(99,102,241,0.2)] flex flex-col items-center justify-center gap-2 transition-all hover:bg-surface/50">
+                                {% if value == 'wallet' %} <i data-lucide="wallet" class="w-6 h-6 text-primary"></i>
+                                {% elif value == 'bank' %} <i data-lucide="building" class="w-6 h-6 text-primary"></i>
+                                {% elif value == 'saving' %} <i data-lucide="piggy-bank" class="w-6 h-6 text-primary"></i>
+                                {% else %} <i data-lucide="more-horizontal" class="w-6 h-6 text-primary"></i>
+                                {% endif %}
+                                <span class="font-black text-xs text-text peer-checked:text-primary uppercase tracking-widest text-center">{{ label }}</span>
+                            </div>
+                        </label>
                         {% endfor %}
-                    </select>
+                    </div>
                 </div>
 
-                <!-- Custom Funding Source (shown when "Other" is selected) -->
-                <div class="space-y-2 hidden animate-fade-in" id="custom_funding">
-                    <label for="custom_funding_source" class="block text-sm font-semibold text-text">Custom Funding Source</label>
-                    <input type="text" id="custom_funding_source" name="custom_funding_source" value="{{ project.custom_funding_source or '' }}" placeholder="Enter custom funding source"
-                        class="w-full h-12 px-4 bg-surface border border-border rounded-xl text-text focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors font-medium">
+                <!-- Wallet Select -->
+                <div id="wallet_select_container" class="space-y-3 {% if project.funding_source != 'wallet' %}hidden{% endif %}">
+                    <label for="wallet_id" class="block text-[10px] font-black text-text-muted uppercase tracking-widest">Select Source Wallet</label>
+                    <div class="relative group">
+                        <select id="wallet_id" name="wallet_id" 
+                            class="w-full h-14 pl-6 pr-12 bg-surface/30 border border-white/10 rounded-2xl text-text font-bold focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all appearance-none shadow-sm cursor-pointer">
+                            <option value="">-- Choose a Wallet --</option>
+                            {% for wallet in wallets %}
+                            <option value="{{ wallet.id }}" {% if project.wallet_id == wallet.id %}selected{% endif %}>
+                                {{ wallet.name }} ({{ wallet.currency }} {{ "{:,.2f}".format(wallet.balance) }})
+                            </option>
+                            {% endfor %}
+                        </select>
+                        <i data-lucide="chevron-down" class="w-5 h-5 text-text-muted absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none transition-transform group-focus-within:rotate-180"></i>
+                    </div>
                 </div>
 
-                <div class="pt-6 border-t border-border flex flex-col sm:flex-row gap-4 mt-8">
-                    <button type="submit" class="flex-1 inline-flex items-center justify-center gap-2 px-6 py-3.5 bg-primary text-primary-content font-bold rounded-xl hover:bg-primary-hover transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-primary/50 text-lg">
-                        <i data-lucide="save" class="w-5 h-5"></i> Update Project
-                    </button>
-                    <a href="{{ url_for('main.project_details', id=project.id) }}" class="sm:flex-none inline-flex items-center justify-center px-8 py-3.5 bg-surface border border-border text-text font-bold rounded-xl hover:bg-surface-hover transition-colors focus:outline-none focus:ring-2 focus:ring-border text-lg">
-                        Cancel
-                    </a>
+                <!-- Custom Funding Source -->
+                <div id="custom_funding_container" class="space-y-3 {% if project.funding_source == 'wallet' %}hidden{% endif %}">
+                    <label for="custom_funding_source" class="block text-[10px] font-black text-text-muted uppercase tracking-widest">Source Name</label>
+                    <input type="text" id="custom_funding_source" name="custom_funding_source" 
+                        value="{% if project.funding_source == 'other' %}{{ project.custom_funding_source }}{% elif project.funding_source != 'wallet' %}{{ project.funding_source|replace('_', ' ')|title }}{% endif %}"
+                        class="w-full h-14 px-6 bg-surface/30 border border-white/10 rounded-2xl text-text font-bold focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all shadow-sm">
                 </div>
-            </form>
+            </div>
+
+            <!-- Submit Buttons -->
+            <div class="flex flex-col sm:flex-row gap-4 pt-8 border-t border-white/5 mx-[-10px] px-[10px]">
+                <button type="submit" class="flex-1 inline-flex items-center justify-center gap-3 px-10 py-5 bg-gradient-to-r from-primary via-indigo-600 to-purple-600 text-white font-black rounded-2xl hover:scale-[1.02] active:scale-95 transition-all shadow-xl hover:shadow-primary/25 focus:outline-none focus:ring-2 focus:ring-primary/50 text-lg uppercase tracking-widest">
+                    <i data-lucide="save" class="w-6 h-6"></i> Update Project Settings
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Delete Project Dialog -->
+<div id="deleteProjectModal" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-xl z-[110] flex items-center justify-center p-4 opacity-0 transition-opacity duration-300">
+    <div class="bg-surface/90 backdrop-blur-2xl w-full max-w-md rounded-3xl border border-white/20 flex flex-col shadow-2xl overflow-hidden relative transform scale-95 transition-transform duration-300" onclick="event.stopPropagation()">
+        <div class="p-8 text-center">
+            <div class="w-20 h-20 bg-danger/10 rounded-full flex items-center justify-center mx-auto mb-6">
+                <i data-lucide="alert-triangle" class="w-10 h-10 text-danger"></i>
+            </div>
+            <h3 class="text-2xl font-black font-heading m-0 text-text tracking-tight mb-2">Delete Project?</h3>
+            <p class="text-text-muted font-medium leading-relaxed">
+                This action cannot be undone. All project items and payment records associated with <span class="text-text font-black">"{{ project.name }}"</span> will be permanently deleted.
+            </p>
+        </div>
+        
+        <div class="p-8 bg-surface/50 border-t border-white/10 flex flex-col sm:flex-row gap-4">
+            <button onclick="hideDeleteProjectDialog()" class="flex-1 px-6 py-4 font-black text-xs uppercase tracking-widest text-text bg-surface border border-white/10 rounded-2xl hover:bg-surface-active transition-all active:scale-95">
+                Cancel
+            </button>
+            <button onclick="confirmDeleteProject()" class="flex-1 px-6 py-4 font-black text-xs uppercase tracking-widest text-white bg-danger rounded-2xl hover:bg-danger/80 hover:scale-105 active:scale-95 transition-all shadow-xl shadow-danger/20">
+                Delete Project
+            </button>
         </div>
     </div>
 </div>
 
+<form id="deleteProjectForm" method="POST" action="{{ url_for('main.delete_project', id=project.id) }}" class="hidden"></form>
+
 <script>
-function toggleFundingOptions() {
-    const fundingSource = document.getElementById('funding_source').value;
-    const walletSelection = document.getElementById('wallet_selection');
-    const customFunding = document.getElementById('custom_funding');
+function toggleCustomFunding(value) {
+    const walletContainer = document.getElementById('wallet_select_container');
+    const customContainer = document.getElementById('custom_funding_container');
     const walletSelect = document.getElementById('wallet_id');
     const customInput = document.getElementById('custom_funding_source');
 
-    // Hide all conditional fields
-    walletSelection.style.display = 'none';
-    walletSelection.classList.add('hidden');
-    customFunding.style.display = 'none';
-    customFunding.classList.add('hidden');
-    
-    // Remove required attributes
-    walletSelect.removeAttribute('required');
-    customInput.removeAttribute('required');
-
-    // Show relevant field based on selection
-    if (fundingSource === 'wallet') {
-        walletSelection.style.display = 'block';
-        walletSelection.classList.remove('hidden');
+    if (value === 'wallet') {
+        walletContainer.classList.remove('hidden');
+        customContainer.classList.add('hidden');
         walletSelect.setAttribute('required', 'required');
-    } else if (fundingSource === 'other') {
-        customFunding.style.display = 'block';
-        customFunding.classList.remove('hidden');
+        customInput.removeAttribute('required');
+    } else {
+        walletContainer.classList.add('hidden');
+        customContainer.classList.remove('hidden');
+        walletSelect.removeAttribute('required');
+        
+        if (value === 'other') {
+            // keep existing value if it's already 'other' type
+        } else {
+            customInput.value = value.charAt(0).toUpperCase() + value.slice(1);
+        }
         customInput.setAttribute('required', 'required');
     }
 }
 
-// Initialize on load
-document.addEventListener('DOMContentLoaded', function() {
+// Delete Modal Logic
+const deleteModal = document.getElementById('deleteProjectModal');
+const deleteModalContent = deleteModal.querySelector('.bg-surface');
+const deleteForm = document.getElementById('deleteProjectForm');
+
+window.showDeleteProjectDialog = function() {
+    deleteModal.classList.remove('hidden');
+    setTimeout(() => {
+        deleteModal.classList.remove('opacity-0');
+        deleteModalContent.classList.remove('scale-95');
+        deleteModalContent.classList.add('scale-100');
+    }, 10);
+};
+
+window.hideDeleteProjectDialog = function() {
+    deleteModal.classList.add('opacity-0');
+    deleteModalContent.classList.remove('scale-100');
+    deleteModalContent.classList.add('scale-95');
+    setTimeout(() => {
+        deleteModal.classList.add('hidden');
+    }, 300);
+};
+
+window.confirmDeleteProject = function() {
+    deleteForm.submit();
+};
+
+window.onclick = function(event) {
+    if (event.target == deleteModal) {
+        hideDeleteProjectDialog();
+    }
+};
+
+document.addEventListener('DOMContentLoaded', () => {
     lucide.createIcons();
-    toggleFundingOptions();
+    // Initialize state
+    const checkedSource = document.querySelector('input[name="funding_source"]:checked');
+    if (checkedSource) toggleCustomFunding(checkedSource.value);
 });
 </script>
 {% endblock %}
