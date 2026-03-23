@@ -4,42 +4,44 @@
 {% block header_title %}Two-Factor Authentication Setup{% endblock %}
 
 {% block content %}
-<div class="card" style="max-width: 500px; margin: 0 auto;">
-    <div style="text-align: center; margin-bottom: 1.5rem;">
-        <div style="width: 64px; height: 64px; margin: 0 auto 1rem; background: rgba(99,102,241,0.1); border-radius: 50%; display: flex; align-items: center; justify-content: center;">
-            <i data-lucide="shield" style="width: 32px; height: 32px; color: var(--color-primary);"></i>
+<div class="bg-surface rounded-2xl p-6 md:p-8 border border-border shadow-md max-w-lg mx-auto mt-8">
+    <div class="text-center mb-6">
+        <div class="w-16 h-16 mx-auto mb-4 bg-primary/10 rounded-full flex items-center justify-center">
+            <i data-lucide="shield" class="w-8 h-8 text-primary"></i>
         </div>
-        <h2 style="margin: 0 0 0.5rem 0; font-size: 1.25rem;">Enable Two-Factor Authentication</h2>
-        <p style="color: var(--color-text-muted); margin: 0;">Scan the QR code below with your authenticator app (Google Authenticator, Authy, etc.)</p>
+        <h2 class="text-2xl font-bold text-text mb-2">Enable Two-Factor Authentication</h2>
+        <p class="text-text-muted">Scan the QR code below with your authenticator app (Google Authenticator, Authy, etc.)</p>
     </div>
 
-    <div style="text-align: center; padding: 1.5rem; background: white; border-radius: var(--radius-md); margin-bottom: 1.5rem;">
-        <img src="data:image/png;base64,{{ qr_code }}" alt="2FA QR Code" style="max-width: 200px; height: auto;">
+    <div class="text-center p-6 bg-white rounded-xl mb-6 shadow-sm border border-border/50">
+        <img src="data:image/png;base64,{{ qr_code }}" alt="2FA QR Code" class="max-w-[200px] h-auto mx-auto border border-gray-100 p-2 rounded-lg">
     </div>
 
-    <div style="margin-bottom: 1.5rem;">
-        <p style="font-size: 0.875rem; color: var(--color-text-muted); margin-bottom: 0.5rem;">Can't scan the QR code? Enter this key manually:</p>
-        <div style="background: var(--color-surface); padding: 0.75rem 1rem; border-radius: var(--radius-md); font-family: monospace; font-size: 0.9rem; word-break: break-all; text-align: center; letter-spacing: 0.1em;">
+    <div class="mb-6">
+        <p class="text-sm text-text-muted mb-2 text-center">Can't scan the QR code? Enter this key manually:</p>
+        <div class="bg-surface-hover/50 p-3 rounded-xl font-mono text-sm break-all text-center tracking-widest text-text-secondary border border-border">
             {{ secret }}
         </div>
     </div>
 
-    <form method="POST" action="{{ url_for('auth.enable_2fa') }}">
+    <form method="POST" action="{{ url_for('auth.enable_2fa') }}" class="space-y-6">
         <input type="hidden" name="secret" value="{{ secret }}">
-        <div class="form-group">
-            <label for="totp_code">
-                <i data-lucide="hash" style="width: 16px; height: 16px;"></i>
+        <div>
+            <label for="totp_code" class="block text-sm font-medium text-text-muted mb-2 flex items-center gap-2 justify-center">
+                <i data-lucide="hash" class="w-4 h-4"></i>
                 Enter 6-digit code from your app
             </label>
             <input type="text" id="totp_code" name="totp_code" required placeholder="000000"
                    pattern="[0-9]{6}" maxlength="6" autocomplete="one-time-code"
-                   style="text-align: center; font-size: 1.5rem; letter-spacing: 0.3em;">
+                   class="w-full px-4 py-4 bg-surface text-text border border-border rounded-xl focus:border-primary focus:ring-1 focus:ring-primary text-center text-3xl tracking-[0.3em] font-mono">
         </div>
 
-        <div style="display: flex; gap: 1rem;">
-            <a href="{{ url_for('security.security_dashboard') }}" class="btn" style="flex: 1; text-align: center; background: var(--color-surface); color: var(--color-text); border: 1px solid var(--color-border);">Cancel</a>
-            <button type="submit" class="btn btn-primary" style="flex: 1;">
-                <i data-lucide="check" style="width: 16px; height: 16px;"></i>
+        <div class="flex gap-4">
+            <a href="{{ url_for('security.security_dashboard') }}" class="flex-1 inline-flex items-center justify-center gap-2 px-6 py-3 bg-surface text-text border border-border font-medium rounded-xl hover:bg-surface-hover transition-colors shadow-sm">
+                Cancel
+            </a>
+            <button type="submit" class="flex-1 inline-flex items-center justify-center gap-2 px-6 py-3 bg-primary text-white font-medium rounded-xl hover:bg-primary-hover transition-colors shadow-md">
+                <i data-lucide="check" class="w-4 h-4"></i>
                 Enable 2FA
             </button>
         </div>

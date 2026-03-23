@@ -17,56 +17,66 @@
     </script>
 </head>
 <body>
-    <div class="auth-container">
-        <div class="auth-card">
+    <div class="login-page-wrapper">
+        <div class="login-bg-blobs">
+            <div class="blob blob-1"></div>
+            <div class="blob blob-2"></div>
+            <div class="blob blob-3"></div>
+        </div>
+
+        <div class="login-glass-card">
             <div class="auth-header">
                 <div class="auth-logo">
                     <i data-lucide="shield-check"></i>
                     <h1>FinTracker</h1>
                 </div>
-                <p>Two-Factor Authentication</p>
+                <p style="color: rgba(255,255,255,0.7);">Two-Factor Authentication</p>
             </div>
 
             {% with messages = get_flashed_messages(with_categories=true) %}
                 {% if messages %}
                     {% for category, message in messages %}
-                        <div class="alert alert-{{ category }}" style="margin-bottom: 1rem; padding: 0.75rem 1rem; border-radius: var(--radius-md); background: var(--color-surface); border-left: 4px solid var(--color-{{ 'primary' if category == 'message' else 'error' if category == 'error' else category }});">
+                        {% set alert_color = 'primary' if category == 'message' else 'error' if category == 'error' else category %}
+                        <div class="alert alert-{{ category }}" style="margin-bottom: 1.5rem; padding: 1rem; border-radius: var(--radius-md); background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: white; border-left: 4px solid var(--color-{{ alert_color }});">
                             {{ message }}
                         </div>
                     {% endfor %}
                 {% endif %}
             {% endwith %}
 
-            <div style="text-align: center; margin-bottom: 1.5rem;">
-                <div style="width: 64px; height: 64px; margin: 0 auto 1rem; background: rgba(99,102,241,0.1); border-radius: 50%; display: flex; align-items: center; justify-content: center;">
-                    <i data-lucide="smartphone" style="width: 32px; height: 32px; color: var(--color-primary);"></i>
+            <div style="text-align: center; margin-bottom: 2rem;">
+                <div style="width: 64px; height: 64px; margin: 0 auto 1.5rem; background: rgba(255,255,255,0.1); border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+                    <i data-lucide="smartphone" style="width: 32px; height: 32px; color: white;"></i>
                 </div>
-                <p style="color: var(--color-text-muted);">Enter the 6-digit code from your authenticator app.</p>
+                <p style="color: rgba(255,255,255,0.7);">Enter the 6-digit code from your authenticator app.</p>
             </div>
 
             <form method="POST" class="auth-form">
-                <div class="form-group">
-                    <label for="totp_code">
+                <div class="form-group login-field-glow">
+                    <label for="totp_code" style="color: rgba(255,255,255,0.8);">
                         <i data-lucide="hash" style="width: 16px; height: 16px;"></i>
                         Authentication Code
                     </label>
                     <input type="text" id="totp_code" name="totp_code" required placeholder="000000"
                            pattern="[0-9]{6}" maxlength="6" autocomplete="one-time-code"
+                           class="premium-input"
                            style="text-align: center; font-size: 1.5rem; letter-spacing: 0.3em;" autofocus>
                 </div>
 
-                <button type="submit" class="btn btn-primary" style="width: 100%;">
+                <button type="submit" class="btn login-btn-premium" style="width: 100%; margin-top: 1rem;">
                     <i data-lucide="log-in" style="width: 18px; height: 18px;"></i>
                     Verify &amp; Sign In
                 </button>
             </form>
 
-            <div class="auth-footer">
-                <p><a href="{{ url_for('auth.login') }}" class="auth-link">Back to login</a></p>
+            <div class="auth-footer" style="text-align: center; margin-top: 2rem; border-top-color: rgba(255,255,255,0.1);">
+                <p style="color: rgba(255,255,255,0.5);"><a href="{{ url_for('auth.login') }}" class="auth-link" style="color: var(--color-primary); font-weight: 600;">Back to login</a></p>
             </div>
         </div>
     </div>
 
-    <script>lucide.createIcons();</script>
+    <script>
+        lucide.createIcons();
+    </script>
 </body>
 </html>
