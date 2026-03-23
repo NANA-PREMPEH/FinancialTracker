@@ -37,6 +37,7 @@
     --color-danger-text: #991b1b;
     
     --color-warning: #f59e0b;
+    --color-warning-hover: #d97706;
     --color-warning-bg: #fffbeb;
     --color-warning-text: #92400e;
 
@@ -90,6 +91,11 @@
     
     --color-danger-bg: rgba(239, 68, 68, 0.1);
     --color-danger-text: #f87171;
+
+    --color-warning: #f59e0b;
+    --color-warning-bg: rgba(245, 158, 11, 0.1);
+    --color-warning-text: #fbbf24;
+    --color-warning-hover: #f59e0b;
 }
 
 /* Reset & Base Styles */

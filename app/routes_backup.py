@@ -509,6 +509,8 @@ def restore_backup():
               f'A safety snapshot was created before restore.', 'success')
     except Exception as e:
         db.session.rollback()
+        import traceback
+        traceback.print_exc()
         flash(f'❌ Restore failed: {str(e)}. No data was changed.', 'error')
 
     return redirect(url_for('backup.backup_page'))

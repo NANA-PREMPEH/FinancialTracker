@@ -172,10 +172,11 @@
                                 </div>
                             </div>
 
-                            <button type="submit" class="w-full h-16 inline-flex items-center justify-center gap-3 bg-warning text-white font-bold text-lg rounded-2xl hover:bg-warning-hover transition-all focus:outline-none focus:ring-4 focus:ring-warning/20 shadow-lg shadow-warning/10" onclick="return confirm('CRITICAL: Are you absolutely sure? In Replace mode, ALL CURRENT DATA will be permanently cleared before restoring from the backup file.');">
+                            <button type="button" id="restoreBtn" class="w-full h-16 inline-flex items-center justify-center gap-3 bg-warning text-white font-bold text-lg rounded-2xl hover:brightness-110 active:scale-95 transition-all focus:outline-none focus:ring-4 focus:ring-warning/20 shadow-lg shadow-warning/10">
                                 <i data-lucide="rotate-ccw" class="w-6 h-6"></i>
                                 Begin Data Restoration
                             </button>
+                            <div id="restoreStatus" class="hidden mt-4 p-4 rounded-2xl text-sm font-bold text-center"></div>
                         </div>
                     </form>
                 </div>
@@ -362,6 +363,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const dropZone = document.getElementById('dropZone');
     const restoreInput = document.getElementById('restore_file');
     const restorePreview = document.getElementById('restorePreview');
+    const restoreBtn = document.getElementById('restoreBtn');
+    const restoreStatus = document.getElementById('restoreStatus');
     const backupForm = document.getElementById('backupForm');
     const backupBtn = document.getElementById('backupBtn');
     const backupProgress = document.getElementById('backupProgress');
@@ -369,6 +372,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const progressPercent = document.getElementById('progressPercent');
     const verifyInput = document.getElementById('verify_file');
     const verifyResult = document.getElementById('verifyResult');
+
+    // Store the selected file for restore
+    let selectedRestoreFile = null;
 
     // ── Create Backup UX ──
     backupForm.addEventListener('submit', (e) => {
@@ -405,7 +411,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     restoreInput.addEventListener('change', function(e) {
         if (this.files && this.files[0]) {
-            handleFileSelect(this.files[0]);
+            selectedRestoreFile = this.files[0];
+            handleFileSelect(selectedRestoreFile);
         }
     });
 
@@ -423,7 +430,8 @@ document.addEventListener('DOMContentLoaded', () => {
         dropZone.classList.remove('bg-warning/10', 'border-warning');
         if (e.dataTransfer.files && e.dataTransfer.files[0]) {
             restoreInput.files = e.dataTransfer.files;
-            handleFileSelect(e.dataTransfer.files[0]);
+            selectedRestoreFile = e.dataTransfer.files[0];
+            handleFileSelect(selectedRestoreFile);
         }
     });
 
@@ -435,6 +443,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Show loading state in preview
         restorePreview.classList.remove('hidden');
+        restoreStatus.classList.add('hidden');
         document.getElementById('previewFileName').innerText = file.name;
         document.getElementById('previewMeta').innerText = 'Analyzing backup payload...';
         
@@ -481,6 +490,61 @@ document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('previewIntegrity').className = 'hidden';
         });
     }
+
+    // ── Restore Button Handler ──
+    restoreBtn.addEventListener('click', () => {
+        if (!selectedRestoreFile) {
+            alert('Please select a backup file first.');
+            return;
+        }
+
+        const restoreMode = document.querySelector('input[name="restore_mode"]:checked');
+        const mode = restoreMode ? restoreMode.value : 'replace';
+
+        if (!confirm(`CRITICAL: Are you absolutely sure?\n\nIn ${mode === 'replace' ? 'Replace' : 'Merge'} mode, ${mode === 'replace' ? 'ALL CURRENT DATA will be permanently cleared before restoring from the backup file' : 'missing records will be added from the backup file'}.`)) {
+            return;
+        }
+
+        // Show loading state
+        restoreBtn.disabled = true;
+        restoreBtn.innerHTML = '<i data-lucide="loader-2" class="w-6 h-6 animate-spin"></i> Restoring data... Please wait';
+        restoreBtn.classList.add('opacity-70', 'pointer-events-none');
+        restoreStatus.classList.add('hidden');
+        lucide.createIcons();
+
+        const formData = new FormData();
+        formData.append('file', selectedRestoreFile);
+        formData.append('restore_mode', mode);
+
+        fetch('/backup/restore', {
+            method: 'POST',
+            body: formData,
+            redirect: 'follow'
+        })
+        .then(res => {
+            // The server redirects after restore — follow it
+            if (res.redirected) {
+                window.location.href = res.url;
+                return;
+            }
+            return res.text();
+        })
+        .then(html => {
+            if (html) {
+                // If we got HTML back (page content), reload to show flash messages
+                window.location.reload();
+            }
+        })
+        .catch(err => {
+            restoreStatus.classList.remove('hidden');
+            restoreStatus.className = 'mt-4 p-4 rounded-2xl text-sm font-bold text-center bg-danger/10 text-danger border border-danger/20';
+            restoreStatus.innerText = `❌ Restore failed: ${err.message}`;
+            restoreBtn.disabled = false;
+            restoreBtn.innerHTML = '<i data-lucide="rotate-ccw" class="w-6 h-6"></i> Begin Data Restoration';
+            restoreBtn.classList.remove('opacity-70', 'pointer-events-none');
+            lucide.createIcons();
+        });
+    });
 
     // ── Integrity Verify UX ──
     verifyInput.addEventListener('change', function(e) {
