@@ -401,6 +401,8 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // ── Restore Preview UX ──
+    dropZone.addEventListener('click', () => restoreInput.click());
+
     restoreInput.addEventListener('change', function(e) {
         if (this.files && this.files[0]) {
             handleFileSelect(this.files[0]);

@@ -125,6 +125,10 @@ def register():
         db.session.add(user)
         db.session.commit()
 
+        # Initialize default wallet and categories
+        from .utils import initialize_user_data
+        initialize_user_data(user)
+
         # Send verification email
         token = secrets.token_urlsafe(48)
         verification = EmailVerificationToken(

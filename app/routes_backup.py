@@ -2,7 +2,7 @@ from flask import Blueprint, render_template, request, redirect, url_for, flash,
 from flask_login import login_required, current_user
 from . import db
 from .models import (
-    Wallet, Category, Expense, Budget, RecurringTransaction,
+    User, Wallet, Category, Expense, Budget, RecurringTransaction,
     Project, ProjectItem, ProjectItemPayment,
     FinancialSummary, WishlistItem,
     Creditor, DebtPayment, Debtor, DebtorPayment,
@@ -13,7 +13,8 @@ from .models import (
     CalendarEvent, AutomationRule, WebhookEndpoint,
     BankReconciliation, ChartOfAccount, JournalEntry,
     Commitment, SMCContract, ContractPayment, ConstructionWork, GlobalEntity,
-    NotificationPreference, BackupHistory
+    NotificationPreference, BackupHistory, WalletShare, Notification,
+    AuditLog, SecurityEvent, ImportHistory, ApiKey, PushSubscription
 )
 from datetime import datetime
 import json
@@ -35,7 +36,7 @@ def _dt(val):
 
 def _build_full_backup(uid):
     """Build the complete backup dict for a user, covering ALL models."""
-    user = db.session.get(current_user.__class__, uid)
+    user = User.query.get(uid)
 
     data = {
         'wallets': [{
@@ -293,6 +294,18 @@ def _build_full_backup(uid):
         'notification_preferences': [{
             'notification_type': np.notification_type, 'enabled': np.enabled
         } for np in NotificationPreference.query.filter_by(user_id=uid).all()],
+
+        'notifications': [{
+            'title': n.title, 'message': n.message,
+            'notification_type': n.notification_type, 'is_read': n.is_read,
+            'created_at': _dt(n.created_at)
+        } for n in Notification.query.filter_by(user_id=uid).all()],
+
+        'wallet_shares': [{
+            'wallet': s.wallet.name if s.wallet else '',
+            'shared_with_email': s.shared_with.email if s.shared_with else '',
+            'permission': s.permission, 'accepted': s.accepted
+        } for s in WalletShare.query.filter_by(owner_id=uid).all()],
     }
 
     return data
@@ -520,64 +533,64 @@ def _restore_merge(uid, data):
 
 def _delete_all_user_data(uid):
     """Delete ALL user-owned records in dependency-safe order."""
-    # Deeply nested first
-    ProjectItemPayment.query.filter_by(user_id=uid).delete()
-    ProjectItem.query.filter_by(user_id=uid).delete()
+    # Deeply nested/dependent records first
+    ProjectItemPayment.query.filter_by(user_id=uid).delete(synchronize_session=False)
+    ProjectItem.query.filter_by(user_id=uid).delete(synchronize_session=False)
 
-    ContractPayment.query.filter(
-        ContractPayment.contract_id.in_(
-            db.session.query(SMCContract.id).filter_by(user_id=uid)
-        )
-    ).delete(synchronize_session=False)
+    ContractPayment.query.filter_by(user_id=uid).delete(synchronize_session=False)
 
-    DebtPayment.query.filter_by(user_id=uid).delete()
-    DebtorPayment.query.filter_by(user_id=uid).delete()
+    DebtPayment.query.filter_by(user_id=uid).delete(synchronize_session=False)
+    DebtorPayment.query.filter_by(user_id=uid).delete(synchronize_session=False)
 
-    # Delete dividends via investment ids
-    Dividend.query.filter_by(user_id=uid).delete()
+    Dividend.query.filter_by(user_id=uid).delete(synchronize_session=False)
 
-    # Delete goal children
-    GoalTask.query.filter_by(user_id=uid).delete()
-    GoalMilestone.query.filter_by(user_id=uid).delete()
+    GoalTask.query.filter_by(user_id=uid).delete(synchronize_session=False)
+    GoalMilestone.query.filter_by(user_id=uid).delete(synchronize_session=False)
 
-    # Delete journal entries before chart of accounts
-    JournalEntry.query.filter_by(user_id=uid).delete()
-
-    # Delete reconciliations before wallets
-    BankReconciliation.query.filter_by(user_id=uid).delete()
+    JournalEntry.query.filter_by(user_id=uid).delete(synchronize_session=False)
+    BankReconciliation.query.filter_by(user_id=uid).delete(synchronize_session=False)
 
     # Main entities
-    Expense.query.filter_by(user_id=uid).delete()
-    Budget.query.filter_by(user_id=uid).delete()
-    RecurringTransaction.query.filter_by(user_id=uid).delete()
-    Project.query.filter_by(user_id=uid).delete()
-    FinancialSummary.query.filter_by(user_id=uid).delete()
-    WishlistItem.query.filter_by(user_id=uid).delete()
-    Creditor.query.filter_by(user_id=uid).delete()
-    Debtor.query.filter_by(user_id=uid).delete()
-    Goal.query.filter_by(user_id=uid).delete()
-    Investment.query.filter_by(user_id=uid).delete()
-    InsurancePolicy.query.filter_by(user_id=uid).delete()
-    PensionScheme.query.filter_by(user_id=uid).delete()
-    SSNITContribution.query.filter_by(user_id=uid).delete()
-    NetWorthSnapshot.query.filter_by(user_id=uid).delete()
-    FixedAsset.query.filter_by(user_id=uid).delete()
-    CashFlowProjection.query.filter_by(user_id=uid).delete()
-    CashFlowAlert.query.filter_by(user_id=uid).delete()
-    BudgetPeriod.query.filter_by(user_id=uid).delete()
-    CalendarEvent.query.filter_by(user_id=uid).delete()
-    AutomationRule.query.filter_by(user_id=uid).delete()
-    WebhookEndpoint.query.filter_by(user_id=uid).delete()
-    ChartOfAccount.query.filter_by(user_id=uid).delete()
-    Commitment.query.filter_by(user_id=uid).delete()
-    SMCContract.query.filter_by(user_id=uid).delete()
-    ConstructionWork.query.filter_by(user_id=uid).delete()
-    GlobalEntity.query.filter_by(user_id=uid).delete()
-    NotificationPreference.query.filter_by(user_id=uid).delete()
+    Expense.query.filter_by(user_id=uid).delete(synchronize_session=False)
+    Budget.query.filter_by(user_id=uid).delete(synchronize_session=False)
+    RecurringTransaction.query.filter_by(user_id=uid).delete(synchronize_session=False)
+    Project.query.filter_by(user_id=uid).delete(synchronize_session=False)
+    FinancialSummary.query.filter_by(user_id=uid).delete(synchronize_session=False)
+    WishlistItem.query.filter_by(user_id=uid).delete(synchronize_session=False)
+    Creditor.query.filter_by(user_id=uid).delete(synchronize_session=False)
+    Debtor.query.filter_by(user_id=uid).delete(synchronize_session=False)
+    Goal.query.filter_by(user_id=uid).delete(synchronize_session=False)
+    Investment.query.filter_by(user_id=uid).delete(synchronize_session=False)
+    InsurancePolicy.query.filter_by(user_id=uid).delete(synchronize_session=False)
+    PensionScheme.query.filter_by(user_id=uid).delete(synchronize_session=False)
+    SSNITContribution.query.filter_by(user_id=uid).delete(synchronize_session=False)
+    NetWorthSnapshot.query.filter_by(user_id=uid).delete(synchronize_session=False)
+    FixedAsset.query.filter_by(user_id=uid).delete(synchronize_session=False)
+    CashFlowProjection.query.filter_by(user_id=uid).delete(synchronize_session=False)
+    CashFlowAlert.query.filter_by(user_id=uid).delete(synchronize_session=False)
+    BudgetPeriod.query.filter_by(user_id=uid).delete(synchronize_session=False)
+    CalendarEvent.query.filter_by(user_id=uid).delete(synchronize_session=False)
+    AutomationRule.query.filter_by(user_id=uid).delete(synchronize_session=False)
+    WebhookEndpoint.query.filter_by(user_id=uid).delete(synchronize_session=False)
+    ChartOfAccount.query.filter_by(user_id=uid).delete(synchronize_session=False)
+    Commitment.query.filter_by(user_id=uid).delete(synchronize_session=False)
+    SMCContract.query.filter_by(user_id=uid).delete(synchronize_session=False)
+    ConstructionWork.query.filter_by(user_id=uid).delete(synchronize_session=False)
+    GlobalEntity.query.filter_by(user_id=uid).delete(synchronize_session=False)
+    NotificationPreference.query.filter_by(user_id=uid).delete(synchronize_session=False)
+    Notification.query.filter_by(user_id=uid).delete(synchronize_session=False)
+    AuditLog.query.filter_by(user_id=uid).delete(synchronize_session=False)
+    SecurityEvent.query.filter_by(user_id=uid).delete(synchronize_session=False)
+    ImportHistory.query.filter_by(user_id=uid).delete(synchronize_session=False)
+    ApiKey.query.filter_by(user_id=uid).delete(synchronize_session=False)
+    PushSubscription.query.filter_by(user_id=uid).delete(synchronize_session=False)
+
+    # Wallet shares (MUST be deleted before Wallets)
+    WalletShare.query.filter((WalletShare.owner_id == uid) | (WalletShare.shared_with_id == uid)).delete(synchronize_session=False)
 
     # Categories and Wallets last (referenced by many)
-    Category.query.filter_by(user_id=uid).delete()
-    Wallet.query.filter_by(user_id=uid).delete()
+    Category.query.filter_by(user_id=uid).delete(synchronize_session=False)
+    Wallet.query.filter_by(user_id=uid).delete(synchronize_session=False)
 
 
 def _insert_from_backup(uid, data, merge=False):
@@ -618,6 +631,12 @@ def _insert_from_backup(uid, data, merge=False):
     for e in data.get('expenses', []):
         cat = cat_map.get(e.get('category'))
         wal = wallet_map.get(e.get('wallet'))
+
+        # Fallback for shared wallets owned by others
+        if not wal and e.get('wallet'):
+            # Try to find a wallet shared with this user by the same name
+            wal = Wallet.query.filter_by(name=e['wallet']).join(WalletShare, Wallet.id == WalletShare.wallet_id).filter(WalletShare.shared_with_id == uid).first()
+
         if not cat or not wal:
             continue
         obj = Expense(user_id=uid, amount=e['amount'], description=e.get('description', ''),
@@ -1049,6 +1068,32 @@ def _insert_from_backup(uid, data, merge=False):
                                      notification_type=np_data['notification_type'],
                                      enabled=np_data.get('enabled', True))
         db.session.add(obj)
+
+    # ── Notifications ──
+    for n_data in data.get('notifications', []):
+        obj = Notification(user_id=uid, title=n_data['title'],
+                           message=n_data['message'],
+                           notification_type=n_data.get('notification_type', 'info'),
+                           is_read=n_data.get('is_read', False),
+                           created_at=_parse_dt(n_data.get('created_at')) or datetime.utcnow())
+        db.session.add(obj)
+
+    # ── Wallet Shares ──
+    from .models import User
+    for s_data in data.get('wallet_shares', []):
+        wal = wallet_map.get(s_data.get('wallet'))
+        shared_with = User.query.filter_by(email=s_data.get('shared_with_email')).first()
+        if wal and shared_with:
+            # Check if share already exists (for merge mode)
+            if merge:
+                existing = WalletShare.query.filter_by(wallet_id=wal.id, shared_with_id=shared_with.id).first()
+                if existing:
+                    continue
+            obj = WalletShare(wallet_id=wal.id, owner_id=uid,
+                              shared_with_id=shared_with.id,
+                              permission=s_data.get('permission', 'view'),
+                              accepted=s_data.get('accepted', False))
+            db.session.add(obj)
 
     db.session.flush()
 
