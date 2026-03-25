@@ -20,64 +20,123 @@
     </div>
 
     {% if projects %}
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <div class="grid grid-cols-1 gap-8">
         {% for project in projects %}
-        <div class="bg-surface/40 backdrop-blur-xl rounded-3xl border border-white/10 shadow-xl overflow-hidden flex flex-col group hover:shadow-2xl hover:shadow-primary/10 hover:border-primary/30 transition-all duration-500 relative" id="project-{{ project.id }}">
-            <div class="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-purple-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none"></div>
+        {% set is_income = project.paid_income > project.paid_expense %}
+        <div class="bg-surface backdrop-blur-xl rounded-[2.5rem] border border-white/10 shadow-2xl overflow-hidden flex flex-col group hover:shadow-primary/10 transition-all duration-500 relative" id="project-{{ project.id }}">
+            <!-- Side accent bar -->
+            <div class="absolute left-0 top-6 bottom-6 w-1.5 {% if is_income %}bg-success{% else %}bg-primary{% endif %} rounded-r-full shadow-[2px_0_10px_rgba(0,0,0,0.1)]"></div>
             
-            <div class="p-8 border-b border-white/5 relative z-10 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                <div class="flex-1 min-w-0">
-                    <h3 class="text-2xl font-black font-heading text-text m-0 mb-2 truncate line-clamp-1 group-hover:bg-clip-text group-hover:text-transparent group-hover:bg-gradient-to-r group-hover:from-primary group-hover:to-purple-500 transition-all duration-300" title="{{ project.name }}">{{ project.name }}</h3>
-                    <div class="flex items-center gap-2 text-sm font-semibold text-text-muted">
-                        <div class="w-6 h-6 rounded-lg bg-primary/10 flex items-center justify-center text-primary shrink-0">
-                            <i data-lucide="piggy-bank" class="w-3.5 h-3.5"></i>
+            <div class="p-10 relative z-10">
+                <!-- Header Section -->
+                <div class="flex flex-col md:flex-row justify-between items-start gap-6 mb-8">
+                    <div class="flex-1">
+                        <div class="flex items-center gap-4 mb-2">
+                            <h3 class="text-2xl font-black font-heading text-text m-0 tracking-tight">{{ project.name }}</h3>
+                            <span class="inline-flex items-center px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest {% if is_income %}bg-success/10 text-success{% else %}bg-primary/10 text-primary{% endif %} border border-current/10">
+                                {% if is_income %}INCOME{% else %}EXPENSE{% endif %}
+                            </span>
                         </div>
-                        <span class="truncate">
-                            {% if project.funding_source == 'wallet' and project.wallet %}
-                                Funded via: <span class="text-text font-bold">{{ project.wallet.name }}</span>
-                            {% elif project.funding_source == 'other' %}
-                                Funded via: <span class="text-text font-bold">{{ project.custom_funding_source }}</span>
-                            {% else %}
-                                Funded via: <span class="text-text font-bold">{{ project.funding_source|replace('_', ' ')|title }}</span>
-                            {% endif %}
-                        </span>
+                        <p class="text-base font-medium text-text-muted m-0 mb-4">{{ project.description or 'No description provided' }}</p>
+                        <div class="flex items-center gap-2 text-sm font-bold text-text-muted">
+                            <i data-lucide="calendar" class="w-4 h-4"></i>
+                            <span>Added {{ project.created_date.strftime('%b %d, %Y') }}</span>
+                        </div>
+                    </div>
+                    
+                    <div class="text-right flex flex-col items-end gap-4 min-w-[200px]">
+                        <div>
+                            <p class="text-[10px] font-black text-text-muted uppercase tracking-widest mb-1">Item Amount</p>
+                            <p class="text-2xl font-black font-heading {% if is_income %}text-success{% else %}text-danger{% endif %} m-0">
+                                {{ '+' if is_income else '-' }}{{ current_user.default_currency }} {{ "{:,.2f}".format(project.total_income if is_income else project.total_cost) }}
+                            </p>
+                        </div>
+                        <div>
+                            <p class="text-[10px] font-black text-text-muted uppercase tracking-widest mb-1">Remaining Balance</p>
+                            <p class="text-lg font-black font-heading text-text m-0">
+                                {{ current_user.default_currency }} {{ "{:,.2f}".format((project.total_income - project.paid_income) if is_income else (project.total_cost - project.paid_expense)) }}
+                            </p>
+                        </div>
+                        <div class="flex items-center gap-3 mt-2">
+                            <a href="{{ url_for('main.edit_project', id=project.id) }}" class="w-10 h-10 flex items-center justify-center rounded-xl bg-surface-active/50 border border-white/10 text-text-muted hover:text-primary transition-all shadow-sm">
+                                <i data-lucide="edit-3" class="w-5 h-5"></i>
+                            </a>
+                            <button type="button" onclick="confirmDelete('{{ project.id }}')" class="w-10 h-10 flex items-center justify-center rounded-xl bg-surface-active/50 border border-white/10 text-text-muted hover:text-danger transition-all shadow-sm">
+                                <i data-lucide="trash-2" class="w-5 h-5"></i>
+                            </button>
+                        </div>
                     </div>
                 </div>
-                <a href="{{ url_for('main.project_details', id=project.id) }}" class="shrink-0 inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-surface/50 border border-white/10 text-text font-black rounded-xl hover:bg-primary hover:text-white hover:border-primary transition-all active:scale-95 focus:outline-none focus:ring-2 focus:ring-primary/50 shadow-sm">
-                    <i data-lucide="eye" class="w-4 h-4"></i> Details
-                </a>
-            </div>
-            
-            <div class="p-8 grid grid-cols-2 lg:grid-cols-4 gap-4 relative z-10">
-                <div class="bg-success/10 border border-success/20 rounded-2xl p-4 flex flex-col justify-center transition-transform group-hover:translate-y-[-2px] duration-300">
-                    <p class="text-[10px] font-black text-success/80 uppercase tracking-widest mb-1.5 flex items-center gap-1.5"><i data-lucide="check-circle-2" class="w-3 h-3"></i> Completed</p>
-                    <p class="text-lg font-black font-heading text-text truncate">GHS {{ "{:,.2f}".format(project.paid_expense) }}</p>
+
+                <!-- Progress Section -->
+                <div class="mb-10 pt-8 border-t border-black/5">
+                    <div class="flex justify-between items-end mb-3">
+                        <span class="text-sm font-black text-text uppercase tracking-widest">Payment Progress</span>
+                        <span class="text-sm font-black text-text font-heading">
+                            {{ current_user.default_currency }} {{ "{:,.2f}".format(project.paid_income if is_income else project.paid_expense) }}
+                            <span class="text-text-muted mx-1">/</span>
+                            {{ "{:,.2f}".format(project.total_income if is_income else project.total_cost) }}
+                        </span>
+                    </div>
+                    {% set progress = ((project.paid_income / project.total_income * 100) if is_income and project.total_income > 0 else (project.paid_expense / project.total_cost * 100) if not is_income and project.total_cost > 0 else 0) %}
+                    <div class="w-full bg-surface-active/30 rounded-full h-3 overflow-hidden border border-black/5 p-0.5 shadow-inner">
+                        <div class="bg-gradient-to-r from-primary via-indigo-500 to-purple-500 h-2 rounded-full transition-all duration-1000 ease-out shadow-[0_0_15px_rgba(99,102,241,0.3)]" style="width: {{ progress }}%"></div>
+                    </div>
                 </div>
-                
-                <div class="bg-warning/10 border border-warning/20 rounded-2xl p-4 flex flex-col justify-center transition-transform group-hover:translate-y-[-2px] duration-300 delay-75">
-                    <p class="text-[10px] font-black text-warning/80 uppercase tracking-widest mb-1.5 flex items-center gap-1.5"><i data-lucide="hourglass" class="w-3 h-3"></i> Pending</p>
-                    <p class="text-lg font-black font-heading text-text truncate">GHS {{ "{:,.2f}".format(project.total_cost - project.paid_expense) }}</p>
+
+                <!-- Payments list area -->
+                <div class="bg-surface-active/10 rounded-3xl border border-black/5 p-2 overflow-hidden">
+                    <div class="px-6 py-4 border-b border-black/5">
+                        <h4 class="text-xs font-black text-text-muted uppercase tracking-[0.2em] m-0">Payments Handled</h4>
+                    </div>
+                    <div class="divide-y divide-black/5">
+                        {% set payments = [] %}
+                        {% for item in project.items %}
+                            {% for payment in item.payments %}
+                                {% set _ = payments.append(payment) %}
+                            {% endfor %}
+                        {% endfor %}
+                        
+                        {% for payment in payments|sort(attribute='payment_date', reverse=True) %}
+                        {% if loop.index <= 3 %}
+                        <div class="p-6 flex items-center justify-between group/pay hover:bg-white/40 transition-all rounded-2xl">
+                            <div class="flex items-center gap-5 flex-1 min-w-0">
+                                <div class="w-10 h-10 rounded-xl bg-primary/20 flex items-center justify-center text-primary shadow-sm">
+                                    <i data-lucide="wallet" class="w-5 h-5"></i>
+                                </div>
+                                <div class="flex flex-col flex-1 min-w-0">
+                                    <span class="text-base font-bold text-text truncate w-full">{{ payment.description or 'Payment' }}</span>
+                                    <div class="flex items-center gap-2 mt-0.5">
+                                        <span class="text-[10px] text-text-muted font-black uppercase tracking-widest">
+                                            {{ payment.payment_date.strftime('%d %b %Y') if payment.payment_date else 'No Date' }}
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-8 bg-surface/50 sm:bg-transparent p-2 sm:p-0 rounded-xl">
+                                <span class="text-lg font-black font-heading text-text">
+                                    {{ current_user.default_currency }} {{ "{:,.2f}".format(payment.amount) }}
+                                </span>
+                                <div class="hidden sm:flex items-center gap-2">
+                                    <button class="w-8 h-8 flex items-center justify-center rounded-lg text-text-muted hover:text-primary transition-all"><i data-lucide="edit-2" class="w-4 h-4"></i></button>
+                                    <button class="w-8 h-8 flex items-center justify-center rounded-lg text-text-muted hover:text-danger transition-all"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
+                        {% endfor %}
+                        
+                        {% if not payments %}
+                        <div class="p-8 text-center text-text-muted font-medium italic opacity-60">No payment records yet</div>
+                        {% endif %}
+                    </div>
                 </div>
-                
-                <div class="bg-primary/10 border border-primary/20 rounded-2xl p-4 flex flex-col justify-center transition-transform group-hover:translate-y-[-2px] duration-300 delay-150">
-                    <p class="text-[10px] font-black text-primary/80 uppercase tracking-widest mb-1.5 flex items-center gap-1.5"><i data-lucide="trending-up" class="w-3 h-3"></i> Income</p>
-                    <p class="text-lg font-black font-heading text-text truncate">GHS {{ "{:,.2f}".format(project.paid_income) }}</p>
-                </div>
-                 
-                <div class="bg-surface-active/50 border border-white/10 rounded-2xl p-4 flex flex-col justify-center transition-transform group-hover:translate-y-[-2px] duration-300 delay-200">
-                    <p class="text-[10px] font-black text-text-muted uppercase tracking-widest mb-1.5 flex items-center gap-1.5"><i data-lucide="sigma" class="w-3 h-3"></i> Total Cost</p>
-                    <p class="text-lg font-black font-heading text-text truncate">GHS {{ "{:,.2f}".format(project.total_cost) }}</p>
-                </div>
-            </div>
-            
-            {% set progress = (project.paid_expense / project.total_cost * 100) if project.total_cost > 0 else 0 %}
-            <div class="px-8 pb-8 relative z-10">
-                <div class="flex justify-between items-center mb-2.5">
-                    <span class="text-xs font-black text-text-muted uppercase tracking-wider">Payment Progress</span>
-                    <span class="text-xs font-black text-primary">{{ "%.1f"|format(progress) }}%</span>
-                </div>
-                <div class="w-full bg-surface-active/50 rounded-full h-3 overflow-hidden border border-white/5 p-0.5">
-                    <div class="bg-gradient-to-r from-primary via-indigo-500 to-purple-500 h-2 rounded-full transition-all duration-1000 ease-out shadow-lg shadow-indigo-500/30" style="width: {{ progress }}%"></div>
+
+                <!-- Add Payment Button -->
+                <div class="mt-8 flex justify-center">
+                    <a href="{{ url_for('main.project_details', id=project.id) }}" class="inline-flex items-center gap-3 px-8 py-4 bg-surface/50 border border-primary/20 text-primary font-black rounded-2xl hover:bg-primary/10 transition-all active:scale-95 shadow-sm">
+                        <i data-lucide="plus-circle" class="w-6 h-6"></i> Add Payment Record
+                    </a>
                 </div>
             </div>
         </div>
@@ -102,5 +161,15 @@
     document.addEventListener('DOMContentLoaded', () => {
         lucide.createIcons();
     });
+
+    function confirmDelete(projectId) {
+        if (confirm('Are you sure you want to delete this project? This action cannot be undone.')) {
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = `/projects/delete/${projectId}`;
+            document.body.appendChild(form);
+            form.submit();
+        }
+    }
 </script>
 {% endblock %}

@@ -157,161 +157,170 @@
                     {% if project.items %}
                     <div class="space-y-4">
                         {% for item in project.items %}
-                        <div class="project-item-card bg-surface/30 sm:rounded-3xl border-b sm:border border-white/5 p-6 hover:shadow-2xl hover:shadow-primary/5 transition-all duration-300 relative overflow-hidden group/item mb-4" id="item-{{ item.id }}">
-                            <!-- Color border indicator -->
-                            <div class="absolute left-0 top-0 bottom-0 w-2 {% if item.item_type == 'income' %}bg-success{% else %}bg-danger{% endif %} opacity-80"></div>
+                        {% set is_income = item.item_type == 'income' %}
+                        <div class="project-item-card bg-surface backdrop-blur-xl rounded-[2.5rem] border border-white/10 shadow-2xl overflow-hidden flex flex-col group/item hover:shadow-primary/10 transition-all duration-500 relative mb-8" id="item-{{ item.id }}">
+                            <!-- Side accent bar -->
+                            <div class="absolute left-0 top-6 bottom-6 w-1.5 {% if is_income %}bg-success{% else %}bg-danger{% endif %} rounded-r-full shadow-[2px_0_10px_rgba(0,0,0,0.1)] opacity-80"></div>
                             
-                            <div class="pl-4 flex flex-col sm:flex-row justify-between items-start gap-6">
-                                <div class="flex-1 min-w-0 w-full">
-                                    <div class="flex items-center flex-wrap gap-3 mb-2">
-                                        <h4 class="text-2xl font-black text-text m-0 group-hover/item:text-primary transition-colors duration-300">{{ item.item_name }}</h4>
-                                        <span class="inline-flex items-center px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest
-                                            {% if item.item_type == 'income' %}bg-success/20 text-success{% else %}bg-danger/20 text-danger{% endif %} border border-current/20">
-                                            {{ item.item_type }}
-                                        </span>
-                                    </div>
-                                    
-                                    {% if item.description %}
-                                    <p class="text-base text-text-muted mt-2 mb-4 whitespace-pre-wrap font-medium leading-relaxed">{{ item.description }}</p>
-                                    {% endif %}
-                                    
-                                    <div class="flex items-center gap-2 text-[10px] font-black text-text-muted uppercase tracking-widest mt-2 bg-surface/50 w-fit px-3 py-1 rounded-full border border-white/5">
-                                        <i data-lucide="calendar" class="w-3.5 h-3.5"></i> Added {{ item.created_date.strftime('%b %d, %Y') }}
-                                    </div>
-                                    
-                                    <!-- Payment Progress Bar -->
-                                    <div class="mt-6 pt-6 border-t border-white/10">
-                                        <div class="flex justify-between items-center mb-2.5">
-                                            <span class="text-[10px] font-black text-text-muted uppercase tracking-widest">Payment Progress</span>
-                                            <span class="text-xs font-black text-text">
-                                                {{ current_user.default_currency }} {{ "{:,.2f}".format(item.total_paid) }} 
-                                                <span class="text-text-muted font-black opacity-40 mx-1">/</span> 
-                                                <span class="text-primary">{{ "{:,.2f}".format(item.cost) }}</span>
+                            <div class="p-8 sm:p-10 relative z-10">
+                                <!-- Item Header Section -->
+                                <div class="flex flex-col md:flex-row justify-between items-start gap-6 mb-8">
+                                    <div class="flex-1">
+                                        <div class="flex items-center gap-4 mb-2">
+                                            <h4 class="text-2xl font-black font-heading text-text m-0 tracking-tight group-hover/item:text-primary transition-colors duration-300">{{ item.item_name }}</h4>
+                                            <span class="inline-flex items-center px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest {% if is_income %}bg-success/10 text-success{% else %}bg-danger/10 text-danger{% endif %} border border-current/20">
+                                                {{ item.item_type }}
                                             </span>
                                         </div>
-                                        <div class="w-full bg-surface-active/50 rounded-full h-3 overflow-hidden border border-white/5 p-0.5">
-                                            {% set item_progress = (item.total_paid / item.cost * 100) if item.cost > 0 else 0 %}
-                                            <div class="bg-gradient-to-r from-primary via-indigo-500 to-purple-500 h-2 rounded-full transition-all duration-1000 ease-out shadow-sm shadow-indigo-500/50" style="width: {{ item_progress }}%"></div>
+                                        {% if item.description %}
+                                        <p class="text-base font-medium text-text-muted m-0 mb-4 leading-relaxed">{{ item.description }}</p>
+                                        {% endif %}
+                                        <div class="flex items-center gap-2 text-sm font-bold text-text-muted bg-surface-active/30 px-3 py-1.5 rounded-full border border-black/5 w-fit">
+                                            <i data-lucide="calendar" class="w-4 h-4"></i>
+                                            <span>Added {{ item.created_date.strftime('%b %d, %Y') }}</span>
                                         </div>
                                     </div>
-
-                                    <!-- Payments List -->
-                                    {% if item.payments %}
-                                    <div class="mt-6 bg-surface/40 backdrop-blur-md rounded-2xl border border-white/10 overflow-hidden shadow-sm">
-                                        <div class="px-5 py-3 border-b border-white/5 bg-surface/50">
-                                            <p class="text-[10px] font-black text-text-muted uppercase tracking-widest m-0">Payment History</p>
-                                        </div>
-                                        <ul class="divide-y divide-white/5 m-0 p-0 list-none">
-                                            {% for payment in item.payments %}
-                                            <li class="p-4 flex items-center gap-4 hover:bg-white/5 transition-colors group/payment">
-                                                <label class="relative flex items-center group cursor-pointer">
-                                                    <input type="checkbox" 
-                                                        data-project-id="{{ project.id }}" 
-                                                        data-item-id="{{ item.id }}" 
-                                                        data-payment-id="{{ payment.id }}"
-                                                        onchange="handleTogglePayment(this)"
-                                                        {% if payment.is_paid %}checked{% endif %} class="peer sr-only">
-                                                    <div class="w-6 h-6 border-2 border-white/20 rounded-lg bg-surface peer-checked:bg-primary peer-checked:border-primary flex items-center justify-center transition-all group-hover:border-primary/50 shadow-sm">
-                                                        <i data-lucide="check" class="w-4 h-4 text-white opacity-0 peer-checked:opacity-100 scale-50 peer-checked:scale-100 transition-all"></i>
-                                                    </div>
-                                                </label>
-                                                
-                                                <div class="flex-1 min-w-0 flex items-center gap-3">
-                                                    <span class="text-sm font-black text-text truncate transition-all {% if payment.is_paid %}opacity-40 line-through{% endif %}">
-                                                        {{ payment.description or 'Payment' }}
-                                                    </span>
-                                                    <span class="text-[10px] px-2 py-1 rounded-full bg-surface/50 border border-white/10 text-text-muted font-black uppercase tracking-widest hidden sm:inline-block">
-                                                        {{ payment.payment_date.strftime('%d %b') if payment.payment_date else 'No Date' }}
-                                                    </span>
-                                                </div>
-                                                
-                                                <span class="text-base font-black text-text whitespace-nowrap {% if payment.is_paid %}opacity-40{% endif %}">
-                                                    {{ current_user.default_currency }} {{ "{:,.2f}".format(payment.amount) }}
-                                                </span>
-                                                
-                                                <div class="flex items-center gap-1 opacity-100 sm:opacity-0 group-hover/payment:opacity-100 transition-opacity">
-                                                    <button type="button" 
-                                                        data-project-id="{{ project.id }}"
-                                                        data-item-id="{{ item.id }}"
-                                                        data-payment-id="{{ payment.id }}"
-                                                        data-amount="{{ payment.amount }}"
-                                                        data-date="{{ payment.payment_date.strftime('%Y-%m-%d') if payment.payment_date else '' }}"
-                                                        data-description="{{ (payment.description or '')|replace("'", "\\'") }}"
-                                                        onclick="openEditPaymentModal(this)"
-                                                        class="p-2 text-text-muted hover:text-primary hover:bg-primary/10 rounded-xl transition-all active:scale-90" title="Edit payment">
-                                                        <i data-lucide="edit-2" class="w-4 h-4"></i>
-                                                    </button>
-                                                    
-                                                    <form method="POST" action="{{ url_for('main.delete_project_item_payment', project_id=project.id, item_id=item.id, payment_id=payment.id) }}" class="m-0" onsubmit="return confirm('Delete this payment record?');">
-                                                        <button type="submit" class="p-2 text-text-muted hover:text-danger hover:bg-danger/10 rounded-xl transition-all active:scale-90" title="Delete payment">
-                                                            <i data-lucide="trash-2" class="w-4 h-4"></i>
-                                                        </button>
-                                                    </form>
-                                                </div>
-                                            </li>
-                                            {% endfor %}
-                                        </ul>
-                                    </div>
-                                    {% endif %}
-
-                                    <!-- Add Payment Toggle Details -->
-                                    <details class="group mt-4 bg-surface/30 border border-white/10 rounded-2xl overflow-hidden [&_summary::-webkit-details-marker]:hidden">
-                                        <summary class="flex justify-between items-center px-5 py-3 cursor-pointer font-black text-xs text-primary uppercase tracking-widest hover:bg-primary/5 transition-all focus:outline-none">
-                                            <span class="flex items-center gap-2"><i data-lucide="plus-circle" class="w-4 h-4"></i> Add Payment Record</span>
-                                            <i data-lucide="chevron-down" class="w-4 h-4 text-primary transition-transform group-open:-rotate-180"></i>
-                                        </summary>
-                                        <div class="p-6 border-t border-white/5 bg-surface/20">
-                                            <form method="POST" action="{{ url_for('main.add_project_item_payment', project_id=project.id, item_id=item.id) }}" class="flex flex-col gap-4">
-                                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                                    <div class="flex items-center w-full h-12 px-4 bg-surface/50 border border-white/10 rounded-xl focus-within:border-primary focus-within:ring-1 focus-within:ring-primary transition-all shadow-sm">
-                                                        <span class="text-primary font-black text-xs mr-2 shrink-0">{{ current_user.default_currency }}</span>
-                                                        <input type="number" name="payment_amount" step="0.01" min="0" required placeholder="0.00"
-                                                            class="flex-1 w-full bg-transparent text-sm text-text focus:outline-none font-black appearance-none min-w-0">
-                                                    </div>
-                                                    <div class="relative">
-                                                        <i data-lucide="calendar" class="w-4 h-4 text-text-muted absolute left-4 top-1/2 -translate-y-1/2"></i>
-                                                        <input type="date" name="payment_date" required
-                                                            class="w-full h-12 pl-12 pr-4 bg-surface/50 border border-white/10 rounded-xl text-sm text-text focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary font-black uppercase tracking-wider">
-                                                    </div>
-                                                </div>
-                                                <input type="text" name="payment_description" placeholder="Description (e.g., Deposit, Final Installment)"
-                                                    class="w-full h-12 px-4 bg-surface/50 border border-white/10 rounded-xl text-sm font-semibold text-text focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all shadow-sm">
-                                                <button type="submit" class="w-full sm:w-auto self-end px-8 py-3 bg-primary text-white text-xs font-black uppercase tracking-widest rounded-xl hover:bg-primary-hover hover:scale-105 active:scale-95 transition-all shadow-lg hover:shadow-primary/20">
-                                                    Save Payment
-                                                </button>
-                                            </form>
-                                        </div>
-                                    </details>
-
-                                </div>
-
-                                <div class="flex flex-row sm:flex-col items-center sm:items-end justify-between sm:justify-start w-full sm:w-auto gap-6 shrink-0 border-t sm:border-0 border-white/10 pt-6 sm:pt-0">
-                                    <div class="text-right flex flex-col items-end gap-3">
+                                    
+                                    <div class="text-right flex flex-col items-end gap-5 min-w-[200px]">
                                         <div>
-                                            <p class="text-[10px] font-black text-text-muted uppercase tracking-widest mb-1 text-right">Item Amount</p>
-                                            <p class="text-xl font-black font-heading m-0 {% if item.item_type == 'income' %}text-success{% else %}text-danger{% endif %} tracking-tight">
-                                                {{ '+' if item.item_type == 'income' else '' }}{{ current_user.default_currency }} {{ "{:,.2f}".format(item.cost) }}
+                                            <p class="text-[10px] font-black text-text-muted uppercase tracking-widest mb-1.5">Item Amount</p>
+                                            <p class="text-2xl font-black font-heading {% if is_income %}text-success{% else %}text-danger{% endif %} m-0 tracking-tight">
+                                                {{ '+' if is_income else '' }}{{ current_user.default_currency }} {{ "{:,.2f}".format(item.cost) }}
                                             </p>
                                         </div>
                                         <div>
-                                            <p class="text-[10px] font-black text-text-muted uppercase tracking-widest mb-1 text-right">Balance Due</p>
-                                            <p class="text-sm font-black font-heading m-0 text-text tracking-tight">
+                                            <p class="text-[10px] font-black text-text-muted uppercase tracking-widest mb-1.5">Remaining Balance</p>
+                                            <p class="text-xl font-black font-heading text-text m-0 tracking-tight">
                                                 {{ current_user.default_currency }} {{ "{:,.2f}".format(item.cost - item.total_paid) }}
                                             </p>
                                         </div>
+                                        <div class="flex items-center gap-3 mt-1">
+                                            <a href="{{ url_for('main.edit_project_item', project_id=project.id, item_id=item.id) }}" 
+                                                class="w-10 h-10 flex items-center justify-center rounded-xl bg-surface-active/50 border border-white/10 text-text-muted hover:text-primary transition-all shadow-sm">
+                                                <i data-lucide="edit-3" class="w-5 h-5"></i>
+                                            </a>
+                                            <form method="POST" action="{{ url_for('main.delete_project_item', project_id=project.id, item_id=item.id) }}" class="m-0" onsubmit="return confirm('Delete this item?');">
+                                                <button type="submit" class="w-10 h-10 flex items-center justify-center rounded-xl bg-surface-active/50 border border-white/10 text-text-muted hover:text-danger transition-all shadow-sm">
+                                                    <i data-lucide="trash-2" class="w-5 h-5"></i>
+                                                </button>
+                                            </form>
+                                        </div>
                                     </div>
-                                    <div class="flex items-center gap-3">
-                                        <a href="{{ url_for('main.edit_project_item', project_id=project.id, item_id=item.id) }}" 
-                                            class="w-10 h-10 flex items-center justify-center rounded-xl bg-surface/50 border border-white/10 text-text hover:bg-primary hover:text-white hover:border-primary transition-all active:scale-90" title="Edit Item">
-                                            <i data-lucide="edit-2" class="w-4 h-4"></i>
-                                        </a>
-                                        <form method="POST" action="{{ url_for('main.delete_project_item', project_id=project.id, item_id=item.id) }}" class="m-0" onsubmit="return confirm('Delete this item?');">
-                                            <button type="submit" class="w-10 h-10 flex items-center justify-center rounded-xl bg-surface/50 border border-white/10 text-text hover:bg-danger hover:text-white hover:border-danger transition-all active:scale-90" title="Delete Item">
-                                                <i data-lucide="trash-2" class="w-4 h-4"></i>
+                                </div>
+                
+                                <!-- Progress Section -->
+                                <div class="mb-10 pt-8 border-t border-black/5">
+                                    <div class="flex justify-between items-end mb-3">
+                                        <span class="text-xs font-black text-text-muted uppercase tracking-widest">Payment Progress</span>
+                                        <span class="text-sm font-black text-text font-heading">
+                                            {{ current_user.default_currency }} {{ "{:,.2f}".format(item.total_paid) }}
+                                            <span class="text-text-muted mx-1.5">/</span>
+                                            <span class="text-primary">{{ "{:,.2f}".format(item.cost) }}</span>
+                                        </span>
+                                    </div>
+                                    {% set item_progress = (item.total_paid / item.cost * 100) if item.cost > 0 else 0 %}
+                                    <div class="w-full bg-surface-active/30 rounded-full h-3 overflow-hidden border border-black/5 p-0.5 shadow-inner">
+                                        <div class="bg-gradient-to-r from-primary via-indigo-500 to-purple-500 h-2 rounded-full transition-all duration-1000 ease-out shadow-[0_0_15px_rgba(99,102,241,0.3)]" style="width: {{ item_progress }}%"></div>
+                                    </div>
+                                </div>
+                
+                                <!-- Item Payments History -->
+                                <div class="bg-surface-active/10 rounded-3xl border border-black/5 overflow-hidden">
+                                    <div class="px-6 py-4 border-b border-black/5 flex items-center justify-between">
+                                        <h4 class="text-xs font-black text-text-muted uppercase tracking-[0.2em] m-0">Payments Handled</h4>
+                                    </div>
+                                    <div class="divide-y divide-black/5">
+                                        {% if item.payments %}
+                                            {% for payment in item.payments|sort(attribute='payment_date', reverse=True) %}
+                                            <div class="p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 hover:bg-white/40 transition-all group/pay">
+                                                <div class="flex items-center gap-5 flex-1 min-w-0">
+                                                    <label class="relative flex items-center group cursor-pointer shrink-0">
+                                                        <input type="checkbox" onchange="handleTogglePayment(this)"
+                                                            data-project-id="{{ project.id }}" 
+                                                            data-item-id="{{ item.id }}" 
+                                                            data-payment-id="{{ payment.id }}"
+                                                            {% if payment.is_paid %}checked{% endif %} class="peer sr-only">
+                                                        <div class="w-8 h-8 rounded-xl border-2 border-primary/20 bg-surface peer-checked:bg-primary peer-checked:border-primary flex items-center justify-center transition-all group-hover:scale-105 shadow-sm">
+                                                            <i data-lucide="check" class="w-5 h-5 text-white opacity-0 peer-checked:opacity-100 transition-all"></i>
+                                                        </div>
+                                                    </label>
+                                                    <div class="flex flex-col flex-1 min-w-0">
+                                                        <span class="text-base font-bold text-text truncate w-full {% if payment.is_paid %}opacity-40 line-through{% endif %}">{{ payment.description or 'Payment' }}</span>
+                                                        <div class="flex items-center gap-2 mt-0.5">
+                                                            <span class="text-[10px] text-text-muted font-black uppercase tracking-widest">
+                                                                {{ payment.payment_date.strftime('%d %b %Y') if payment.payment_date else 'No Date' }}
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="flex items-center gap-8 w-full sm:w-auto justify-between sm:justify-end">
+                                                    <span class="text-xl font-black font-heading text-text {% if payment.is_paid %}opacity-40{% endif %}">
+                                                        {{ current_user.default_currency }} {{ "{:,.2f}".format(payment.amount) }}
+                                                    </span>
+                                                    <div class="flex items-center gap-2 opacity-100 sm:opacity-0 group-hover/pay:opacity-100 transition-all">
+                                                        <button onclick="openEditPaymentModal(this)"
+                                                            data-project-id="{{ project.id }}"
+                                                            data-item-id="{{ item.id }}"
+                                                            data-payment-id="{{ payment.id }}"
+                                                            data-amount="{{ payment.amount }}"
+                                                            data-date="{{ payment.payment_date.strftime('%Y-%m-%d') if payment.payment_date else '' }}"
+                                                            data-description="{{ (payment.description or '')|replace("'", "\\'") }}"
+                                                            class="w-8 h-8 flex items-center justify-center rounded-lg text-text-muted hover:text-primary transition-all"><i data-lucide="edit-2" class="w-4 h-4"></i></button>
+                                                        <form method="POST" action="{{ url_for('main.delete_project_item_payment', project_id=project.id, item_id=item.id, payment_id=payment.id) }}" class="m-0" onsubmit="return confirm('Delete this payment record?');">
+                                                            <button type="submit" class="w-8 h-8 flex items-center justify-center rounded-lg text-text-muted hover:text-danger transition-all"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+                                                        </form>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            {% endfor %}
+                                        {% else %}
+                                            <div class="p-10 text-center">
+                                                <p class="text-text-muted font-medium italic m-0">No payment history yet.</p>
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                
+                                <!-- Add Payment Toggle -->
+                                <details class="group mt-6 bg-surface/40 border border-primary/10 rounded-2xl overflow-hidden shadow-sm transition-all focus-within:ring-2 focus-within:ring-primary/20">
+                                    <summary class="flex justify-between items-center px-6 py-4 cursor-pointer font-black text-sm text-primary uppercase tracking-widest hover:bg-primary/5 transition-all list-none">
+                                        <div class="flex items-center gap-3">
+                                            <i data-lucide="plus-circle" class="w-5 h-5"></i>
+                                            Add Payment Record
+                                        </div>
+                                        <i data-lucide="chevron-down" class="w-5 h-5 text-primary transition-transform group-open:rotate-180"></i>
+                                    </summary>
+                                    <div class="p-8 border-t border-primary/10 bg-surface/30">
+                                        <form method="POST" action="{{ url_for('main.add_project_item_payment', project_id=project.id, item_id=item.id) }}" class="flex flex-col gap-6">
+                                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                                                <div class="space-y-2">
+                                                    <label class="text-[10px] font-black text-text-muted uppercase tracking-widest pl-1">Amount</label>
+                                                    <div class="flex items-center w-full h-14 px-5 bg-surface/50 border border-white/10 rounded-2xl focus-within:border-primary focus-within:ring-1 focus-within:ring-primary/50 transition-all shadow-sm">
+                                                        <span class="text-primary font-black text-base mr-3">{{ current_user.default_currency }}</span>
+                                                        <input type="number" name="payment_amount" step="0.01" min="0" required placeholder="0.00"
+                                                            class="flex-1 w-full bg-transparent text-lg text-text focus:outline-none font-black appearance-none">
+                                                    </div>
+                                                </div>
+                                                <div class="space-y-2">
+                                                    <label class="text-[10px] font-black text-text-muted uppercase tracking-widest pl-1">Date</label>
+                                                    <div class="relative h-14">
+                                                        <i data-lucide="calendar" class="w-5 h-5 text-text-muted absolute left-5 top-1/2 -translate-y-1/2"></i>
+                                                        <input type="date" name="payment_date" required
+                                                            class="w-full h-full pl-14 pr-5 bg-surface/50 border border-white/10 rounded-2xl text-sm text-text focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/50 font-black uppercase tracking-widest">
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="space-y-2">
+                                                <label class="text-[10px] font-black text-text-muted uppercase tracking-widest pl-1">Description</label>
+                                                <input type="text" name="payment_description" placeholder="Description (e.g., Deposit, Final Installment)"
+                                                    class="w-full h-14 px-5 bg-surface/50 border border-white/10 rounded-2xl text-base font-semibold text-text focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/50 transition-all shadow-sm">
+                                            </div>
+                                            <button type="submit" class="w-full sm:w-auto self-end px-12 py-4 bg-primary text-white text-sm font-black uppercase tracking-widest rounded-2xl hover:bg-primary-hover hover:scale-[1.02] active:scale-95 transition-all shadow-xl shadow-primary/20">
+                                                Save Payment Record
                                             </button>
                                         </form>
                                     </div>
-                                </div>
+                                </details>
                             </div>
                         </div>
                         {% endfor %}
