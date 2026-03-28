@@ -193,7 +193,7 @@ def register_routes(main):
                             db.session.add(loan_cat)
                             db.session.flush()
 
-                        # Record the income transaction
+                        # Record as liability (NOT income) — this is borrowed money
                         income_expense = Expense(
                             user_id=current_user.id,
                             amount=amount,
@@ -201,7 +201,7 @@ def register_routes(main):
                             category_id=loan_cat.id,
                             wallet_id=wallet.id,
                             date=created_at,
-                            transaction_type='income',
+                            transaction_type='liability',
                             tags='loan_received',
                             notes=f"Creditor ID: {creditor.id}"
                         )

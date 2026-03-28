@@ -156,7 +156,7 @@ def register_routes(main):
                 # Update wallet balance (using converted amount)
                 if transaction_type == 'expense':
                     wallet.balance -= converted_amount
-                elif transaction_type == 'income':
+                elif transaction_type in ('income', 'liability'):
                     wallet.balance += converted_amount
 
                 db.session.commit()
@@ -214,13 +214,13 @@ def register_routes(main):
             # Reverse old transaction
             if old_type == 'expense':
                 old_wallet.balance += old_amount
-            elif old_type == 'income':
+            elif old_type in ('income', 'liability'):
                 old_wallet.balance -= old_amount
 
             # Apply new transaction
             if expense.transaction_type == 'expense':
                 new_wallet.balance -= expense.amount
-            elif expense.transaction_type == 'income':
+            elif expense.transaction_type in ('income', 'liability'):
                 new_wallet.balance += expense.amount
 
             db.session.commit()
@@ -238,7 +238,7 @@ def register_routes(main):
         wallet = Wallet.query.filter_by(id=expense.wallet_id, user_id=current_user.id).first_or_404()
         if expense.transaction_type == 'expense':
             wallet.balance += expense.amount
-        elif expense.transaction_type == 'income':
+        elif expense.transaction_type in ('income', 'liability'):
             wallet.balance -= expense.amount
 
         db.session.delete(expense)
