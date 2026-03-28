@@ -447,7 +447,7 @@ def register_routes(main):
             category_id=coll_cat.id,
             wallet_id=wallet.id,
             date=payment_date,
-            transaction_type='income',
+            transaction_type='debt_recovery',
             tags='debt_collection'
         )
 
@@ -588,7 +588,7 @@ def register_routes(main):
             category_id=rec_cat.id,
             wallet_id=wallet.id,
             date=recovery_date,
-            transaction_type='income',
+            transaction_type='debt_recovery',
             tags='bad_debt_recovery'
         )
         db.session.add(expense)

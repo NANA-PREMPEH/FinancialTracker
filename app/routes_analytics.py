@@ -70,8 +70,7 @@ def register_routes(main):
                 # But for 'Actuals' (Spent - Lent), we'd need m_lent if the summary doesn't already subtract it.
                 # Usually summaries are gross, let's keep it simple or check if user has m_lent in summary.
                 # (Models show they are separate: actual_expense is there too but maybe not filled).
-                m_lent = 0 
-                m_recovered = 0
+                m_lent = 0
                 m_extra_debtor_inc = 0
                 m_extra_contract_inc = 0
             else:
@@ -121,29 +120,12 @@ def register_routes(main):
                 expense_total += m_extra_debt_exp
                 income_total += m_extra_debtor_inc + m_extra_contract_inc
 
-                coll_cat = Category.query.filter_by(name='Debt Collection', user_id=current_user.id).first()
-                coll_id = coll_cat.id if coll_cat else -1
-                rec_cat = Category.query.filter_by(name='Bad Debt Recovery', user_id=current_user.id).first()
-                rec_id = rec_cat.id if rec_cat else -1
-
-                m_recovered = db.session.query(func.sum(Expense.amount)).filter(
-                    Expense.user_id == current_user.id,
-                    Expense.transaction_type == 'income',
-                    Expense.date >= month_start,
-                    Expense.date < month_end,
-                    or_(
-                        Expense.category_id.in_([coll_id, rec_id]),
-                        func.coalesce(Expense.tags, '').ilike('%debt_collection%'),
-                        func.coalesce(Expense.tags, '').ilike('%bad_debt_recovery%')
-                    )
-                ).scalar() or 0
-
             monthly_data.append({
                 'month': month_start.strftime('%b'),
                 'expense': expense_total,
                 'actual_expense': expense_total - m_lent,
                 'income': income_total,
-                'actual_income': income_total - m_recovered - m_extra_debtor_inc - m_extra_contract_inc
+                'actual_income': income_total - m_extra_debtor_inc - m_extra_contract_inc
             })
 
         # Yearly trend (Last 12 Months)
@@ -168,7 +150,6 @@ def register_routes(main):
                 expense_total = hist_summary.total_expense
                 income_total = hist_summary.total_income
                 m_lent = 0
-                m_recovered = 0
                 y_extra_debtor_inc = 0
                 y_extra_contract_inc = 0
             else:
@@ -218,24 +199,12 @@ def register_routes(main):
                 expense_total += y_extra_debt_exp
                 income_total += y_extra_debtor_inc + y_extra_contract_inc
 
-                m_recovered = db.session.query(func.sum(Expense.amount)).filter(
-                    Expense.user_id == current_user.id,
-                    Expense.transaction_type == 'income',
-                    Expense.date >= month_start,
-                    Expense.date < month_end,
-                    or_(
-                        Expense.category_id.in_([coll_id, rec_id]),
-                        func.coalesce(Expense.tags, '').ilike('%debt_collection%'),
-                        func.coalesce(Expense.tags, '').ilike('%bad_debt_recovery%')
-                    )
-                ).scalar() or 0
-
             yearly_data.append({
                 'month': month_start.strftime('%b %Y'),
                 'expense': expense_total,
                 'actual_expense': expense_total - m_lent,
                 'income': income_total,
-                'actual_income': income_total - m_recovered - y_extra_debtor_inc - y_extra_contract_inc
+                'actual_income': income_total - y_extra_debtor_inc - y_extra_contract_inc
             })
 
         # Annual Overview (All Years)
@@ -325,22 +294,10 @@ def register_routes(main):
                             ContractPayment.payment_date < m_end
                         ).scalar() or 0
 
-                        m_live_recovered = db.session.query(func.sum(Expense.amount)).filter(
-                            Expense.user_id == current_user.id,
-                            Expense.transaction_type == 'income',
-                            Expense.date >= m_start,
-                            Expense.date < m_end,
-                            or_(
-                                Expense.category_id.in_([coll_id, rec_id]),
-                                func.coalesce(Expense.tags, '').ilike('%debt_collection%'),
-                                func.coalesce(Expense.tags, '').ilike('%bad_debt_recovery%')
-                            )
-                        ).scalar() or 0
-
                         y_expense += (m_live_exp + m_extra_d_exp)
                         y_income += (m_live_inc + m_extra_dr_inc + m_extra_c_inc)
                         y_lent += m_live_lent
-                        y_recovered += (m_live_recovered + m_extra_dr_inc + m_extra_c_inc)
+                        y_recovered += (m_extra_dr_inc + m_extra_c_inc)
 
             annual_data.append({
                 'year': year,

@@ -149,26 +149,10 @@ def dashboard():
         ~transfer_filter
     ).scalar() or 0
 
-    # Get all-time Debt Recoveries/Collections (Live) - starting from 2024
-    coll_cat = Category.query.filter_by(name='Debt Collection', user_id=current_user.id).first()
-    coll_id = coll_cat.id if coll_cat else -1
-    rec_cat = Category.query.filter_by(name='Bad Debt Recovery', user_id=current_user.id).first()
-    rec_id = rec_cat.id if rec_cat else -1
-
-    total_m_recovered = db.session.query(func.sum(Expense.amount)).filter(
-        Expense.user_id == current_user.id,
-        Expense.transaction_type == 'income',
-        Expense.date >= dashboard_start_date,
-        or_(
-            Expense.category_id.in_([coll_id, rec_id]),
-            Expense.tags.ilike('%debt_collection%'),
-            Expense.tags.ilike('%bad_debt_recovery%')
-        ),
-        ~transfer_filter
-    ).scalar() or 0
-
     actual_total_expenses = total_expenses - total_money_lent
-    actual_total_income = total_income - total_m_recovered - extra_debtor_income - extra_contract_income
+    # Debt collections are now transaction_type='debt_recovery', not 'income',
+    # so they are automatically excluded from total_income. No manual subtraction needed.
+    actual_total_income = total_income - extra_debtor_income - extra_contract_income
 
     # Get the oldest date for Total Expenses context (respecting 2024 start)
     oldest_expense = db.session.query(func.min(Expense.date)).filter(
