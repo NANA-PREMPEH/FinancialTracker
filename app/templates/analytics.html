@@ -43,6 +43,50 @@
     </div>
 </div>
 
+<!-- Monthly Breakdown Table -->
+<div class="bg-surface rounded-2xl p-6 border border-border shadow-sm mb-8">
+    <h3 class="text-lg font-bold text-text mb-6 flex items-center gap-2">
+        <i data-lucide="list-ordered" class="w-5 h-5 text-primary"></i> Monthly Breakdown (Last 12 Months)
+    </h3>
+    <div class="overflow-x-auto">
+        <table class="w-full text-left border-collapse">
+            <thead>
+                <tr class="bg-surface-active/50 border-b border-border">
+                    <th class="p-4 text-sm font-semibold text-text-muted">Month</th>
+                    <th class="p-4 text-sm font-semibold text-text-muted text-right">Income (Total / Actual)</th>
+                    <th class="p-4 text-sm font-semibold text-text-muted text-right">Expenses (Total / Actual)</th>
+                    <th class="p-4 text-sm font-semibold text-text-muted text-right">Actual Net Flow</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-border">
+                {% for item in yearly_data %}
+                <tr class="hover:bg-surface-hover/50 transition-colors">
+                    <td class="p-4 font-bold text-text">{{ item.month }}</td>
+                    <td class="p-4 font-medium text-success text-right whitespace-nowrap">
+                        <div class="flex flex-col items-end">
+                            <span>GHS {{ "{:,.2f}".format(item.income) }}</span>
+                            <span class="text-[10px] text-text-muted italic">Act: {{ "{:,.2f}".format(item.actual_income) }}</span>
+                        </div>
+                    </td>
+                    <td class="p-4 font-medium text-danger text-right whitespace-nowrap">
+                        <div class="flex flex-col items-end">
+                            <span>GHS {{ "{:,.2f}".format(item.expense) }}</span>
+                            <span class="text-[10px] text-text-muted italic">Act: {{ "{:,.2f}".format(item.actual_expense) }}</span>
+                        </div>
+                    </td>
+                    <td class="p-4 text-right whitespace-nowrap">
+                        {% set actual_diff = item.actual_income - item.actual_expense %}
+                        <span class="inline-flex items-center px-2.5 py-1 rounded-md text-sm font-bold {{ 'bg-success/10 text-success' if actual_diff >= 0 else 'bg-danger/10 text-danger' }}">
+                            {{ "{:,.2f}".format(actual_diff) }}
+                        </span>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
     <!-- Annual Overview (All Years) -->
     <div class="bg-surface rounded-2xl p-6 border border-border shadow-sm flex flex-col">

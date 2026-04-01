@@ -216,9 +216,13 @@ def register_routes(main):
 
         return redirect(url_for('main.creditors'))
 
-    @main.route('/creditors/edit/<int:id>', methods=['POST'])
+    @main.route('/creditors/edit/<int:id>', methods=['GET', 'POST'])
+    @main.route('/creditor/edit/<int:id>', methods=['GET', 'POST']) # Singular alias
     @login_required
     def edit_creditor(id):
+        if request.method == 'GET':
+            return redirect(url_for('main.creditors') + f'#creditor-{id}')
+        
         creditor = _creditor_for_current_user_or_404(id)
 
         name = (request.form.get('name') or '').strip()
@@ -301,9 +305,13 @@ def register_routes(main):
         flash('Debt removed successfully!', 'success')
         return redirect(_safe_return_url())
 
-    @main.route('/creditors/pay/<int:id>', methods=['POST'])
+    @main.route('/creditors/pay/<int:id>', methods=['GET', 'POST'])
+    @main.route('/creditor/pay/<int:id>', methods=['GET', 'POST']) # Singular alias
     @login_required
     def pay_creditor(id):
+        if request.method == 'GET':
+            return redirect(url_for('main.creditors') + f'#creditor-{id}')
+            
         creditor = _creditor_for_current_user_or_404(id)
 
         try:

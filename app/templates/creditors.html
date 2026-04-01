@@ -172,12 +172,12 @@
             <div class="flex gap-2 pt-4 border-t border-border mt-auto">
                 {% if creditor.amount > 0 %}
                 <button class="flex-1 btn-success flex items-center justify-center gap-2 py-2 px-3 text-sm shadow-sm hover:shadow"
-                        onclick="showPayCreditorModal(`{{ creditor.id }}`, `{{ creditor.name | replace('`', '') }}`, `{{ creditor.amount }}`)">
+                        onclick='showPayCreditorModal({{ creditor.id | tojson }}, {{ creditor.name | tojson }}, {{ creditor.amount | tojson }})'>
                     <i data-lucide="banknote" class="w-4 h-4"></i> Pay
                 </button>
                 {% endif %}
                 <button class="flex-1 btn-secondary flex items-center justify-center gap-2 py-2 px-3 text-sm shadow-sm hover:shadow"
-                        onclick="showEditCreditorModal(`{{ creditor.id }}`, `{{ creditor.name | replace('`', '') }}`, `{{ creditor.amount }}`, `{{ creditor.description | default('', true) | replace('`', '') }}`, `{{ creditor.original_amount or '' }}`, `{{ creditor.created_at.strftime('%Y-%m-%d') if creditor.created_at else '' }}`)">
+                        onclick='showEditCreditorModal({{ creditor.id | tojson }}, {{ creditor.name | tojson }}, {{ (creditor.amount or 0) | tojson }}, {{ (creditor.description or "") | tojson }}, {{ (creditor.original_amount or "") | tojson }}, {{ (creditor.created_at.strftime("%Y-%m-%d") if creditor.created_at else "") | tojson }})'>
                     <i data-lucide="pencil" class="w-4 h-4"></i> Edit
                 </button>
                 <form action="{{ url_for('main.delete_creditor', id=creditor.id) }}" method="POST" class="flex-shrink-0" onsubmit="return confirm('Delete this creditor record?');">
@@ -450,14 +450,14 @@
         document.getElementById('edit_description').value = desc;
         document.getElementById('edit_original_amount').value = original || amount;
         document.getElementById('edit_date').value = date || new Date().toISOString().split('T')[0];
-        document.getElementById('editCreditorForm').action = `/creditor/edit/${id}`;
+        document.getElementById('editCreditorForm').action = `/creditors/edit/${id}`;
         document.getElementById('editCreditorModal').style.display = 'flex';
     }
     function hideEditCreditorModal() { document.getElementById('editCreditorModal').style.display = 'none'; }
     function showPayCreditorModal(id, name, amount) {
         document.getElementById('pay_creditor_name').innerText = name;
         document.getElementById('pay_amount').value = amount;
-        document.getElementById('payCreditorForm').action = `/creditor/pay/${id}`;
+        document.getElementById('payCreditorForm').action = `/creditors/pay/${id}`;
         document.getElementById('payCreditorModal').style.display = 'flex';
     }
     function hidePayCreditorModal() { document.getElementById('payCreditorModal').style.display = 'none'; }
