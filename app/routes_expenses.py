@@ -20,7 +20,11 @@ def register_routes(main):
             description = request.form.get('description')
             category_id_str = request.form.get('category')
             category_id = int(category_id_str) if category_id_str else Category.query.filter_by(user_id=current_user.id).first().id
-            wallet_id = int(request.form.get('wallet', 1))
+            wallet_id_str = request.form.get('wallet')
+            if not wallet_id_str:
+                flash('Please select a wallet!', 'error')
+                return redirect(url_for('main.add_expense'))
+            wallet_id = int(wallet_id_str)
             date_str = request.form.get('date')
             notes = request.form.get('notes', '')
             tags = request.form.get('tags', '')
