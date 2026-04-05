@@ -39,31 +39,33 @@ def register_routes(main):
         # Process owned wallets
         for wallet in all_wallets:
             currency = wallet.currency
+            balance = float(wallet.balance)
             if currency not in totals_by_currency:
                 totals_by_currency[currency] = 0.0
-            totals_by_currency[currency] += wallet.balance
+            totals_by_currency[currency] += balance
             
             # Convert to primary currency for grand total
             if currency == primary_currency:
-                grand_total += wallet.balance
+                grand_total += balance
             else:
                 rate = get_exchange_rate(currency, primary_currency)
-                grand_total += wallet.balance * rate
+                grand_total += balance * rate
 
         # Process shared wallets (that I have access to)
         for share in shared_shares:
             wallet = share.wallet
             currency = wallet.currency
+            balance = float(wallet.balance)
             if currency not in totals_by_currency:
                 totals_by_currency[currency] = 0.0
-            totals_by_currency[currency] += wallet.balance
+            totals_by_currency[currency] += balance
             
             # Convert to primary currency for grand total
             if currency == primary_currency:
-                grand_total += wallet.balance
+                grand_total += balance
             else:
                 rate = get_exchange_rate(currency, primary_currency)
-                grand_total += wallet.balance * rate
+                grand_total += balance * rate
         
         # Fetch recent transfers
         transfers = []
@@ -182,7 +184,7 @@ def register_routes(main):
         source_wallet = Wallet.query.filter_by(id=source_wallet_id, user_id=current_user.id).first_or_404()
         dest_wallet = Wallet.query.filter_by(id=dest_wallet_id, user_id=current_user.id).first_or_404()
 
-        if amount > source_wallet.balance:
+        if amount > float(source_wallet.balance):
             flash(f'Insufficient balance in {source_wallet.name}.', 'error')
             return redirect(url_for('main.wallets'))
 
@@ -233,8 +235,8 @@ def register_routes(main):
         db.session.add(income)
 
         # Update balances
-        source_wallet.balance -= amount
-        dest_wallet.balance += dest_amount
+        source_wallet.balance = float(source_wallet.balance) - amount
+        dest_wallet.balance = float(dest_wallet.balance) + dest_amount
 
         db.session.commit()
 

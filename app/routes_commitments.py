@@ -78,8 +78,8 @@ def pay_commitment(id):
     wallet_id = request.form.get('wallet_id')
     if wallet_id:
         wallet = Wallet.query.filter_by(id=int(wallet_id), user_id=current_user.id).first()
-        if wallet and wallet.balance >= c.amount:
-            wallet.balance -= c.amount
+        if wallet and float(wallet.balance) >= c.amount:
+            wallet.balance = float(wallet.balance) - c.amount
             # Create expense record
             cat = Category.query.filter_by(name='Donation', user_id=current_user.id).first()
             if not cat:

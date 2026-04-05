@@ -184,7 +184,7 @@ def register_routes(main):
                     wallet_id = int(wallet_id)
                     wallet = Wallet.query.filter_by(id=wallet_id, user_id=current_user.id).first()
                     if wallet:
-                        wallet.balance += amount
+                        wallet.balance = float(wallet.balance) + amount
 
                         # Ensure a 'Loan Received' category exists
                         loan_cat = Category.query.filter_by(name='Loan Received', user_id=current_user.id).first()
@@ -337,7 +337,7 @@ def register_routes(main):
             flash('Payment amount must be positive.', 'error')
             return redirect(_safe_return_url())
 
-        if amount > wallet.balance:
+        if amount > float(wallet.balance):
             flash(f'Insufficient balance in {wallet.name}.', 'error')
             return redirect(_safe_return_url())
 
@@ -345,7 +345,7 @@ def register_routes(main):
             flash('Payment amount cannot exceed remaining debt.', 'error')
             return redirect(_safe_return_url())
 
-        wallet.balance -= amount
+        wallet.balance = float(wallet.balance) - amount
         creditor.amount = max(creditor.amount - amount, 0)
         if creditor.amount <= 0:
             creditor.status = 'paid_off'

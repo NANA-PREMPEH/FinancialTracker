@@ -81,7 +81,7 @@ def audit():
         
         calculated = sum(i.amount for i in incomes) - sum(e.amount for e in expenses)
         
-        if abs(calculated - wallet.balance) > 0.01:  # Allow small rounding errors
+        if abs(calculated - float(wallet.balance)) > 0.01:  # Allow small rounding errors
             inconsistent += 1
     
     if inconsistent > 0:
@@ -166,7 +166,7 @@ def report():
     
     # Wallet statistics
     wallet_count = Wallet.query.count()
-    total_wallet_balance = sum(w.balance for w in Wallet.query.all())
+    total_wallet_balance = sum(float(w.balance) for w in Wallet.query.all())
     click.echo(f"Wallets: {wallet_count} (Total: ${total_wallet_balance:,.2f})")
     
     # Category statistics

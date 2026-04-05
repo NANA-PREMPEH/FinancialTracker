@@ -20,7 +20,7 @@ def get_accessible_wallets(user_id):
     shared_shares = WalletShare.query.filter_by(
         shared_with_id=user_id,
         accepted=True
-    ).filter(WalletShare.permission.in_(['contribute', 'manage'])).all()
+    ).filter(WalletShare.permission.in_(["contribute", "manage"])).all()
 
     shared_wallet_ids = [s.wallet_id for s in shared_shares]
     shared = Wallet.query.filter(Wallet.id.in_(shared_wallet_ids)).all() if shared_wallet_ids else []
@@ -41,7 +41,7 @@ def can_access_wallet(user_id, wallet_id):
         wallet_id=wallet_id,
         shared_with_id=user_id,
         accepted=True
-    ).filter(WalletShare.permission.in_(['contribute', 'manage'])).first()
+    ).filter(WalletShare.permission.in_(["contribute", "manage"])).first()
 
     return share is not None
 
@@ -179,13 +179,14 @@ def dashboard():
             pass
 
     # Calculate total wallet balance in GHS
-    total_wallet_balance = 0
+    total_wallet_balance = 0.0
     for wallet in wallets:
+        balance = float(wallet.balance)
         if wallet.currency == 'GHS':
-            total_wallet_balance += wallet.balance
+            total_wallet_balance += balance
         else:
             current_rate = get_exchange_rate(wallet.currency, 'GHS')
-            total_wallet_balance += wallet.balance * current_rate
+            total_wallet_balance += balance * current_rate
 
     # Calculate current month's expenses
     now = datetime.utcnow()

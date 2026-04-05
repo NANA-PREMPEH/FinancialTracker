@@ -221,12 +221,12 @@ def reconcile():
     statement_balance = float(request.form.get('statement_balance', 0))
     wallet = Wallet.query.filter_by(id=wallet_id, user_id=current_user.id).first_or_404()
 
-    status = 'reconciled' if abs(wallet.balance - statement_balance) < 0.01 else 'discrepancy'
+    status = 'reconciled' if abs(float(wallet.balance) - statement_balance) < 0.01 else 'discrepancy'
     rec = BankReconciliation(
         user_id=current_user.id,
         wallet_id=wallet_id,
         statement_balance=statement_balance,
-        reconciled_balance=wallet.balance,
+        reconciled_balance=float(wallet.balance),
         date=datetime.utcnow(),
         status=status,
         notes=request.form.get('notes', '').strip() or None,
@@ -237,7 +237,7 @@ def reconcile():
     if status == 'reconciled':
         flash('Account reconciled successfully.', 'success')
     else:
-        diff = abs(wallet.balance - statement_balance)
+        diff = abs(float(wallet.balance) - statement_balance)
         flash(f'Discrepancy of GHS {diff:,.2f} found between app balance and statement.', 'error')
     return redirect(url_for('banking.banking_overview'))
 
@@ -310,9 +310,9 @@ def import_transactions():
             )
             db.session.add(expense)
             if t_type == 'income':
-                wallet.balance += abs(txn['amount'])
+                wallet.balance = float(wallet.balance) + abs(txn['amount'])
             else:
-                wallet.balance -= abs(txn['amount'])
+                wallet.balance = float(wallet.balance) - abs(txn['amount'])
             count += 1
 
         history = ImportHistory(

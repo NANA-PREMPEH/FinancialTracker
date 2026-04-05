@@ -40,7 +40,7 @@ class Wallet(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     name = db.Column(db.String(100), nullable=False)
-    balance = db.Column(db.Float, default=0.0)
+    balance = db.Column(db.Numeric(20, 2), default=0.0)
     currency = db.Column(db.String(10), default='GHS')
     icon = db.Column(db.String(10), default='💰')
     wallet_type = db.Column(db.String(20), default='cash')  # cash, bank, crypto, ewallet

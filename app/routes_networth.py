@@ -21,7 +21,7 @@ def net_worth_dashboard():
     """
     # Calculate wallet assets
     wallets = Wallet.query.filter_by(user_id=current_user.id).all()
-    wallet_total = sum(wallet.balance for wallet in wallets)
+    wallet_total = sum(float(wallet.balance) for wallet in wallets)
 
     # Calculate investment assets
     investments = Investment.query.filter_by(user_id=current_user.id).all()
@@ -75,7 +75,7 @@ def create_snapshot():
     """
     # Calculate wallet assets
     wallets = Wallet.query.filter_by(user_id=current_user.id).all()
-    wallet_total = sum(wallet.balance for wallet in wallets)
+    wallet_total = sum(float(wallet.balance) for wallet in wallets)
 
     # Calculate investment assets
     investments = Investment.query.filter_by(user_id=current_user.id).all()

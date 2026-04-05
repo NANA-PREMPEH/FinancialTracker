@@ -144,7 +144,7 @@ def register_routes(main):
                 flash('Selected wallet is not available.', 'error')
                 return redirect(_safe_return_url_debtors())
 
-            if amount > wallet.balance:
+            if amount > float(wallet.balance):
                 flash(f'Insufficient balance in {wallet.name}.', 'error')
                 return redirect(_safe_return_url_debtors())
 
@@ -192,7 +192,7 @@ def register_routes(main):
                 priority = 3
             notes = (request.form.get('notes') or '').strip() or None
 
-            wallet.balance -= amount
+            wallet.balance = float(wallet.balance) - amount
 
             debt_lent_cat = Category.query.filter_by(name='Money Lent', user_id=current_user.id).first()
             if not debt_lent_cat:
@@ -329,7 +329,7 @@ def register_routes(main):
                 if old_wallet_id:
                     old_wallet = Wallet.query.get(old_wallet_id)
                     if old_wallet and old_wallet.user_id == current_user.id:
-                        old_wallet.balance += old_original_amount
+                        old_wallet.balance = float(old_wallet.balance) + old_original_amount
                 
                 # 2. Check and apply new deduction from the new wallet
                 new_wallet = Wallet.query.get(new_wallet_id)
@@ -337,13 +337,13 @@ def register_routes(main):
                     flash('Selected wallet is not available.', 'error')
                     return redirect(_safe_return_url_debtors() + f'#debtor-{id}')
                 
-                if original_amount > new_wallet.balance:
+                if original_amount > float(new_wallet.balance):
                     flash(f'Insufficient balance in {new_wallet.name} to cover the revised lending amount.', 'error')
                     # Rollback wallet balances (though DB session will handle it if we flash/redirect)
                     db.session.rollback()
                     return redirect(_safe_return_url_debtors() + f'#debtor-{id}')
                 
-                new_wallet.balance -= original_amount
+                new_wallet.balance = float(new_wallet.balance) - original_amount
                 debtor.wallet_id = new_wallet_id
                 
                 # 3. Update the associated 'debt_lent' expense record
@@ -373,7 +373,7 @@ def register_routes(main):
         if debtor.amount > 0 and debtor.wallet_id:
             wallet = Wallet.query.get(debtor.wallet_id)
             if wallet and wallet.user_id == current_user.id:
-                wallet.balance += debtor.amount
+                wallet.balance = float(wallet.balance) + debtor.amount
                 
             # Clean up or update the associated 'debt_lent' expense
             expense = Expense.query.filter_by(
@@ -429,7 +429,7 @@ def register_routes(main):
             flash('Collection amount cannot exceed remaining expected amount.', 'error')
             return redirect(_safe_return_url_debtors())
 
-        wallet.balance += amount
+        wallet.balance = float(wallet.balance) + amount
         debtor.amount = max(debtor.amount - amount, 0)
         if debtor.amount <= 0:
             debtor.status = 'paid_off'
@@ -579,7 +579,7 @@ def register_routes(main):
             db.session.add(rec_cat)
             db.session.flush()
 
-        wallet.balance += amount
+        wallet.balance = float(wallet.balance) + amount
 
         expense = Expense(
             user_id=current_user.id,

@@ -194,8 +194,8 @@ def contribute_to_goal(id):
 
     if wallet_id:
         wallet = Wallet.query.filter_by(id=int(wallet_id), user_id=current_user.id).first()
-        if wallet and wallet.balance >= amount:
-            wallet.balance -= amount
+        if wallet and float(wallet.balance) >= amount:
+            wallet.balance = float(wallet.balance) - amount
         else:
             flash('Insufficient wallet balance.', 'error')
             return redirect(url_for('goals.goals'))

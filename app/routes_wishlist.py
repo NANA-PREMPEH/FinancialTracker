@@ -91,7 +91,7 @@ def register_routes(main):
         )
 
         # Deduct from wallet
-        wallet.balance -= item.amount
+        wallet.balance = float(wallet.balance) - item.amount
 
         db.session.add(expense)
         db.session.delete(item)

@@ -82,9 +82,9 @@ def create_transaction():
     wallet = Wallet.query.filter_by(id=t.wallet_id, user_id=g.api_user_id).first()
     if wallet:
         if t.transaction_type == 'income':
-            wallet.balance += t.amount
+            wallet.balance = float(wallet.balance) + t.amount
         else:
-            wallet.balance -= t.amount
+            wallet.balance = float(wallet.balance) - t.amount
 
     db.session.commit()
     return jsonify({'data': serialize_transaction(t)}), 201
@@ -131,9 +131,9 @@ def delete_transaction(id):
     wallet = Wallet.query.filter_by(id=t.wallet_id, user_id=g.api_user_id).first()
     if wallet:
         if t.transaction_type == 'income':
-            wallet.balance -= t.amount
+            wallet.balance = float(wallet.balance) - t.amount
         else:
-            wallet.balance += t.amount
+            wallet.balance = float(wallet.balance) + t.amount
 
     db.session.delete(t)
     db.session.commit()
@@ -179,9 +179,9 @@ def bulk_create_transactions():
             wallet = Wallet.query.filter_by(id=t.wallet_id, user_id=g.api_user_id).first()
             if wallet:
                 if t.transaction_type == 'income':
-                    wallet.balance += t.amount
+                    wallet.balance = float(wallet.balance) + t.amount
                 else:
-                    wallet.balance -= t.amount
+                    wallet.balance = float(wallet.balance) - t.amount
             
             db.session.add(t)
             created.append(t)
@@ -224,9 +224,9 @@ def bulk_delete_transactions():
         wallet = Wallet.query.filter_by(id=t.wallet_id, user_id=g.api_user_id).first()
         if wallet:
             if t.transaction_type == 'income':
-                wallet.balance -= t.amount
+                wallet.balance = float(wallet.balance) - t.amount
             else:
-                wallet.balance += t.amount
+                wallet.balance = float(wallet.balance) + t.amount
         
         db.session.delete(t)
         deleted_ids.append(t.id)
