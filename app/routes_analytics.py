@@ -71,6 +71,7 @@ def register_routes(main):
                 # Usually summaries are gross, let's keep it simple or check if user has m_lent in summary.
                 # (Models show they are separate: actual_expense is there too but maybe not filled).
                 m_lent = 0
+                m_extra_debt_exp = 0
                 m_extra_debtor_inc = 0
                 m_extra_contract_inc = 0
             else:
@@ -123,7 +124,7 @@ def register_routes(main):
             monthly_data.append({
                 'month': month_start.strftime('%b'),
                 'expense': expense_total,
-                'actual_expense': expense_total - m_lent,
+                'actual_expense': expense_total - m_lent - m_extra_debt_exp,
                 'income': income_total,
                 'actual_income': income_total - m_extra_debtor_inc - m_extra_contract_inc
             })
@@ -150,6 +151,7 @@ def register_routes(main):
                 expense_total = hist_summary.total_expense
                 income_total = hist_summary.total_income
                 m_lent = 0
+                y_extra_debt_exp = 0
                 y_extra_debtor_inc = 0
                 y_extra_contract_inc = 0
             else:
@@ -202,7 +204,7 @@ def register_routes(main):
             yearly_data.append({
                 'month': month_start.strftime('%b %Y'),
                 'expense': expense_total,
-                'actual_expense': expense_total - m_lent,
+                'actual_expense': expense_total - m_lent - y_extra_debt_exp,
                 'income': income_total,
                 'actual_income': income_total - y_extra_debtor_inc - y_extra_contract_inc
             })
@@ -221,6 +223,7 @@ def register_routes(main):
             y_expense = 0
             y_income = 0
             y_lent = 0
+            y_debt_payments = 0
             y_recovered = 0
 
             # Check for a Yearly Summary first (month=None)
@@ -297,12 +300,13 @@ def register_routes(main):
                         y_expense += (m_live_exp + m_extra_d_exp)
                         y_income += (m_live_inc + m_extra_dr_inc + m_extra_c_inc)
                         y_lent += m_live_lent
+                        y_debt_payments += m_extra_d_exp
                         y_recovered += (m_extra_dr_inc + m_extra_c_inc)
 
             annual_data.append({
                 'year': year,
                 'expense': y_expense,
-                'actual_expense': y_expense - y_lent,
+                'actual_expense': y_expense - y_lent - y_debt_payments,
                 'income': y_income,
                 'actual_income': y_income - y_recovered
             })
