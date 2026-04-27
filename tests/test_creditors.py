@@ -48,7 +48,7 @@ def test_creditors_list_shows_received_date():
             assert response.status_code == 200
             assert len(creditors) == 2
             assert any(creditor.created_at.strftime('%Y-%m-%d') == '2026-03-05' for creditor in creditors)
-            assert b'Hide Figures' in response.data
+            assert b'Hide Amounts' in response.data
             assert b'data-creditor-figure' in response.data
             assert b'data-creditor-wallet-option' in response.data
             assert b'Totals by Creditor' in response.data

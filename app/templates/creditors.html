@@ -10,8 +10,8 @@
         <p class="text-text-muted mt-1 text-sm">Track amounts you owe to others</p>
     </div>
     <div class="flex flex-wrap gap-3">
-        <button id="toggleCreditorFigures" type="button" class="btn-secondary shadow-sm hover:shadow-md transition-all" style="display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; padding: 0.75rem 1.25rem; white-space: nowrap; border-radius: 0.75rem;" aria-pressed="false">
-            <i data-lucide="eye-off" style="width: 18px; height: 18px;"></i> <span>Hide Figures</span>
+        <button id="toggleCreditorFigures" type="button" class="inline-flex items-center gap-2.5 px-5 py-2.5 bg-surface border border-border rounded-xl text-sm font-bold hover:bg-surface-hover transition-all shadow-sm hover:shadow-md active:scale-95" aria-pressed="false">
+            <i data-lucide="eye-off" style="width: 18px; height: 18px;"></i> <span>Hide Amounts</span>
         </button>
         <button onclick="showAddCreditorModal()" class="btn-primary shadow-sm hover:shadow-md transition-all" style="display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; padding: 0.75rem 1.5rem; white-space: nowrap; border-radius: 0.75rem;">
             <i data-lucide="plus" style="width: 18px; height: 18px;"></i> Add Debt
@@ -564,7 +564,7 @@
         function renderFigureState(hidden) {
             figures.forEach((figure) => {
                 figure.textContent = hidden ? '****' : figure.dataset.originalText;
-                figure.setAttribute('aria-label', hidden ? 'Figure hidden' : figure.dataset.originalText);
+                figure.setAttribute('aria-label', hidden ? 'Amount hidden' : figure.dataset.originalText);
             });
             walletOptions.forEach((option) => {
                 option.textContent = hidden ? `${option.dataset.walletName} (****)` : option.dataset.originalText;
@@ -572,8 +572,8 @@
 
             toggleButton.setAttribute('aria-pressed', hidden ? 'true' : 'false');
             toggleButton.innerHTML = hidden
-                ? '<i data-lucide="eye" style="width: 18px; height: 18px;"></i> <span>Show Figures</span>'
-                : '<i data-lucide="eye-off" style="width: 18px; height: 18px;"></i> <span>Hide Figures</span>';
+                ? '<i data-lucide="eye" style="width: 18px; height: 18px;"></i> <span>Show Amounts</span>'
+                : '<i data-lucide="eye-off" style="width: 18px; height: 18px;"></i> <span>Hide Amounts</span>';
 
             if (window.lucide) {
                 lucide.createIcons();

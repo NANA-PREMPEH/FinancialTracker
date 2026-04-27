@@ -52,7 +52,7 @@ def test_debtors_list_shows_lent_date_privacy_toggle_and_group_totals():
             assert response.status_code == 200
             assert len(debtors) == 2
             assert any(debtor.created_at.strftime('%Y-%m-%d') == '2026-03-05' for debtor in debtors)
-            assert b'Hide Figures' in response.data
+            assert b'Hide Amounts' in response.data
             assert b'data-debtor-figure' in response.data
             assert b'data-debtor-wallet-option' in response.data
             assert b'Totals by Debtor' in response.data
