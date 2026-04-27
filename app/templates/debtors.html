@@ -3,14 +3,19 @@
 {% block title %}Debtors - Financial Tracker{% endblock %}
 
 {% block content %}
-<div class="flex justify-between items-center mb-8">
+<div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4">
     <div>
         <h1 class="text-2xl font-bold font-heading text-text m-0">My Debtors</h1>
         <p class="text-text-muted mt-1 text-sm">Track amounts owed to you</p>
     </div>
-    <button onclick="showAddDebtorModal()" class="btn-primary shadow-sm hover:shadow-md transition-all" style="display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; padding: 0.75rem 1.5rem; white-space: nowrap; border-radius: 0.75rem;">
-        <i data-lucide="plus" style="width: 18px; height: 18px;"></i> Add Debtor
-    </button>
+    <div class="flex flex-wrap gap-3">
+        <button id="toggleDebtorFigures" type="button" class="btn-secondary shadow-sm hover:shadow-md transition-all" style="display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; padding: 0.75rem 1.25rem; white-space: nowrap; border-radius: 0.75rem;" aria-pressed="false">
+            <i data-lucide="eye-off" style="width: 18px; height: 18px;"></i> <span>Hide Figures</span>
+        </button>
+        <button onclick="showAddDebtorModal()" class="btn-primary shadow-sm hover:shadow-md transition-all" style="display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; padding: 0.75rem 1.5rem; white-space: nowrap; border-radius: 0.75rem;">
+            <i data-lucide="plus" style="width: 18px; height: 18px;"></i> Add Debtor
+        </button>
+    </div>
 </div>
 
 <!-- Dashboard Summary -->
@@ -22,7 +27,7 @@
                 <i data-lucide="trending-up" class="w-5 h-5"></i>
             </div>
         </div>
-        <p class="text-3xl font-bold font-heading text-success m-0">GHS {{ "%.2f"|format(total_expected or 0) }}</p>
+        <p class="text-3xl font-bold font-heading text-success m-0" data-debtor-figure>GHS {{ "%.2f"|format(total_expected or 0) }}</p>
     </div>
 
     <div class="bg-surface rounded-2xl p-6 border border-border shadow-sm hover:shadow-md transition-all duration-300 flex flex-col justify-between group hover:-translate-y-1">
@@ -32,7 +37,7 @@
                 <i data-lucide="check-circle" class="w-5 h-5"></i>
             </div>
         </div>
-        <p class="text-3xl font-bold font-heading text-primary m-0">GHS {{ "%.2f"|format(collected_this_month or 0) }}</p>
+        <p class="text-3xl font-bold font-heading text-primary m-0" data-debtor-figure>GHS {{ "%.2f"|format(collected_this_month or 0) }}</p>
     </div>
 
     <div class="bg-surface rounded-2xl p-6 border border-border shadow-sm hover:shadow-md transition-all duration-300 flex flex-col justify-between group hover:-translate-y-1">
@@ -42,7 +47,7 @@
                 <i data-lucide="calendar-check" class="w-5 h-5"></i>
             </div>
         </div>
-        <p class="text-3xl font-bold font-heading text-text m-0">GHS {{ "%.2f"|format(monthly_expected or 0) }}</p>
+        <p class="text-3xl font-bold font-heading text-text m-0" data-debtor-figure>GHS {{ "%.2f"|format(monthly_expected or 0) }}</p>
     </div>
 
     <!-- Bad Debt Summary Card -->
@@ -53,7 +58,7 @@
                 <i data-lucide="alert-triangle" class="w-5 h-5"></i>
             </div>
         </div>
-        <p class="text-2xl font-bold font-heading text-warning m-0 mb-1">GHS {{ "%.2f"|format(total_bad_debt or 0) }}</p>
+        <p class="text-2xl font-bold font-heading text-warning m-0 mb-1" data-debtor-figure>GHS {{ "%.2f"|format(total_bad_debt or 0) }}</p>
         <div class="flex justify-between items-center text-xs text-text-muted mt-1">
             <span>{{ bad_debt_count }} written off</span>
             <span class="text-success font-semibold">
@@ -65,7 +70,7 @@
             </span>
         </div>
         {% if (total_recovered or 0) > 0 %}
-        <p class="text-xs text-success font-medium mt-1 m-0">Recovered: GHS {{ "%.2f"|format(total_recovered) }}</p>
+        <p class="text-xs text-success font-medium mt-1 m-0" data-debtor-figure>Recovered: GHS {{ "%.2f"|format(total_recovered) }}</p>
         {% endif %}
     </div>
 
@@ -126,6 +131,73 @@
     </form>
 </div>
 
+<!-- Totals by Debtor -->
+{% if debtor_totals %}
+<section class="bg-surface rounded-2xl border border-border shadow-sm p-5 mb-8">
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-5">
+        <div>
+            <h2 class="text-lg font-bold font-heading text-text m-0 flex items-center gap-2">
+                <i data-lucide="calculator" class="w-5 h-5 text-primary"></i> Totals by Debtor
+            </h2>
+            <p class="text-sm text-text-muted mt-1 mb-0">Grouped totals for the debtor accounts currently shown below.</p>
+        </div>
+        <span class="text-xs font-semibold uppercase tracking-wider text-text-muted bg-surface-active border border-border rounded-full px-3 py-1">
+            {{ debtor_totals|length }} debtor{{ '' if debtor_totals|length == 1 else 's' }}
+        </span>
+    </div>
+    <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+        {% for summary in debtor_totals %}
+        <article class="bg-surface-active/45 border border-border/60 rounded-2xl p-4 shadow-sm">
+            <div class="flex items-start justify-between gap-3 mb-4">
+                <div class="min-w-0">
+                    <h3 class="font-bold text-text m-0 truncate" title="{{ summary.name }}">{{ summary.name }}</h3>
+                    <p class="text-xs text-text-muted mt-1 mb-0">
+                        {{ summary.account_count }} debt record{{ '' if summary.account_count == 1 else 's' }}
+                        {% if summary.overdue_count %}
+                        <span class="text-danger font-semibold">- {{ summary.overdue_count }} overdue</span>
+                        {% endif %}
+                        {% if summary.bad_debt_count %}
+                        <span class="text-warning font-semibold">- {{ summary.bad_debt_count }} bad debt</span>
+                        {% endif %}
+                    </p>
+                </div>
+                <span class="text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-full border border-border bg-surface text-text-muted">{{ summary.currency }}</span>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3 mb-4">
+                <div>
+                    <span class="block text-[10px] uppercase tracking-wider text-text-muted font-semibold">Expected</span>
+                    <span class="block text-xl font-bold font-heading text-success mt-1" data-debtor-figure>{{ summary.currency }} {{ "%.2f"|format(summary.expected_total or 0) }}</span>
+                </div>
+                <div>
+                    <span class="block text-[10px] uppercase tracking-wider text-text-muted font-semibold">Original</span>
+                    <span class="block text-sm font-bold font-heading text-text mt-1" data-debtor-figure>{{ summary.currency }} {{ "%.2f"|format(summary.original_total or 0) }}</span>
+                </div>
+                <div>
+                    <span class="block text-[10px] uppercase tracking-wider text-text-muted font-semibold">Collected / Reduced</span>
+                    <span class="block text-sm font-bold font-heading text-primary mt-1" data-debtor-figure>{{ summary.currency }} {{ "%.2f"|format(summary.collected_total or 0) }}</span>
+                </div>
+                <div>
+                    <span class="block text-[10px] uppercase tracking-wider text-text-muted font-semibold">Min Expected</span>
+                    <span class="block text-sm font-bold font-heading text-text mt-1" data-debtor-figure>{{ summary.currency }} {{ "%.2f"|format(summary.minimum_payment_total or 0) }}</span>
+                </div>
+            </div>
+
+            <div>
+                <div class="flex justify-between text-xs mb-1.5 text-text-muted">
+                    <span class="font-medium">Group Collection</span>
+                    <span class="font-bold {% if summary.progress_percent == 100 %}text-success{% else %}text-primary{% endif %}">{{ summary.progress_percent }}%</span>
+                </div>
+                <div class="h-2 bg-surface rounded-full overflow-hidden border border-border/50">
+                    <div class="h-full rounded-full transition-all duration-1000 ease-out {% if summary.progress_percent == 100 %}bg-success{% else %}bg-gradient-to-r from-primary to-primary-light{% endif %}" style="width: {{ summary.progress_percent }}%;"></div>
+                </div>
+            </div>
+        </article>
+        {% endfor %}
+    </div>
+</section>
+{% endif %}
+
 <!-- Debtor Cards Grid -->
 {% if debtors %}
 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -158,11 +230,11 @@
                     </span>
                 </div>
                 <div class="text-right flex-shrink-0">
-                    <span class="block text-xl font-bold font-heading {% if debtor.amount > 0 %}text-success{% else %}text-text-muted{% endif %}">
+                    <span class="block text-xl font-bold font-heading {% if debtor.amount > 0 %}text-success{% else %}text-text-muted{% endif %}" data-debtor-figure>
                         {{ debtor.currency }} {{ "%.2f"|format(debtor.amount or 0) }}
                     </span>
                     {% if debtor.original_amount and debtor.original_amount > debtor.amount %}
-                    <span class="text-xs font-medium text-text-muted line-through block mt-0.5 opacity-70">
+                    <span class="text-xs font-medium text-text-muted line-through block mt-0.5 opacity-70" data-debtor-figure>
                         of {{ debtor.currency }} {{ "%.2f"|format(debtor.original_amount or 0) }}
                     </span>
                     {% endif %}
@@ -207,7 +279,7 @@
                 {% if (debtor.minimum_payment or 0) > 0 %}
                 <div class="flex items-center gap-1.5 col-span-3 pt-1 border-t border-border/30 mt-1">
                     <i data-lucide="clock-4" class="w-3 h-3 text-primary/70"></i>
-                    <span class="truncate">Min Pay: {{ debtor.currency }} {{ "%.2f"|format(debtor.minimum_payment or 0) }} / {{ debtor.payment_frequency or 'mo' }}</span>
+                    <span class="truncate" data-debtor-figure>Min Pay: {{ debtor.currency }} {{ "%.2f"|format(debtor.minimum_payment or 0) }} / {{ debtor.payment_frequency or 'mo' }}</span>
                 </div>
                 {% endif %}
             </div>
@@ -298,7 +370,7 @@
                 <tr class="hover:bg-surface-hover/50 transition-colors">
                     <td class="py-3 px-4 text-sm text-text">{{ payment.date.strftime('%b %d, %Y') }}</td>
                     <td class="py-3 px-4 text-sm font-medium text-text">{{ payment.description }}</td>
-                    <td class="py-3 px-4 text-sm font-bold text-success">{{ payment.wallet.currency }} {{ "%.2f"|format(payment.amount or 0) }}</td>
+                    <td class="py-3 px-4 text-sm font-bold text-success" data-debtor-figure>{{ payment.wallet.currency }} {{ "%.2f"|format(payment.amount or 0) }}</td>
                     <td class="py-3 px-4">
                         <span class="inline-flex items-center gap-1.5 text-xs font-medium text-text-muted bg-surface-active px-2.5 py-1 rounded-md border border-border">
                             {{ payment.wallet.icon }} {{ payment.wallet.name }}
@@ -344,7 +416,7 @@
                     <select name="wallet_id" class="form-control rounded-xl border-border bg-surface focus:ring-2 focus:ring-primary/50 transition-all" style="padding-left: 2.5rem !important;" required>
                         <option value="" disabled selected>Select Affected Wallet</option>
                         {% for wallet in wallets %}
-                            <option value="{{ wallet.id }}">{{ wallet.name }} ({{ wallet.currency }} {{ "%.2f"|format(wallet.balance or 0) }})</option>
+                            <option value="{{ wallet.id }}" data-debtor-wallet-option data-wallet-name="{{ wallet.name }}">{{ wallet.name }} ({{ wallet.currency }} {{ "%.2f"|format(wallet.balance or 0) }})</option>
                         {% endfor %}
                     </select>
                 </div>
@@ -421,7 +493,7 @@
                     <select name="wallet_id" class="form-control rounded-xl border-border bg-surface focus:ring-2 focus:ring-primary/50 transition-all" style="padding-left: 2.5rem !important;" required>
                         <option value="" disabled selected>Select Affected Wallet</option>
                         {% for wallet in wallets %}
-                            <option value="{{ wallet.id }}">{{ wallet.name }} ({{ wallet.currency }} {{ "%.2f"|format(wallet.balance or 0) }})</option>
+                            <option value="{{ wallet.id }}" data-debtor-wallet-option data-wallet-name="{{ wallet.name }}">{{ wallet.name }} ({{ wallet.currency }} {{ "%.2f"|format(wallet.balance or 0) }})</option>
                         {% endfor %}
                     </select>
                 </div>
@@ -502,7 +574,7 @@
                     <select name="wallet_id" id="edit_wallet_id" class="form-control rounded-xl border-border bg-surface focus:ring-2 focus:ring-primary/50 transition-all" style="padding-left: 2.5rem !important;" required>
                         <option value="" disabled selected>Select Affected Wallet</option>
                         {% for wallet in wallets %}
-                            <option value="{{ wallet.id }}">{{ wallet.name }} ({{ wallet.currency }} {{ "%.2f"|format(wallet.balance or 0) }})</option>
+                            <option value="{{ wallet.id }}" data-debtor-wallet-option data-wallet-name="{{ wallet.name }}">{{ wallet.name }} ({{ wallet.currency }} {{ "%.2f"|format(wallet.balance or 0) }})</option>
                         {% endfor %}
                     </select>
                 </div>
@@ -552,7 +624,7 @@
                     <select name="wallet_id" class="form-control rounded-xl border-border bg-surface focus:ring-2 focus:ring-primary/50 transition-all" style="padding-left: 2.5rem !important;" required>
                         <option value="" disabled selected>Select Affected Wallet</option>
                         {% for wallet in wallets %}
-                            <option value="{{ wallet.id }}">{{ wallet.name }} ({{ wallet.currency }} {{ "%.2f"|format(wallet.balance or 0) }})</option>
+                            <option value="{{ wallet.id }}" data-debtor-wallet-option data-wallet-name="{{ wallet.name }}">{{ wallet.name }} ({{ wallet.currency }} {{ "%.2f"|format(wallet.balance or 0) }})</option>
                         {% endfor %}
                     </select>
                 </div>
@@ -627,7 +699,7 @@
                     <select name="wallet_id" class="form-control rounded-xl border-border bg-surface focus:ring-2 focus:ring-primary/50 transition-all" style="padding-left: 2.5rem !important;" required>
                         <option value="" disabled selected>Select Affected Wallet</option>
                         {% for wallet in wallets %}
-                            <option value="{{ wallet.id }}">{{ wallet.name }} ({{ wallet.currency }} {{ "%.2f"|format(wallet.balance or 0) }})</option>
+                            <option value="{{ wallet.id }}" data-debtor-wallet-option data-wallet-name="{{ wallet.name }}">{{ wallet.name }} ({{ wallet.currency }} {{ "%.2f"|format(wallet.balance or 0) }})</option>
                         {% endfor %}
                     </select>
                 </div>
@@ -733,6 +805,52 @@
     function hideRecoverModal() {
         recoverModalEl.style.display = 'none';
     }
+
+    (function initializeDebtorFigureToggle() {
+        const storageKey = 'debtorFiguresHidden';
+        const toggleButton = document.getElementById('toggleDebtorFigures');
+        const figures = Array.from(document.querySelectorAll('[data-debtor-figure]'));
+        const walletOptions = Array.from(document.querySelectorAll('[data-debtor-wallet-option]'));
+
+        if (!toggleButton || (figures.length === 0 && walletOptions.length === 0)) {
+            return;
+        }
+
+        figures.forEach((figure) => {
+            figure.dataset.originalText = figure.textContent.trim();
+        });
+        walletOptions.forEach((option) => {
+            option.dataset.originalText = option.textContent.trim();
+        });
+
+        function renderFigureState(hidden) {
+            figures.forEach((figure) => {
+                figure.textContent = hidden ? '****' : figure.dataset.originalText;
+                figure.setAttribute('aria-label', hidden ? 'Figure hidden' : figure.dataset.originalText);
+            });
+            walletOptions.forEach((option) => {
+                option.textContent = hidden ? `${option.dataset.walletName} (****)` : option.dataset.originalText;
+            });
+
+            toggleButton.setAttribute('aria-pressed', hidden ? 'true' : 'false');
+            toggleButton.innerHTML = hidden
+                ? '<i data-lucide="eye" style="width: 18px; height: 18px;"></i> <span>Show Figures</span>'
+                : '<i data-lucide="eye-off" style="width: 18px; height: 18px;"></i> <span>Hide Figures</span>';
+
+            if (window.lucide) {
+                lucide.createIcons();
+            }
+        }
+
+        let figuresHidden = localStorage.getItem(storageKey) === 'true';
+        renderFigureState(figuresHidden);
+
+        toggleButton.addEventListener('click', () => {
+            figuresHidden = !figuresHidden;
+            localStorage.setItem(storageKey, figuresHidden ? 'true' : 'false');
+            renderFigureState(figuresHidden);
+        });
+    })();
 
     window.onclick = function(event) {
         if (event.target == addModal) hideAddDebtorModal();

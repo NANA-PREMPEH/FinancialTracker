@@ -97,6 +97,70 @@
     </form>
 </div>
 
+<!-- Totals by Creditor -->
+{% if creditor_totals %}
+<section class="bg-surface rounded-2xl border border-border shadow-sm p-5 mb-8">
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-5">
+        <div>
+            <h2 class="text-lg font-bold font-heading text-text m-0 flex items-center gap-2">
+                <i data-lucide="calculator" class="w-5 h-5 text-primary"></i> Totals by Creditor
+            </h2>
+            <p class="text-sm text-text-muted mt-1 mb-0">Grouped totals for the creditor accounts currently shown below.</p>
+        </div>
+        <span class="text-xs font-semibold uppercase tracking-wider text-text-muted bg-surface-active border border-border rounded-full px-3 py-1">
+            {{ creditor_totals|length }} creditor{{ '' if creditor_totals|length == 1 else 's' }}
+        </span>
+    </div>
+    <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+        {% for summary in creditor_totals %}
+        <article class="bg-surface-active/45 border border-border/60 rounded-2xl p-4 shadow-sm">
+            <div class="flex items-start justify-between gap-3 mb-4">
+                <div class="min-w-0">
+                    <h3 class="font-bold text-text m-0 truncate" title="{{ summary.name }}">{{ summary.name }}</h3>
+                    <p class="text-xs text-text-muted mt-1 mb-0">
+                        {{ summary.account_count }} debt record{{ '' if summary.account_count == 1 else 's' }}
+                        {% if summary.overdue_count %}
+                        <span class="text-danger font-semibold">- {{ summary.overdue_count }} overdue</span>
+                        {% endif %}
+                    </p>
+                </div>
+                <span class="text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-full border border-border bg-surface text-text-muted">{{ summary.currency }}</span>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3 mb-4">
+                <div>
+                    <span class="block text-[10px] uppercase tracking-wider text-text-muted font-semibold">Outstanding</span>
+                    <span class="block text-xl font-bold font-heading text-danger mt-1" data-creditor-figure>{{ summary.currency }} {{ "%.2f"|format(summary.outstanding_total or 0) }}</span>
+                </div>
+                <div>
+                    <span class="block text-[10px] uppercase tracking-wider text-text-muted font-semibold">Original</span>
+                    <span class="block text-sm font-bold font-heading text-text mt-1" data-creditor-figure>{{ summary.currency }} {{ "%.2f"|format(summary.original_total or 0) }}</span>
+                </div>
+                <div>
+                    <span class="block text-[10px] uppercase tracking-wider text-text-muted font-semibold">Paid / Reduced</span>
+                    <span class="block text-sm font-bold font-heading text-success mt-1" data-creditor-figure>{{ summary.currency }} {{ "%.2f"|format(summary.paid_total or 0) }}</span>
+                </div>
+                <div>
+                    <span class="block text-[10px] uppercase tracking-wider text-text-muted font-semibold">Min Due</span>
+                    <span class="block text-sm font-bold font-heading text-text mt-1" data-creditor-figure>{{ summary.currency }} {{ "%.2f"|format(summary.minimum_payment_total or 0) }}</span>
+                </div>
+            </div>
+
+            <div>
+                <div class="flex justify-between text-xs mb-1.5 text-text-muted">
+                    <span class="font-medium">Group Payoff</span>
+                    <span class="font-bold {% if summary.progress_percent == 100 %}text-success{% else %}text-primary{% endif %}">{{ summary.progress_percent }}%</span>
+                </div>
+                <div class="h-2 bg-surface rounded-full overflow-hidden border border-border/50">
+                    <div class="h-full rounded-full transition-all duration-1000 ease-out {% if summary.progress_percent == 100 %}bg-success{% else %}bg-gradient-to-r from-primary to-primary-light{% endif %}" style="width: {{ summary.progress_percent }}%;"></div>
+                </div>
+            </div>
+        </article>
+        {% endfor %}
+    </div>
+</section>
+{% endif %}
+
 <!-- Debt Cards Grid -->
 {% if creditors %}
 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

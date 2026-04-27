@@ -27,6 +27,52 @@ def _parse_due_date(value):
         return None
 
 
+def _build_debtor_totals(debtors):
+    grouped = {}
+
+    for debtor in debtors:
+        name = (debtor.name or 'Unnamed Debtor').strip() or 'Unnamed Debtor'
+        currency = debtor.currency or 'GHS'
+        key = (name.casefold(), currency)
+        original_amount = debtor.original_amount if debtor.original_amount and debtor.original_amount > 0 else debtor.amount
+
+        if key not in grouped:
+            grouped[key] = {
+                'name': name,
+                'currency': currency,
+                'account_count': 0,
+                'expected_total': 0.0,
+                'original_total': 0.0,
+                'minimum_payment_total': 0.0,
+                'overdue_count': 0,
+                'paid_off_count': 0,
+                'bad_debt_count': 0,
+            }
+
+        summary = grouped[key]
+        summary['account_count'] += 1
+        summary['expected_total'] += debtor.amount or 0
+        summary['original_total'] += original_amount or 0
+        summary['minimum_payment_total'] += debtor.minimum_payment or 0
+        if debtor.computed_status == 'overdue':
+            summary['overdue_count'] += 1
+        elif debtor.computed_status == 'paid_off':
+            summary['paid_off_count'] += 1
+        elif debtor.computed_status == 'bad_debt':
+            summary['bad_debt_count'] += 1
+
+    summaries = []
+    for summary in grouped.values():
+        summary['collected_total'] = max(summary['original_total'] - summary['expected_total'], 0)
+        if summary['original_total'] > 0:
+            summary['progress_percent'] = min(round((summary['collected_total'] / summary['original_total']) * 100, 1), 100)
+        else:
+            summary['progress_percent'] = 0
+        summaries.append(summary)
+
+    return sorted(summaries, key=lambda item: item['expected_total'], reverse=True)
+
+
 def register_routes(main):
 
     @main.route('/debtors')
@@ -87,6 +133,8 @@ def register_routes(main):
         elif sort_by == 'recent':
             filtered.sort(key=lambda d: d.created_at, reverse=True)
 
+        debtor_totals = _build_debtor_totals(filtered)
+
         # Fetch collection history
         collection_history = Expense.query.filter(
             Expense.user_id == current_user.id,
@@ -96,6 +144,7 @@ def register_routes(main):
         return render_template(
             'debtors.html',
             debtors=filtered,
+            debtor_totals=debtor_totals,
             wallets=wallets,
             total_expected=total_expected,
             active_count=len(active_debts),
