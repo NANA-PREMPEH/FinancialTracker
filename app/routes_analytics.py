@@ -2,11 +2,19 @@ from flask import render_template, request, redirect, url_for, flash, send_file,
 from flask_login import login_required, current_user
 from . import db
 from .models import Expense, Category, FinancialSummary, ProjectItem, ProjectItemPayment, DebtPayment, DebtorPayment, ContractPayment
+from .utils import get_exchange_rate
 from datetime import datetime, timedelta
 from dateutil.relativedelta import relativedelta
 from sqlalchemy import func, or_
+from sqlalchemy.orm import joinedload
 import io
 import csv
+
+
+def _normalize_currency(code, fallback='GHS'):
+    fallback_currency = (fallback or 'GHS').upper().strip()[:10] or 'GHS'
+    normalized_currency = (code or fallback_currency).upper().strip()[:10]
+    return normalized_currency or fallback_currency
 
 
 def register_routes(main):
@@ -25,23 +33,85 @@ def register_routes(main):
             transfer_filter = or_(transfer_filter, Expense.category_id == transfer_id)
         return transfer_filter
 
+    def _build_currency_converter(target_currency='GHS'):
+        normalized_target = _normalize_currency(target_currency)
+        rate_cache = {}
+
+        def convert_amount(amount, from_currency):
+            numeric_amount = float(amount or 0)
+            normalized_source = _normalize_currency(from_currency, fallback=normalized_target)
+            if normalized_source == normalized_target:
+                return numeric_amount
+
+            cache_key = (normalized_source, normalized_target)
+            if cache_key not in rate_cache:
+                rate_cache[cache_key] = get_exchange_rate(normalized_source, normalized_target)
+
+            return numeric_amount * rate_cache[cache_key]
+
+        return convert_amount
+
+    def _expense_amount_in_ghs(expense, convert_to_ghs):
+        wallet_currency = _normalize_currency(expense.wallet.currency if expense.wallet else None, fallback='GHS')
+        original_currency = _normalize_currency(expense.original_currency, fallback=wallet_currency)
+        stored_amount = float(expense.amount or 0)
+        original_amount = float(expense.original_amount) if expense.original_amount is not None else None
+
+        # If the wallet itself is already in GHS, trust the stored amount unless the
+        # record still looks like an unconverted foreign-currency legacy entry.
+        if wallet_currency == 'GHS':
+            if original_amount is not None and original_currency != 'GHS' and abs(stored_amount - original_amount) < 0.01:
+                return convert_to_ghs(original_amount, original_currency)
+            return stored_amount
+
+        # Non-GHS wallets store amounts in the wallet currency, so convert them into
+        # a single GHS analytics base before aggregating.
+        return convert_to_ghs(stored_amount, wallet_currency)
+
+    def _load_live_expenses(*filters):
+        return Expense.query.options(
+            joinedload(Expense.wallet),
+            joinedload(Expense.category)
+        ).filter(
+            Expense.user_id == current_user.id,
+            *filters
+        ).all()
+
+    def _sum_live_expenses_in_ghs(convert_to_ghs, *filters):
+        return sum(_expense_amount_in_ghs(expense, convert_to_ghs) for expense in _load_live_expenses(*filters))
+
 
     @main.route('/analytics')
     @login_required
     def analytics():
         # Category breakdown for pie chart (Expenses only) - Exclude Transfers
         transfer_filter = _get_transfer_filter()
+        convert_to_ghs = _build_currency_converter('GHS')
 
         debt_lent_cat = Category.query.filter_by(name='Money Lent', user_id=current_user.id).first()
         debt_lent_id = debt_lent_cat.id if debt_lent_cat else -1
 
-        category_data = db.session.query(
-            Category.name, Category.icon, func.sum(Expense.amount)
-        ).join(Expense).filter(
-            Expense.user_id == current_user.id,
+        category_totals = {}
+        category_expenses = _load_live_expenses(
             Expense.transaction_type == 'expense',
             ~transfer_filter
-        ).group_by(Category.id).all()
+        )
+        for expense in category_expenses:
+            if not expense.category:
+                continue
+
+            if expense.category_id not in category_totals:
+                category_totals[expense.category_id] = {
+                    'name': expense.category.name,
+                    'icon': expense.category.icon,
+                    'amount': 0.0
+                }
+            category_totals[expense.category_id]['amount'] += _expense_amount_in_ghs(expense, convert_to_ghs)
+
+        category_data = [
+            (item['name'], item['icon'], item['amount'])
+            for item in sorted(category_totals.values(), key=lambda item: item['amount'], reverse=True)
+        ]
 
         # Monthly trend for line chart (last 6 months)
         monthly_data = []
@@ -76,29 +146,29 @@ def register_routes(main):
                 m_extra_contract_inc = 0
             else:
                 # Live query
-                expense_total = db.session.query(func.sum(Expense.amount)).filter(
-                    Expense.user_id == current_user.id,
+                expense_total = _sum_live_expenses_in_ghs(
+                    convert_to_ghs,
                     Expense.transaction_type == 'expense',
                     Expense.date >= month_start,
                     Expense.date < month_end,
                     ~transfer_filter
-                ).scalar() or 0
+                )
 
-                income_total = db.session.query(func.sum(Expense.amount)).filter(
-                    Expense.user_id == current_user.id,
+                income_total = _sum_live_expenses_in_ghs(
+                    convert_to_ghs,
                     Expense.transaction_type == 'income',
                     Expense.date >= month_start,
                     Expense.date < month_end,
                     ~transfer_filter
-                ).scalar() or 0
+                )
 
-                m_lent = db.session.query(func.sum(Expense.amount)).filter(
-                    Expense.user_id == current_user.id,
+                m_lent = _sum_live_expenses_in_ghs(
+                    convert_to_ghs,
                     Expense.transaction_type == 'expense',
                     Expense.date >= month_start,
                     Expense.date < month_end,
                     or_(Expense.category_id == debt_lent_id, Expense.tags.ilike('%debt_lent%'))
-                ).scalar() or 0
+                )
 
                 m_extra_debt_exp = db.session.query(func.sum(DebtPayment.amount)).filter(
                     DebtPayment.user_id == current_user.id,
@@ -155,29 +225,29 @@ def register_routes(main):
                 y_extra_debtor_inc = 0
                 y_extra_contract_inc = 0
             else:
-                expense_total = db.session.query(func.sum(Expense.amount)).filter(
-                    Expense.user_id == current_user.id,
+                expense_total = _sum_live_expenses_in_ghs(
+                    convert_to_ghs,
                     Expense.transaction_type == 'expense',
                     Expense.date >= month_start,
                     Expense.date < month_end,
                     ~transfer_filter
-                ).scalar() or 0
+                )
 
-                income_total = db.session.query(func.sum(Expense.amount)).filter(
-                    Expense.user_id == current_user.id,
+                income_total = _sum_live_expenses_in_ghs(
+                    convert_to_ghs,
                     Expense.transaction_type == 'income',
                     Expense.date >= month_start,
                     Expense.date < month_end,
                     ~transfer_filter
-                ).scalar() or 0
+                )
 
-                m_lent = db.session.query(func.sum(Expense.amount)).filter(
-                    Expense.user_id == current_user.id,
+                m_lent = _sum_live_expenses_in_ghs(
+                    convert_to_ghs,
                     Expense.transaction_type == 'expense',
                     Expense.date >= month_start,
                     Expense.date < month_end,
                     or_(Expense.category_id == debt_lent_id, Expense.tags.ilike('%debt_lent%'))
-                ).scalar() or 0
+                )
 
                 # Extra payments for this month (Yearly Trend)
                 y_extra_debt_exp = db.session.query(func.sum(DebtPayment.amount)).filter(
@@ -254,29 +324,29 @@ def register_routes(main):
                         y_income += (hist_m.total_income or 0)
                     else:
                         # Sum Live Expenses + Extras
-                        m_live_exp = db.session.query(func.sum(Expense.amount)).filter(
-                            Expense.user_id == current_user.id,
+                        m_live_exp = _sum_live_expenses_in_ghs(
+                            convert_to_ghs,
                             Expense.transaction_type == 'expense',
                             Expense.date >= m_start,
                             Expense.date < m_end,
                             ~transfer_filter
-                        ).scalar() or 0
+                        )
 
-                        m_live_inc = db.session.query(func.sum(Expense.amount)).filter(
-                            Expense.user_id == current_user.id,
+                        m_live_inc = _sum_live_expenses_in_ghs(
+                            convert_to_ghs,
                             Expense.transaction_type == 'income',
                             Expense.date >= m_start,
                             Expense.date < m_end,
                             ~transfer_filter
-                        ).scalar() or 0
+                        )
 
-                        m_live_lent = db.session.query(func.sum(Expense.amount)).filter(
-                            Expense.user_id == current_user.id,
+                        m_live_lent = _sum_live_expenses_in_ghs(
+                            convert_to_ghs,
                             Expense.transaction_type == 'expense',
                             Expense.date >= m_start,
                             Expense.date < m_end,
                             or_(Expense.category_id == debt_lent_id, Expense.tags.ilike('%debt_lent%'))
-                        ).scalar() or 0
+                        )
 
                         # Extra payments (Annual)
                         m_extra_d_exp = db.session.query(func.sum(DebtPayment.amount)).filter(

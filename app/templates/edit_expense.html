@@ -34,10 +34,27 @@
             </div>
         </div>
 
-        <!-- Amount -->
-        <div class="mb-6">
-            <label for="amount" class="block text-sm font-medium text-text-muted mb-2">Amount (GHS)</label>
-            <input type="number" id="amount" name="amount" step="0.01" value="{{ expense.amount }}" required class="w-full px-4 py-3 bg-surface text-text border border-border rounded-xl focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors shadow-sm text-lg font-bold">
+        <!-- Amount and Currency -->
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-6">
+            <div class="sm:col-span-2">
+                <label for="amount" class="block text-sm font-medium text-text-muted mb-2">Amount</label>
+                <input type="number" id="amount" name="amount" step="0.01" value="{{ expense.original_amount if expense.original_amount is not none else expense.amount }}" required class="w-full px-4 py-3 bg-surface text-text border border-border rounded-xl focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors shadow-sm text-lg font-bold">
+            </div>
+            <div>
+                <label for="currency" class="block text-sm font-medium text-text-muted mb-2">Currency</label>
+                <div class="relative">
+                    {% set selected_currency = expense.original_currency or (expense.wallet.currency if expense.wallet else 'GHS') %}
+                    <select id="currency" name="currency" required class="w-full px-4 py-3 bg-surface text-text border border-border rounded-xl focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors appearance-none shadow-sm cursor-pointer">
+                        <option value="GHS" {% if selected_currency == 'GHS' %}selected{% endif %}>GHS</option>
+                        {% for code, name in currencies.items() if code != 'GHS' %}
+                            <option value="{{ code }}" {% if selected_currency == code %}selected{% endif %}>{{ code }}</option>
+                        {% endfor %}
+                    </select>
+                    <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-text-muted">
+                        <i data-lucide="chevron-down" class="w-4 h-4"></i>
+                    </div>
+                </div>
+            </div>
         </div>
 
         <!-- Description -->
@@ -77,6 +94,9 @@
                     <i data-lucide="chevron-down" class="w-4 h-4"></i>
                 </div>
             </div>
+            {% if expense.original_currency and expense.wallet and expense.original_currency != expense.wallet.currency %}
+                <p class="text-xs text-text-muted mt-2">Currently stored in {{ expense.wallet.name }} as {{ expense.wallet.currency }} {{ "%.2f"|format(expense.amount) }} after conversion.</p>
+            {% endif %}
         </div>
 
         <!-- Notes -->

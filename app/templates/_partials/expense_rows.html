@@ -18,6 +18,10 @@
         </div>
     </td>
     <td class="p-4 text-sm text-right whitespace-nowrap" data-label="Amount">
+        {% set display_amount = expense.original_amount if expense.original_amount is not none else expense.amount %}
+        {% set display_currency = expense.original_currency or (expense.wallet.currency if expense.wallet else 'GHS') %}
+        {% set converted_currency = expense.wallet.currency if expense.wallet else display_currency %}
+        {% set show_converted_amount = expense.original_currency and converted_currency and expense.original_currency != converted_currency %}
         <div class="font-bold text-text">
             <div class="flex items-center justify-end gap-1">
                 {% if expense.transaction_type in ['expense', 'transfer_out'] %}
@@ -27,8 +31,11 @@
                 {% elif expense.transaction_type == 'transfer' %}
                     <i data-lucide="arrow-right-left" class="w-4 h-4 text-text-muted"></i>
                 {% endif %}
-                {{ "%.2f"|format(expense.amount) }} <span class="text-xs text-text-muted font-normal">GHS</span>
+                {{ "%.2f"|format(display_amount) }} <span class="text-xs text-text-muted font-normal">{{ display_currency }}</span>
             </div>
+            {% if show_converted_amount %}
+                <div class="text-xs text-text-muted mt-1">Stored as {{ converted_currency }} {{ "%.2f"|format(expense.amount) }}</div>
+            {% endif %}
             {% if expense.receipt_path %}
                 <div class="text-xs text-text-muted mt-1 flex items-center justify-end gap-1"><i data-lucide="paperclip" class="w-3 h-3"></i> Receipt</div>
             {% endif %}

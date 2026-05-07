@@ -3,8 +3,15 @@ from flask_login import login_required, current_user
 from . import db
 from .models import Expense, Category, Wallet
 from .utils import get_exchange_rate
+from .currencies import CURRENCIES
 from datetime import datetime, timedelta
 from sqlalchemy import func, or_
+
+
+def _normalize_currency(code, fallback='GHS'):
+    fallback_currency = (fallback or 'GHS').upper().strip()[:10] or 'GHS'
+    normalized_currency = (code or fallback_currency).upper().strip()[:10]
+    return normalized_currency or fallback_currency
 
 
 def register_routes(main):
@@ -14,7 +21,6 @@ def register_routes(main):
     def add_expense():
         categories = Category.query.filter_by(user_id=current_user.id).all()
         wallets = Wallet.query.filter_by(user_id=current_user.id).all()
-        from .currencies import CURRENCIES
 
         if request.method == 'POST':
             description = request.form.get('description')
@@ -29,7 +35,7 @@ def register_routes(main):
             notes = request.form.get('notes', '')
             tags = request.form.get('tags', '')
             transaction_type = request.form.get('transaction_type', 'expense')
-            currency = request.form.get('currency', 'GHS')
+            currency = _normalize_currency(request.form.get('currency'))
 
             if not description or not description.strip():
                 flash('Description is required!', 'error')
@@ -65,12 +71,13 @@ def register_routes(main):
 
             # Currency Conversion Logic
             wallet = Wallet.query.filter_by(id=wallet_id, user_id=current_user.id).first_or_404()
+            wallet_currency = _normalize_currency(wallet.currency, fallback='GHS')
             converted_amount = input_amount
 
-            if currency != wallet.currency:
-                rate = get_exchange_rate(currency, wallet.currency)
+            if currency != wallet_currency:
+                rate = get_exchange_rate(currency, wallet_currency)
                 converted_amount = input_amount * rate
-                print(f"Converting {input_amount} {currency} to {converted_amount} {wallet.currency} (Rate: {rate})")
+                print(f"Converting {input_amount} {currency} to {converted_amount} {wallet_currency} (Rate: {rate})")
 
             if transaction_type == 'transfer':
                 to_wallet_id_str = request.form.get('to_wallet')
@@ -116,8 +123,9 @@ def register_routes(main):
 
                 # Create the deposit record (destination wallet)
                 to_converted_amount = input_amount
-                if currency != to_wallet.currency:
-                    rate = get_exchange_rate(currency, to_wallet.currency)
+                to_wallet_currency = _normalize_currency(to_wallet.currency, fallback='GHS')
+                if currency != to_wallet_currency:
+                    rate = get_exchange_rate(currency, to_wallet_currency)
                     to_converted_amount = input_amount * rate
 
                 expense_in = Expense(
@@ -185,11 +193,26 @@ def register_routes(main):
             old_amount = expense.amount
             old_type = expense.transaction_type
             old_wallet_id = expense.wallet_id
+            wallet_id = int(request.form.get('wallet'))
+            input_amount = float(request.form.get('amount'))
+            currency = _normalize_currency(
+                request.form.get('currency'),
+                fallback=expense.original_currency or (expense.wallet.currency if expense.wallet else 'GHS')
+            )
 
-            expense.amount = float(request.form.get('amount'))
+            new_wallet = Wallet.query.filter_by(id=wallet_id, user_id=current_user.id).first_or_404()
+            wallet_currency = _normalize_currency(new_wallet.currency, fallback='GHS')
+            converted_amount = input_amount
+            if currency != wallet_currency:
+                rate = get_exchange_rate(currency, wallet_currency)
+                converted_amount = input_amount * rate
+
+            expense.amount = converted_amount
+            expense.original_amount = input_amount
+            expense.original_currency = currency
             expense.description = request.form.get('description')
             expense.category_id = int(request.form.get('category'))
-            expense.wallet_id = int(request.form.get('wallet'))
+            expense.wallet_id = wallet_id
             expense.notes = request.form.get('notes', '')
             expense.tags = request.form.get('tags', '')
             expense.transaction_type = request.form.get('transaction_type', 'expense')
@@ -213,7 +236,6 @@ def register_routes(main):
 
             # Update wallet balances
             old_wallet = Wallet.query.filter_by(id=old_wallet_id, user_id=current_user.id).first_or_404()
-            new_wallet = Wallet.query.filter_by(id=expense.wallet_id, user_id=current_user.id).first_or_404()
 
             # Reverse old transaction
             if old_type == 'expense':
@@ -223,15 +245,15 @@ def register_routes(main):
 
             # Apply new transaction
             if expense.transaction_type == 'expense':
-                new_wallet.balance = float(new_wallet.balance) - expense.amount
+                new_wallet.balance = float(new_wallet.balance) - converted_amount
             elif expense.transaction_type in ('income', 'liability', 'debt_recovery'):
-                new_wallet.balance = float(new_wallet.balance) + expense.amount
+                new_wallet.balance = float(new_wallet.balance) + converted_amount
 
             db.session.commit()
             flash('Transaction updated successfully!', 'success')
             return redirect(url_for('main.all_expenses') + f'#expense-{id}')
 
-        return render_template('edit_expense.html', expense=expense, categories=categories, wallets=wallets)
+        return render_template('edit_expense.html', expense=expense, categories=categories, wallets=wallets, currencies=CURRENCIES)
 
     @main.route('/delete/<int:id>', methods=['POST'])
     @login_required
