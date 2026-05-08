@@ -127,9 +127,9 @@ def calc_debt_payoff_strategies(creditors_data, extra_payment=0):
     if not creditors_data:
         return None
 
-    def simulate(debts, order_key):
+    def simulate(debts, order_key, reverse=False):
         debts = [dict(d) for d in debts]
-        debts.sort(key=lambda d: d[order_key])
+        debts.sort(key=lambda d: d[order_key], reverse=reverse)
         total_interest = 0
         months = 0
         min_payments = sum(d['min_payment'] for d in debts)
@@ -186,58 +186,7 @@ def calc_debt_payoff_strategies(creditors_data, extra_payment=0):
         })
 
     snowball = simulate(debts, 'balance')
-    avalanche = simulate(debts, lambda d: -d['rate'] if callable else 'balance')
-
-    # Redo avalanche properly with correct sort
-    debts_aval = []
-    for c in creditors_data:
-        debts_aval.append({
-            'name': c['name'],
-            'balance': c['balance'],
-            'original': c['balance'],
-            'rate': c['rate'],
-            'min_payment': c['min_payment']
-        })
-    debts_aval.sort(key=lambda d: -d['rate'])
-
-    total_interest_aval = 0
-    months_aval = 0
-    min_payments = sum(d['min_payment'] for d in debts_aval)
-    monthly_budget = min_payments + extra_payment
-    timeline_aval = []
-
-    while any(d['balance'] > 0 for d in debts_aval) and months_aval < 1200:
-        months_aval += 1
-        remaining_budget = monthly_budget
-        for d in debts_aval:
-            if d['balance'] <= 0:
-                continue
-            interest = d['balance'] * (d['rate'] / 100 / 12)
-            total_interest_aval += interest
-            d['balance'] += interest
-            payment = min(d['min_payment'], d['balance'])
-            d['balance'] -= payment
-            remaining_budget -= payment
-        for d in debts_aval:
-            if d['balance'] <= 0:
-                continue
-            extra = min(remaining_budget, d['balance'])
-            d['balance'] -= extra
-            remaining_budget -= extra
-            if remaining_budget <= 0:
-                break
-        total_remaining = sum(max(d['balance'], 0) for d in debts_aval)
-        if months_aval % 3 == 0 or total_remaining == 0:
-            timeline_aval.append({'month': months_aval, 'remaining': round(total_remaining, 2)})
-        if total_remaining <= 0.01:
-            break
-
-    avalanche = {
-        'months': months_aval,
-        'total_interest': round(total_interest_aval, 2),
-        'total_paid': round(sum(c['balance'] for c in creditors_data) + total_interest_aval, 2),
-        'timeline': timeline_aval
-    }
+    avalanche = simulate(debts, 'rate', reverse=True)
 
     savings = round(snowball['total_interest'] - avalanche['total_interest'], 2)
 
