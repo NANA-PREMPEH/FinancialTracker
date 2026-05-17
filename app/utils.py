@@ -1,8 +1,22 @@
+from decimal import Decimal
+from datetime import datetime
 
 from . import db
 from .models import ExchangeRate, Wallet, Category
-from datetime import datetime
 import requests
+
+
+def to_float(value, default=0.0):
+    """Normalize DB numerics such as Decimal/None into a plain float."""
+    if value is None:
+        return default
+    if isinstance(value, Decimal):
+        return float(value)
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return default
+
 
 def get_exchange_rate(from_currency, to_currency='GHS'):
     if from_currency == to_currency:

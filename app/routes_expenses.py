@@ -35,10 +35,18 @@ def register_routes(main):
             notes = request.form.get('notes', '')
             tags = request.form.get('tags', '')
             transaction_type = request.form.get('transaction_type', 'expense')
+            income_source = (request.form.get('income_source') or '').strip() or None
             currency = _normalize_currency(request.form.get('currency'))
+
+            if transaction_type != 'income':
+                income_source = None
 
             if not description or not description.strip():
                 flash('Description is required!', 'error')
+                return redirect(url_for('main.add_expense'))
+
+            if transaction_type == 'income' and not income_source:
+                flash('Please provide the source of income.', 'error')
                 return redirect(url_for('main.add_expense'))
 
             try:
@@ -158,6 +166,7 @@ def register_routes(main):
                     date=date_obj,
                     notes=notes,
                     tags=tags,
+                    income_source=income_source,
                     receipt_path=receipt_path,
                     transaction_type=transaction_type,
                     original_amount=input_amount,
@@ -180,7 +189,13 @@ def register_routes(main):
             else:
                 return redirect(url_for('main.all_expenses'))
 
-        return render_template('add_expense.html', categories=categories, wallets=wallets, currencies=CURRENCIES)
+        return render_template(
+            'add_expense.html',
+            categories=categories,
+            wallets=wallets,
+            currencies=CURRENCIES,
+            now_date=datetime.utcnow().strftime('%Y-%m-%d')
+        )
 
     @main.route('/edit/<int:id>', methods=['GET', 'POST'])
     @login_required
@@ -195,10 +210,18 @@ def register_routes(main):
             old_wallet_id = expense.wallet_id
             wallet_id = int(request.form.get('wallet'))
             input_amount = float(request.form.get('amount'))
+            transaction_type = request.form.get('transaction_type', 'expense')
+            income_source = (request.form.get('income_source') or '').strip() or None
             currency = _normalize_currency(
                 request.form.get('currency'),
                 fallback=expense.original_currency or (expense.wallet.currency if expense.wallet else 'GHS')
             )
+
+            if transaction_type != 'income':
+                income_source = None
+            elif not income_source:
+                flash('Please provide the source of income.', 'error')
+                return redirect(url_for('main.edit_expense', id=id))
 
             new_wallet = Wallet.query.filter_by(id=wallet_id, user_id=current_user.id).first_or_404()
             wallet_currency = _normalize_currency(new_wallet.currency, fallback='GHS')
@@ -215,7 +238,8 @@ def register_routes(main):
             expense.wallet_id = wallet_id
             expense.notes = request.form.get('notes', '')
             expense.tags = request.form.get('tags', '')
-            expense.transaction_type = request.form.get('transaction_type', 'expense')
+            expense.income_source = income_source
+            expense.transaction_type = transaction_type
             date_str = request.form.get('date')
 
             if date_str:
@@ -289,6 +313,7 @@ def register_routes(main):
         if search_query:
             query = query.filter(or_(
                 Expense.description.contains(search_query),
+                Expense.income_source.contains(search_query),
                 Expense.notes.contains(search_query),
                 Expense.tags.contains(search_query)
             ))

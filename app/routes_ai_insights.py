@@ -2,6 +2,7 @@ from flask import Blueprint, render_template, jsonify
 from flask_login import login_required, current_user
 from . import db
 from .models import Expense, Category, Budget, Creditor, Goal, Wallet
+from .utils import to_float
 from datetime import datetime, timedelta
 from sqlalchemy import func, extract, or_
 import statistics
@@ -218,10 +219,12 @@ def get_financial_health_score(user_id):
     # 2. Debt ratio (0-25 points) — lower debt = higher score
     total_debt = db.session.query(func.sum(Creditor.amount)).filter(
         Creditor.user_id == user_id
-    ).scalar() or 0
+    ).scalar()
     total_balance = db.session.query(func.sum(Wallet.balance)).filter(
         Wallet.user_id == user_id
-    ).scalar() or 0
+    ).scalar()
+    total_debt = to_float(total_debt)
+    total_balance = to_float(total_balance)
     debt_ratio = (total_debt / max(total_balance, 1)) * 100
     debt_score = max(0, round(25 - (debt_ratio * 0.25)))
 
@@ -367,11 +370,13 @@ def get_spending_insights(user_id):
     # Debt insights
     total_debt = db.session.query(func.sum(Creditor.amount)).filter(
         Creditor.user_id == user_id
-    ).scalar() or 0
+    ).scalar()
+    total_debt = to_float(total_debt)
     if total_debt > 0:
         total_balance = db.session.query(func.sum(Wallet.balance)).filter(
             Wallet.user_id == user_id
-        ).scalar() or 0
+        ).scalar()
+        total_balance = to_float(total_balance)
         debt_ratio = (total_debt / max(total_balance, 1)) * 100
         if debt_ratio > 50:
             insights.append({

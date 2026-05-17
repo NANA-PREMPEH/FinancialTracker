@@ -3,6 +3,9 @@
     <td class="p-4 text-sm text-text whitespace-nowrap" data-label="Date">{{ expense.date.strftime('%d %b %Y') }}</td>
     <td class="p-4 text-sm" data-label="Description">
         <div class="font-medium text-text">{{ expense.description }}</div>
+        {% if expense.transaction_type == 'income' and expense.income_source %}
+            <div class="mt-1 text-xs text-text-muted">Source: {{ expense.income_source }}</div>
+        {% endif %}
         {% if expense.tags %}
             <div class="mt-1 flex flex-wrap gap-1">
                 {% for tag in expense.tags.split(',') %}

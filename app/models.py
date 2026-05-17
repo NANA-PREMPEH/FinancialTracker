@@ -93,6 +93,7 @@ class Expense(db.Model):
     wallet_id = db.Column(db.Integer, db.ForeignKey('wallet.id'), nullable=False)
     notes = db.Column(db.Text, nullable=True)
     tags = db.Column(db.String(200), nullable=True)
+    income_source = db.Column(db.String(150), nullable=True)
     receipt_path = db.Column(db.String(300), nullable=True)
     transaction_type = db.Column(db.String(20), default='expense')
     original_amount = db.Column(db.Float, nullable=True)

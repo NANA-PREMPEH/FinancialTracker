@@ -22,6 +22,7 @@ from .models import (
     Investment,
     Wallet,
 )
+from .utils import to_float
 
 
 advanced_bp = Blueprint("advanced", __name__)
@@ -522,13 +523,18 @@ def metrics():
     tx_volume = (
         db.session.query(func.sum(Expense.amount))
         .filter(Expense.user_id == uid, Expense.date >= day_start)
-        .scalar() or 0.0
+        .scalar()
     )
 
-    cash_balance = db.session.query(func.sum(Wallet.balance)).filter(Wallet.user_id == uid).scalar() or 0.0
-    debt_total = db.session.query(func.sum(Creditor.amount)).filter(Creditor.user_id == uid).scalar() or 0.0
-    invest_total = db.session.query(func.sum(Investment.current_value)).filter(Investment.user_id == uid).scalar() or 0.0
-    entity_total = db.session.query(func.sum(GlobalEntity.value)).filter(GlobalEntity.user_id == uid).scalar() or 0.0
+    cash_balance = db.session.query(func.sum(Wallet.balance)).filter(Wallet.user_id == uid).scalar()
+    debt_total = db.session.query(func.sum(Creditor.amount)).filter(Creditor.user_id == uid).scalar()
+    invest_total = db.session.query(func.sum(Investment.current_value)).filter(Investment.user_id == uid).scalar()
+    entity_total = db.session.query(func.sum(GlobalEntity.value)).filter(GlobalEntity.user_id == uid).scalar()
+    tx_volume = to_float(tx_volume)
+    cash_balance = to_float(cash_balance)
+    debt_total = to_float(debt_total)
+    invest_total = to_float(invest_total)
+    entity_total = to_float(entity_total)
     net_worth = cash_balance + invest_total + entity_total - debt_total
 
     # --- Monthly burn rate & runway ---

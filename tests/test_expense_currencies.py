@@ -130,6 +130,53 @@ def test_add_expense_preserves_selected_currency(authenticated_client, app, ghs_
         assert b'Stored as GHS 1500.00' in history.data
 
 
+def test_add_income_requires_source_of_income(authenticated_client, app, ghs_wallet, food_category):
+    with app.app_context():
+        response = authenticated_client.post(
+            '/add',
+            data={
+                'description': 'Monthly pay',
+                'amount': '2500',
+                'category': str(food_category.id),
+                'wallet': str(ghs_wallet.id),
+                'transaction_type': 'income',
+                'currency': 'GHS',
+                'date': '2026-05-07'
+            },
+            follow_redirects=True
+        )
+
+        assert response.status_code == 200
+        assert b'Please provide the source of income.' in response.data
+        assert Expense.query.filter_by(description='Monthly pay').count() == 0
+
+
+def test_add_income_persists_source_of_income(authenticated_client, app, ghs_wallet, food_category):
+    with app.app_context():
+        response = authenticated_client.post(
+            '/add',
+            data={
+                'description': 'Monthly pay',
+                'income_source': 'Salary',
+                'amount': '2500',
+                'category': str(food_category.id),
+                'wallet': str(ghs_wallet.id),
+                'transaction_type': 'income',
+                'currency': 'GHS',
+                'date': '2026-05-07'
+            },
+            follow_redirects=True
+        )
+
+        assert response.status_code == 200
+
+        income = Expense.query.filter_by(description='Monthly pay').one()
+        assert income.income_source == 'Salary'
+
+        history = authenticated_client.get('/expenses')
+        assert b'Source: Salary' in history.data
+
+
 def test_edit_expense_supports_currency_selection_and_conversion(authenticated_client, app, user, ghs_wallet, food_category):
     with app.app_context():
         expense = Expense(
@@ -177,6 +224,64 @@ def test_edit_expense_supports_currency_selection_and_conversion(authenticated_c
         assert expense.original_currency == 'EUR'
         assert expense.amount == pytest.approx(900.0)
         assert float(wallet.balance) == pytest.approx(1100.0)
+
+
+def test_edit_income_updates_and_clears_income_source(authenticated_client, app, user, ghs_wallet, food_category):
+    with app.app_context():
+        income = Expense(
+            user_id=user.id,
+            amount=1000.0,
+            original_amount=1000.0,
+            original_currency='GHS',
+            description='Client payment',
+            transaction_type='income',
+            income_source='Freelance',
+            category_id=food_category.id,
+            wallet_id=ghs_wallet.id,
+            date=datetime(2026, 5, 6)
+        )
+        db.session.add(income)
+        ghs_wallet.balance = 3000.0
+        db.session.commit()
+
+        response = authenticated_client.post(
+            f'/edit/{income.id}',
+            data={
+                'description': 'Client payment',
+                'income_source': 'Consulting',
+                'amount': '1000',
+                'currency': 'GHS',
+                'category': str(food_category.id),
+                'wallet': str(ghs_wallet.id),
+                'transaction_type': 'income',
+                'date': '2026-05-06'
+            },
+            follow_redirects=True
+        )
+
+        assert response.status_code == 200
+
+        income = db.session.get(Expense, income.id)
+        assert income.income_source == 'Consulting'
+
+        response = authenticated_client.post(
+            f'/edit/{income.id}',
+            data={
+                'description': 'Client payment',
+                'amount': '1000',
+                'currency': 'GHS',
+                'category': str(food_category.id),
+                'wallet': str(ghs_wallet.id),
+                'transaction_type': 'expense',
+                'date': '2026-05-06'
+            },
+            follow_redirects=True
+        )
+
+        assert response.status_code == 200
+
+        income = db.session.get(Expense, income.id)
+        assert income.income_source is None
 
 
 def test_analytics_converts_legacy_foreign_transactions_to_ghs(authenticated_client, app, user, ghs_wallet, food_category):

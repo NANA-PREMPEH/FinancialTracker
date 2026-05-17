@@ -2,6 +2,7 @@ from flask import Blueprint, render_template, request, jsonify
 from flask_login import login_required, current_user
 from . import db
 from .models import Creditor, Wallet, Expense
+from .utils import to_float
 from datetime import datetime, timedelta
 from sqlalchemy import func
 import math
@@ -304,21 +305,25 @@ def calculator_view():
 
         total_assets = db.session.query(func.sum(Wallet.balance)).filter(
             Wallet.user_id == current_user.id
-        ).scalar() or 0
+        ).scalar()
         total_debts = db.session.query(func.sum(Creditor.amount)).filter(
             Creditor.user_id == current_user.id, Creditor.status == 'active'
-        ).scalar() or 0
+        ).scalar()
 
         now = datetime.utcnow()
         month_ago = now - timedelta(days=30)
         income = db.session.query(func.sum(Expense.amount)).filter(
             Expense.user_id == current_user.id, Expense.transaction_type == 'income',
             Expense.date >= month_ago
-        ).scalar() or 0
+        ).scalar()
         expenses = db.session.query(func.sum(Expense.amount)).filter(
             Expense.user_id == current_user.id, Expense.transaction_type == 'expense',
             Expense.date >= month_ago
-        ).scalar() or 0
+        ).scalar()
+        total_assets = to_float(total_assets)
+        total_debts = to_float(total_debts)
+        income = to_float(income)
+        expenses = to_float(expenses)
         monthly_savings = max(0, income - expenses)
 
     return render_template("calculator.html", creditors=creditors,
