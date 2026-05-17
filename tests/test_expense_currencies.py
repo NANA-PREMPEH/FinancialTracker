@@ -331,3 +331,79 @@ def test_analytics_converts_foreign_wallet_transactions_to_ghs(authenticated_cli
 
         assert response.status_code == 200
         assert b'GHS 750.00' in response.data
+
+
+def test_transactions_page_shows_filtered_total_in_default_currency(authenticated_client, app, user, ghs_wallet, usd_wallet, food_category):
+    with app.app_context():
+        add_exchange_rate('USD', 'GHS', 15.0)
+
+        local_expense = Expense(
+            user_id=user.id,
+            amount=100.0,
+            original_amount=100.0,
+            original_currency='GHS',
+            description='Lunch',
+            transaction_type='expense',
+            category_id=food_category.id,
+            wallet_id=ghs_wallet.id,
+            date=datetime(2026, 5, 7)
+        )
+        foreign_expense = Expense(
+            user_id=user.id,
+            amount=10.0,
+            original_amount=10.0,
+            original_currency='USD',
+            description='Hosting',
+            transaction_type='expense',
+            category_id=food_category.id,
+            wallet_id=usd_wallet.id,
+            date=datetime(2026, 5, 8)
+        )
+        db.session.add_all([local_expense, foreign_expense])
+        db.session.commit()
+
+        response = authenticated_client.get('/transactions')
+
+        assert response.status_code == 200
+        assert b'Total:' in response.data
+        assert b'GHS 250.00' in response.data
+        assert b'Filtered total shown in GHS equivalent.' in response.data
+
+
+def test_transactions_ajax_returns_filtered_total(authenticated_client, app, user, ghs_wallet, usd_wallet, food_category):
+    with app.app_context():
+        add_exchange_rate('USD', 'GHS', 15.0)
+
+        lunch = Expense(
+            user_id=user.id,
+            amount=100.0,
+            original_amount=100.0,
+            original_currency='GHS',
+            description='Lunch',
+            transaction_type='expense',
+            category_id=food_category.id,
+            wallet_id=ghs_wallet.id,
+            date=datetime(2026, 5, 7)
+        )
+        hosting = Expense(
+            user_id=user.id,
+            amount=10.0,
+            original_amount=10.0,
+            original_currency='USD',
+            description='Hosting',
+            transaction_type='expense',
+            category_id=food_category.id,
+            wallet_id=usd_wallet.id,
+            date=datetime(2026, 5, 8)
+        )
+        db.session.add_all([lunch, hosting])
+        db.session.commit()
+
+        response = authenticated_client.get('/transactions?search=Lunch&ajax=1')
+
+        assert response.status_code == 200
+        data = response.get_json()
+        assert data['count'] == 1
+        assert data['total_currency'] == 'GHS'
+        assert data['total_display'] == 'GHS 100.00'
+        assert 'Lunch' in data['html']

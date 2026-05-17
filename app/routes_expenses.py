@@ -5,13 +5,54 @@ from .models import Expense, Category, Wallet
 from .utils import get_exchange_rate
 from .currencies import CURRENCIES
 from datetime import datetime, timedelta
-from sqlalchemy import func, or_
+from sqlalchemy import or_
+from sqlalchemy.orm import joinedload
 
 
 def _normalize_currency(code, fallback='GHS'):
     fallback_currency = (fallback or 'GHS').upper().strip()[:10] or 'GHS'
     normalized_currency = (code or fallback_currency).upper().strip()[:10]
     return normalized_currency or fallback_currency
+
+
+def _build_currency_converter(target_currency='GHS'):
+    normalized_target = _normalize_currency(target_currency)
+    rate_cache = {}
+
+    def convert_amount(amount, from_currency):
+        numeric_amount = float(amount or 0)
+        normalized_source = _normalize_currency(from_currency, fallback=normalized_target)
+        if normalized_source == normalized_target:
+            return numeric_amount
+
+        cache_key = (normalized_source, normalized_target)
+        if cache_key not in rate_cache:
+            rate_cache[cache_key] = get_exchange_rate(normalized_source, normalized_target)
+
+        return numeric_amount * rate_cache[cache_key]
+
+    return convert_amount
+
+
+def _expense_amount_in_currency(expense, convert_amount, target_currency='GHS'):
+    normalized_target = _normalize_currency(target_currency)
+    wallet_currency = _normalize_currency(expense.wallet.currency if expense.wallet else None, fallback='GHS')
+    original_currency = _normalize_currency(expense.original_currency, fallback=wallet_currency)
+    stored_amount = float(expense.amount or 0)
+    original_amount = float(expense.original_amount) if expense.original_amount is not None else None
+
+    # Trust same-currency stored amounts unless the record still looks like a
+    # legacy foreign-currency entry that was saved before conversion support.
+    if wallet_currency == normalized_target:
+        if original_amount is not None and original_currency != normalized_target and abs(stored_amount - original_amount) < 0.01:
+            return convert_amount(original_amount, original_currency)
+        return stored_amount
+
+    return convert_amount(stored_amount, wallet_currency)
+
+
+def _format_currency_amount(amount, currency):
+    return f"{_normalize_currency(currency)} {float(amount or 0):,.2f}"
 
 
 def register_routes(main):
@@ -371,19 +412,37 @@ def register_routes(main):
             # Default fallback
             query = query.order_by(Expense.date.desc())
 
+        query = query.options(
+            joinedload(Expense.wallet),
+            joinedload(Expense.category)
+        )
         expenses = query.all()
         categories = Category.query.filter_by(user_id=current_user.id).all()
         wallets = Wallet.query.filter_by(user_id=current_user.id).all()
+        total_currency = _normalize_currency(current_user.default_currency, fallback='GHS')
+        convert_amount = _build_currency_converter(total_currency)
+        filtered_total = sum(
+            _expense_amount_in_currency(expense, convert_amount, total_currency)
+            for expense in expenses
+        )
+        filtered_total_display = _format_currency_amount(filtered_total, total_currency)
 
         # AJAX live search: return JSON with rendered partial
         if request.args.get('ajax') == '1':
             html = render_template('_partials/expense_rows.html', expenses=expenses)
-            return jsonify({'html': html, 'count': len(expenses)})
+            return jsonify({
+                'html': html,
+                'count': len(expenses),
+                'total_display': filtered_total_display,
+                'total_currency': total_currency
+            })
 
         return render_template('all_expenses.html',
                              expenses=expenses,
                              categories=categories,
                              wallets=wallets,
+                             filtered_total_display=filtered_total_display,
+                             filtered_total_currency=total_currency,
                              filters={
                                  'search': search_query,
                                  'category': category_filter,

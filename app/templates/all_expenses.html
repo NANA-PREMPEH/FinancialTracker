@@ -93,8 +93,14 @@
 <div class="bg-surface rounded-2xl p-6 border border-border shadow-sm">
     <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
         <h2 class="font-heading font-bold text-xl text-text m-0">Transaction History</h2>
-        <span class="text-xs font-medium bg-surface-active px-3 py-1 rounded-full text-text-secondary border border-border shadow-sm" id="resultCount">{{ expenses|length }} transaction(s)</span>
+        <div class="flex flex-wrap items-center gap-2">
+            <span class="text-xs font-medium bg-surface-active px-3 py-1 rounded-full text-text-secondary border border-border shadow-sm" id="resultCount">{{ expenses|length }} transaction(s)</span>
+            <span class="text-xs font-medium bg-surface-active px-3 py-1 rounded-full text-text-secondary border border-border shadow-sm">
+                Total: <span id="filteredTotal">{{ filtered_total_display }}</span>
+            </span>
+        </div>
     </div>
+    <p class="text-xs text-text-muted -mt-3 mb-6">Filtered total shown in {{ filtered_total_currency }} equivalent.</p>
 
     {% if expenses %}
         <div class="overflow-x-auto">
