@@ -29,7 +29,7 @@ A comprehensive personal finance management application inspired by Spendee, bui
 ## 🚀 Quick Start
 
 ### Prerequisites
-- Python 3.12.4 or higher
+- Python 3.12.4 or higher.
 - pip (Python package installer)
 
 ### Installation
