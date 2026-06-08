@@ -14,7 +14,7 @@
              <button onclick="showDeleteProjectDialog()" class="inline-flex items-center justify-center gap-2 px-6 py-3 bg-danger/10 border border-danger/20 text-danger font-black rounded-2xl hover:bg-danger/20 transition-all active:scale-95 shadow-sm">
                 <i data-lucide="trash-2" class="w-5 h-5"></i> Delete
             </button>
-            <a href="{{ url_for('main.project_detail', id=project.id) }}" class="inline-flex items-center justify-center gap-2 px-6 py-3 bg-surface/40 backdrop-blur-xl border border-white/10 text-text font-black rounded-2xl hover:bg-surface transition-all active:scale-95 shadow-sm">
+            <a href="{{ url_for('main.project_details', id=project.id) }}" class="inline-flex items-center justify-center gap-2 px-6 py-3 bg-surface/40 backdrop-blur-xl border border-white/10 text-text font-black rounded-2xl hover:bg-surface transition-all active:scale-95 shadow-sm">
                 <i data-lucide="arrow-left" class="w-5 h-5"></i> Back
             </a>
         </div>

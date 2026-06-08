@@ -10,7 +10,7 @@
             <h1 class="text-4xl font-black font-heading text-text m-0 tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-primary to-purple-500 italic uppercase">Modify Item</h1>
             <p class="text-text-muted mt-2 font-medium">Updating item for project: <span class="text-text font-black">"{{ project.name }}"</span></p>
         </div>
-        <a href="{{ url_for('main.project_detail', id=project.id) }}" class="inline-flex items-center justify-center gap-2 px-6 py-3 bg-surface/40 backdrop-blur-xl border border-white/10 text-text font-black rounded-2xl hover:bg-surface transition-all active:scale-95 shadow-sm">
+        <a href="{{ url_for('main.project_details', id=project.id) }}" class="inline-flex items-center justify-center gap-2 px-6 py-3 bg-surface/40 backdrop-blur-xl border border-white/10 text-text font-black rounded-2xl hover:bg-surface transition-all active:scale-95 shadow-sm">
             <i data-lucide="arrow-left" class="w-5 h-5"></i> Back to Details
         </a>
     </div>
@@ -31,10 +31,10 @@
                 <!-- Cost -->
                 <div class="space-y-3">
                     <label for="cost" class="block text-[10px] font-black text-text-muted uppercase tracking-widest">Total Amount ({{ current_user.default_currency }})</label>
-                    <div class="relative">
-                        <span class="absolute left-6 top-1/2 -translate-y-1/2 text-text-muted font-black">{{ current_user.default_currency }}</span>
+                    <div class="flex items-center w-full h-14 px-6 bg-surface/30 border border-white/10 rounded-2xl focus-within:border-primary focus-within:ring-1 focus-within:ring-primary transition-all shadow-sm">
+                        <span class="text-text-muted font-black mr-3 shrink-0">{{ current_user.default_currency }}</span>
                         <input type="number" id="cost" name="cost" step="0.01" min="0" value="{{ "%.2f"|format(item.cost) }}" required
-                            class="w-full h-14 pl-14 pr-6 bg-surface/30 border border-white/10 rounded-2xl text-text text-lg font-black focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all shadow-sm">
+                            class="flex-1 w-full bg-transparent text-text text-lg font-black focus:outline-none appearance-none min-w-0">
                     </div>
                 </div>
 
@@ -44,13 +44,13 @@
                     <div class="flex p-1.5 bg-surface/30 border border-white/10 rounded-2xl h-14">
                         <label class="flex-1 relative cursor-pointer">
                             <input type="radio" name="item_type" value="expense" {% if item.item_type != 'income' %}checked{% endif %} class="peer sr-only">
-                            <div class="w-full h-full flex items-center justify-center rounded-xl peer-checked:bg-danger/10 peer-checked:text-danger text-text-muted font-black text-xs uppercase tracking-widest transition-all">
+                            <div class="w-full h-full flex items-center justify-center rounded-xl peer-checked:bg-red-500/20 peer-checked:text-red-500 text-text-muted font-black text-xs uppercase tracking-widest transition-all">
                                 <i data-lucide="minus-circle" class="w-4 h-4 mr-2"></i> Expense
                             </div>
                         </label>
                         <label class="flex-1 relative cursor-pointer">
                             <input type="radio" name="item_type" value="income" {% if item.item_type == 'income' %}checked{% endif %} class="peer sr-only">
-                            <div class="w-full h-full flex items-center justify-center rounded-xl peer-checked:bg-success/10 peer-checked:text-success text-text-muted font-black text-xs uppercase tracking-widest transition-all">
+                            <div class="w-full h-full flex items-center justify-center rounded-xl peer-checked:bg-green-500/20 peer-checked:text-green-500 text-text-muted font-black text-xs uppercase tracking-widest transition-all">
                                 <i data-lucide="plus-circle" class="w-4 h-4 mr-2"></i> Income
                             </div>
                         </label>
