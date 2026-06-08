@@ -6,6 +6,9 @@
         {% if expense.transaction_type == 'income' and expense.income_source %}
             <div class="mt-1 text-xs text-text-muted">Source: {{ expense.income_source }}</div>
         {% endif %}
+        {% if expense.project_type %}
+            <div class="mt-1 text-xs text-text-muted">Project Type: {{ expense.project_type }}</div>
+        {% endif %}
         {% if expense.tags %}
             <div class="mt-1 flex flex-wrap gap-1">
                 {% for tag in expense.tags.split(',') %}

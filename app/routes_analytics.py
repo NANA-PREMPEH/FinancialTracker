@@ -2,6 +2,7 @@ from flask import render_template, request, redirect, url_for, flash, send_file,
 from flask_login import login_required, current_user
 from . import db
 from .models import Expense, Category, FinancialSummary, ProjectItem, ProjectItemPayment, DebtPayment, DebtorPayment, ContractPayment
+from .project_expenses import get_project_category_ids
 from .utils import get_exchange_rate
 from datetime import datetime, timedelta
 from dateutil.relativedelta import relativedelta
@@ -90,6 +91,20 @@ def register_routes(main):
 
         debt_lent_cat = Category.query.filter_by(name='Money Lent', user_id=current_user.id).first()
         debt_lent_id = debt_lent_cat.id if debt_lent_cat else -1
+        project_category_ids = get_project_category_ids(current_user.id)
+
+        def _sum_project_expenses_in_ghs(start_date, end_date):
+            if not project_category_ids:
+                return 0
+
+            return _sum_live_expenses_in_ghs(
+                convert_to_ghs,
+                Expense.transaction_type == 'expense',
+                Expense.category_id.in_(project_category_ids),
+                Expense.date >= start_date,
+                Expense.date < end_date,
+                ~transfer_filter
+            )
 
         category_totals = {}
         category_expenses = _load_live_expenses(
@@ -141,6 +156,7 @@ def register_routes(main):
                 # Usually summaries are gross, let's keep it simple or check if user has m_lent in summary.
                 # (Models show they are separate: actual_expense is there too but maybe not filled).
                 m_lent = 0
+                m_project = 0
                 m_extra_debt_exp = 0
                 m_extra_debtor_inc = 0
                 m_extra_contract_inc = 0
@@ -169,6 +185,7 @@ def register_routes(main):
                     Expense.date < month_end,
                     or_(Expense.category_id == debt_lent_id, Expense.tags.ilike('%debt_lent%'))
                 )
+                m_project = _sum_project_expenses_in_ghs(month_start, month_end)
 
                 m_extra_debt_exp = db.session.query(func.sum(DebtPayment.amount)).filter(
                     DebtPayment.user_id == current_user.id,
@@ -194,7 +211,7 @@ def register_routes(main):
             monthly_data.append({
                 'month': month_start.strftime('%b'),
                 'expense': expense_total,
-                'actual_expense': expense_total - m_lent - m_extra_debt_exp,
+                'actual_expense': expense_total - m_lent - m_extra_debt_exp - m_project,
                 'income': income_total,
                 'actual_income': income_total - m_extra_debtor_inc - m_extra_contract_inc
             })
@@ -221,6 +238,7 @@ def register_routes(main):
                 expense_total = hist_summary.total_expense
                 income_total = hist_summary.total_income
                 m_lent = 0
+                m_project = 0
                 y_extra_debt_exp = 0
                 y_extra_debtor_inc = 0
                 y_extra_contract_inc = 0
@@ -248,6 +266,7 @@ def register_routes(main):
                     Expense.date < month_end,
                     or_(Expense.category_id == debt_lent_id, Expense.tags.ilike('%debt_lent%'))
                 )
+                m_project = _sum_project_expenses_in_ghs(month_start, month_end)
 
                 # Extra payments for this month (Yearly Trend)
                 y_extra_debt_exp = db.session.query(func.sum(DebtPayment.amount)).filter(
@@ -274,7 +293,7 @@ def register_routes(main):
             yearly_data.append({
                 'month': month_start.strftime('%b %Y'),
                 'expense': expense_total,
-                'actual_expense': expense_total - m_lent - y_extra_debt_exp,
+                'actual_expense': expense_total - m_lent - y_extra_debt_exp - m_project,
                 'income': income_total,
                 'actual_income': income_total - y_extra_debtor_inc - y_extra_contract_inc
             })
@@ -293,6 +312,7 @@ def register_routes(main):
             y_expense = 0
             y_income = 0
             y_lent = 0
+            y_project = 0
             y_debt_payments = 0
             y_recovered = 0
 
@@ -370,13 +390,14 @@ def register_routes(main):
                         y_expense += (m_live_exp + m_extra_d_exp)
                         y_income += (m_live_inc + m_extra_dr_inc + m_extra_c_inc)
                         y_lent += m_live_lent
+                        y_project += _sum_project_expenses_in_ghs(m_start, m_end)
                         y_debt_payments += m_extra_d_exp
                         y_recovered += (m_extra_dr_inc + m_extra_c_inc)
 
             annual_data.append({
                 'year': year,
                 'expense': y_expense,
-                'actual_expense': y_expense - y_lent - y_debt_payments,
+                'actual_expense': y_expense - y_lent - y_project - y_debt_payments,
                 'income': y_income,
                 'actual_income': y_income - y_recovered
             })

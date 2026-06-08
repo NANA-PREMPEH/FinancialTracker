@@ -2,6 +2,7 @@ from flask import Blueprint, render_template, request, redirect, url_for, flash
 from flask_login import login_required, current_user
 from . import db
 from .models import CashFlowProjection, CashFlowAlert, Expense, ProjectItem, ProjectItemPayment, DebtPayment, DebtorPayment, ContractPayment, Category, FinancialSummary
+from .project_expenses import get_project_category_ids
 from datetime import datetime, timedelta
 from sqlalchemy import func, or_
 import calendar as cal_module
@@ -42,6 +43,7 @@ def cash_flow():
     )
     if transfer_id != -1:
         transfer_filter = or_(transfer_filter, Expense.category_id == transfer_id)
+    project_category_ids = get_project_category_ids(current_user.id)
 
     for y, m in months_list:
         month_start = datetime(y, m, 1)
@@ -94,6 +96,15 @@ def cash_flow():
             ).scalar() or 0
 
             actual_expenses += m_extra_debt_exp
+            if project_category_ids:
+                actual_expenses -= db.session.query(func.sum(Expense.amount)).filter(
+                    Expense.user_id == current_user.id,
+                    Expense.transaction_type == 'expense',
+                    Expense.category_id.in_(project_category_ids),
+                    Expense.date >= month_start,
+                    Expense.date < month_end,
+                    ~transfer_filter
+                ).scalar() or 0
 
 
         # Find matching projection

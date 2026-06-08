@@ -98,12 +98,12 @@ class Expense(db.Model):
     transaction_type = db.Column(db.String(20), default='expense')
     original_amount = db.Column(db.Float, nullable=True)
     original_currency = db.Column(db.String(10), nullable=True)
+    project_type = db.Column(db.String(50), nullable=True)
 
     user = db.relationship('User', backref=db.backref('_user_expenses', cascade='all, delete-orphan'), lazy=True)
 
     def __repr__(self):
         return f'<Expense {self.amount} - {self.description}>'
-
 class Budget(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)

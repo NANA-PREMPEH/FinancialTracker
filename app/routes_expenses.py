@@ -2,6 +2,11 @@ from flask import render_template, request, redirect, url_for, flash, jsonify
 from flask_login import login_required, current_user
 from . import db
 from .models import Expense, Category, Wallet
+from .project_expenses import (
+    PROJECT_TYPE_OPTIONS,
+    is_project_category,
+    normalize_project_type,
+)
 from .utils import get_exchange_rate
 from .currencies import CURRENCIES
 from datetime import datetime, timedelta
@@ -67,6 +72,7 @@ def register_routes(main):
             description = request.form.get('description')
             category_id_str = request.form.get('category')
             category_id = int(category_id_str) if category_id_str else Category.query.filter_by(user_id=current_user.id).first().id
+            category = Category.query.filter_by(id=category_id, user_id=current_user.id).first_or_404()
             wallet_id_str = request.form.get('wallet')
             if not wallet_id_str:
                 flash('Please select a wallet!', 'error')
@@ -198,6 +204,13 @@ def register_routes(main):
                 flash(f'Transfer successful! ({input_amount} {currency})', 'success')
 
             else:
+                project_type = None
+                if is_project_category(category):
+                    project_type = normalize_project_type(request.form.get('project_type'))
+                    if not project_type:
+                        flash('Please select a project type for this project transaction.', 'error')
+                        return redirect(url_for('main.add_expense'))
+
                 expense = Expense(
                     user_id=current_user.id,
                     amount=converted_amount,
@@ -208,6 +221,7 @@ def register_routes(main):
                     notes=notes,
                     tags=tags,
                     income_source=income_source,
+                    project_type=project_type,
                     receipt_path=receipt_path,
                     transaction_type=transaction_type,
                     original_amount=input_amount,
@@ -235,6 +249,7 @@ def register_routes(main):
             categories=categories,
             wallets=wallets,
             currencies=CURRENCIES,
+            project_type_options=PROJECT_TYPE_OPTIONS,
             now_date=datetime.utcnow().strftime('%Y-%m-%d')
         )
 
@@ -251,18 +266,27 @@ def register_routes(main):
             old_wallet_id = expense.wallet_id
             wallet_id = int(request.form.get('wallet'))
             input_amount = float(request.form.get('amount'))
+            category_id = int(request.form.get('category'))
+            category = Category.query.filter_by(id=category_id, user_id=current_user.id).first_or_404()
             transaction_type = request.form.get('transaction_type', 'expense')
             income_source = (request.form.get('income_source') or '').strip() or None
             currency = _normalize_currency(
                 request.form.get('currency'),
                 fallback=expense.original_currency or (expense.wallet.currency if expense.wallet else 'GHS')
             )
+            project_type = None
 
             if transaction_type != 'income':
                 income_source = None
             elif not income_source:
                 flash('Please provide the source of income.', 'error')
                 return redirect(url_for('main.edit_expense', id=id))
+
+            if is_project_category(category):
+                project_type = normalize_project_type(request.form.get('project_type'))
+                if not project_type:
+                    flash('Please select a project type for this project transaction.', 'error')
+                    return redirect(url_for('main.edit_expense', id=id))
 
             new_wallet = Wallet.query.filter_by(id=wallet_id, user_id=current_user.id).first_or_404()
             wallet_currency = _normalize_currency(new_wallet.currency, fallback='GHS')
@@ -275,11 +299,12 @@ def register_routes(main):
             expense.original_amount = input_amount
             expense.original_currency = currency
             expense.description = request.form.get('description')
-            expense.category_id = int(request.form.get('category'))
+            expense.category_id = category_id
             expense.wallet_id = wallet_id
             expense.notes = request.form.get('notes', '')
             expense.tags = request.form.get('tags', '')
             expense.income_source = income_source
+            expense.project_type = project_type
             expense.transaction_type = transaction_type
             date_str = request.form.get('date')
 
@@ -318,7 +343,14 @@ def register_routes(main):
             flash('Transaction updated successfully!', 'success')
             return redirect(url_for('main.all_expenses') + f'#expense-{id}')
 
-        return render_template('edit_expense.html', expense=expense, categories=categories, wallets=wallets, currencies=CURRENCIES)
+        return render_template(
+            'edit_expense.html',
+            expense=expense,
+            categories=categories,
+            wallets=wallets,
+            currencies=CURRENCIES,
+            project_type_options=PROJECT_TYPE_OPTIONS
+        )
 
     @main.route('/delete/<int:id>', methods=['POST'])
     @login_required
@@ -355,6 +387,7 @@ def register_routes(main):
             query = query.filter(or_(
                 Expense.description.contains(search_query),
                 Expense.income_source.contains(search_query),
+                Expense.project_type.contains(search_query),
                 Expense.notes.contains(search_query),
                 Expense.tags.contains(search_query)
             ))

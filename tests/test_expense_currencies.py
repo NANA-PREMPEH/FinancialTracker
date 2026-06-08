@@ -72,6 +72,19 @@ def food_category(app, user):
 
 
 @pytest.fixture
+def project_category(app, user):
+    with app.app_context():
+        category = Category(
+            user_id=user.id,
+            name='Project',
+            icon='P'
+        )
+        db.session.add(category)
+        db.session.commit()
+        return category
+
+
+@pytest.fixture
 def usd_wallet(app, user):
     with app.app_context():
         wallet = Wallet(
@@ -175,6 +188,97 @@ def test_add_income_persists_source_of_income(authenticated_client, app, ghs_wal
 
         history = authenticated_client.get('/expenses')
         assert b'Source: Salary' in history.data
+
+
+def test_add_project_transaction_requires_project_type(authenticated_client, app, ghs_wallet, project_category):
+    with app.app_context():
+        response = authenticated_client.post(
+            '/add',
+            data={
+                'description': 'Warehouse fit-out',
+                'amount': '800',
+                'category': str(project_category.id),
+                'wallet': str(ghs_wallet.id),
+                'transaction_type': 'expense',
+                'currency': 'GHS',
+                'date': '2026-05-07'
+            },
+            follow_redirects=True
+        )
+
+        assert response.status_code == 200
+        assert b'Please select a project type for this project transaction.' in response.data
+        assert Expense.query.filter_by(description='Warehouse fit-out').count() == 0
+
+
+def test_add_project_transaction_persists_project_type(authenticated_client, app, ghs_wallet, project_category):
+    with app.app_context():
+        response = authenticated_client.post(
+            '/add',
+            data={
+                'description': 'Warehouse fit-out',
+                'amount': '800',
+                'category': str(project_category.id),
+                'project_type': 'Business',
+                'wallet': str(ghs_wallet.id),
+                'transaction_type': 'expense',
+                'currency': 'GHS',
+                'date': '2026-05-07'
+            },
+            follow_redirects=True
+        )
+
+        assert response.status_code == 200
+
+        expense = Expense.query.filter_by(description='Warehouse fit-out').one()
+        assert expense.project_type == 'Business'
+
+        history = authenticated_client.get('/expenses?search=Warehouse')
+        assert b'Project Type: Business' in history.data
+
+
+def test_dashboard_actual_expenses_excludes_project_category(
+    authenticated_client,
+    app,
+    ghs_wallet,
+    food_category,
+    project_category
+):
+    with app.app_context():
+        authenticated_client.post(
+            '/add',
+            data={
+                'description': 'Groceries',
+                'amount': '123',
+                'category': str(food_category.id),
+                'wallet': str(ghs_wallet.id),
+                'transaction_type': 'expense',
+                'currency': 'GHS',
+                'date': '2026-05-07'
+            },
+            follow_redirects=True
+        )
+        authenticated_client.post(
+            '/add',
+            data={
+                'description': 'Warehouse fit-out',
+                'amount': '456',
+                'category': str(project_category.id),
+                'project_type': 'Business',
+                'wallet': str(ghs_wallet.id),
+                'transaction_type': 'expense',
+                'currency': 'GHS',
+                'date': '2026-05-07'
+            },
+            follow_redirects=True
+        )
+
+        dashboard = authenticated_client.get('/')
+        html = dashboard.data.decode('utf-8')
+
+        assert dashboard.status_code == 200
+        assert 'data-amount="GHS 579.00"' in html
+        assert 'data-amount="GHS 123.00"' in html
 
 
 def test_edit_expense_supports_currency_selection_and_conversion(authenticated_client, app, user, ghs_wallet, food_category):
