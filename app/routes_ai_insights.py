@@ -2,7 +2,6 @@ from flask import Blueprint, render_template, jsonify
 from flask_login import login_required, current_user
 from . import db
 from .models import Expense, Category, Budget, Creditor, Goal, Wallet
-from .project_expenses import get_project_category_ids
 from .utils import to_float
 from datetime import datetime, timedelta
 from sqlalchemy import func, extract, or_
@@ -439,7 +438,6 @@ def ai_insights():
         Expense.date >= month_ago,
         ~transfer_filter
     ).scalar() or 0
-    project_category_ids = get_project_category_ids(current_user.id)
 
     # Actuals Calculations
     # 1. Money Lent (Expense to exclude)
@@ -466,20 +464,11 @@ def ai_insights():
         ContractPayment.user_id == current_user.id,
         ContractPayment.payment_date >= month_ago
     ).scalar() or 0
-    project_expenses = 0
-    if project_category_ids:
-        project_expenses = db.session.query(func.sum(Expense.amount)).filter(
-            Expense.user_id == current_user.id,
-            Expense.transaction_type == 'expense',
-            Expense.category_id.in_(project_category_ids),
-            Expense.date >= month_ago,
-            ~transfer_filter
-        ).scalar() or 0
 
     # Debt collections are now transaction_type='debt_recovery', not 'income',
     # so they are automatically excluded from monthly_income. No manual subtraction needed.
     actual_income = monthly_income
-    actual_expenses = monthly_expenses + extra_debt_expense - m_lent - project_expenses
+    actual_expenses = monthly_expenses + extra_debt_expense - m_lent
     actual_net_savings = actual_income - actual_expenses
     actual_savings_rate = (actual_net_savings / actual_income * 100) if actual_income > 0 else 0
 

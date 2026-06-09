@@ -4,7 +4,6 @@ from . import db
 from .models import (Expense, Category, Wallet, Budget, FinancialSummary,
                      Creditor, WalletShare, ProjectItem, ProjectItemPayment,
                      DebtPayment, DebtorPayment, ContractPayment)
-from .project_expenses import get_project_category_ids
 from .utils import get_exchange_rate
 from datetime import datetime, timedelta
 from sqlalchemy import func, or_
@@ -65,24 +64,6 @@ def dashboard():
     if transfer_id != -1:
         transfer_filters.append(Expense.category_id == transfer_id)
     transfer_filter = or_(*transfer_filters)
-    project_category_ids = get_project_category_ids(current_user.id)
-
-    def sum_project_expenses(start_date, end_date=None):
-        if not project_category_ids:
-            return 0
-
-        query = db.session.query(func.sum(Expense.amount)).filter(
-            Expense.user_id == current_user.id,
-            Expense.transaction_type == 'expense',
-            Expense.category_id.in_(project_category_ids),
-            ~transfer_filter
-        )
-        if start_date is not None:
-            query = query.filter(Expense.date >= start_date)
-        if end_date is not None:
-            query = query.filter(Expense.date < end_date)
-
-        return query.scalar() or 0
 
     recent_expenses = Expense.query.filter(
         Expense.user_id == current_user.id,
@@ -167,9 +148,8 @@ def dashboard():
         or_(Expense.category_id == debt_lent_id, Expense.tags.ilike('%debt_lent%')),
         ~transfer_filter
     ).scalar() or 0
-    total_project_expenses = sum_project_expenses(dashboard_start_date)
 
-    actual_total_expenses = total_expenses - total_money_lent - total_project_expenses
+    actual_total_expenses = total_expenses - total_money_lent
     # Debt collections are now transaction_type='debt_recovery', not 'income',
     # so they are automatically excluded from total_income. No manual subtraction needed.
     actual_total_income = total_income - extra_debtor_income - extra_contract_income
@@ -252,8 +232,7 @@ def dashboard():
         or_(Expense.category_id == debt_lent_id, Expense.tags.ilike('%debt_lent%')),
         ~transfer_filter
     ).scalar() or 0
-    yearly_project_expenses = sum_project_expenses(year_start)
-    actual_yearly_expenses = yearly_expenses - yearly_money_lent - yearly_project_expenses
+    actual_yearly_expenses = yearly_expenses - yearly_money_lent
 
     # Budget alerts
     budgets = Budget.query.filter_by(user_id=current_user.id, is_active=True).all()
@@ -299,9 +278,8 @@ def dashboard():
         Expense.date >= month_start,
         or_(Expense.category_id == debt_lent_id, Expense.tags.ilike('%debt_lent%'))
     ).scalar() or 0
-    monthly_project_expenses = sum_project_expenses(month_start)
 
-    actual_monthly_trend = monthly_expenses - monthly_lent - monthly_project_expenses
+    actual_monthly_trend = monthly_expenses - monthly_lent
 
     # Category spending data for doughnut chart (current month)
     category_spending = db.session.query(
@@ -365,12 +343,11 @@ def dashboard():
             Expense.date < m_end,
             or_(Expense.category_id == debt_lent_id, Expense.tags.ilike('%debt_lent%'))
         ).scalar() or 0
-        m_project = sum_project_expenses(m_start, m_end)
 
         monthly_trend.append({
             'label': m_start.strftime('%b'),
             'amount': float(m_total),
-            'actual_amount': float(m_total) - float(m_lent) - float(m_project)
+            'actual_amount': float(m_total) - float(m_lent)
         })
 
     trend_labels = [m['label'] for m in monthly_trend]

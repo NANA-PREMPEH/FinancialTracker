@@ -237,7 +237,7 @@ def test_add_project_transaction_persists_project_type(authenticated_client, app
         assert b'Project Type: Business' in history.data
 
 
-def test_dashboard_actual_expenses_excludes_project_category(
+def test_dashboard_actual_expenses_includes_project_category(
     authenticated_client,
     app,
     ghs_wallet,
@@ -278,7 +278,7 @@ def test_dashboard_actual_expenses_excludes_project_category(
 
         assert dashboard.status_code == 200
         assert 'data-amount="GHS 579.00"' in html
-        assert 'data-amount="GHS 123.00"' in html
+        assert html.count('data-amount="GHS 579.00"') >= 2
 
 
 def test_edit_expense_supports_currency_selection_and_conversion(authenticated_client, app, user, ghs_wallet, food_category):
