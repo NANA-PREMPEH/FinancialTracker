@@ -231,7 +231,7 @@
                                     </div>
                                     <div class="divide-y divide-black/5">
                                         {% if item.payments %}
-                                            {% for payment in item.payments|sort(attribute='payment_date', reverse=True) %}
+                                            {% for payment in item.sorted_payments %}
                                             <div class="p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 hover:bg-white/40 transition-all group/pay">
                                                 <div class="flex items-center gap-5 flex-1 min-w-0">
                                                     <label class="relative flex items-center group cursor-pointer shrink-0">

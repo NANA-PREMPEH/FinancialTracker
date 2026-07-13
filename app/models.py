@@ -219,6 +219,18 @@ class ProjectItem(db.Model):
         """Calculate total amount paid for this item"""
         return sum(payment.amount for payment in self.payments if payment.is_paid)
 
+    @property
+    def sorted_payments(self):
+        """Return payments newest-first without failing on missing payment dates."""
+        return sorted(
+            self.payments,
+            key=lambda payment: (
+                payment.payment_date is not None,
+                payment.payment_date or payment.created_date or datetime.min,
+            ),
+            reverse=True,
+        )
+
 class ProjectItemPayment(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)

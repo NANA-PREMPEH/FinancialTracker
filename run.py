@@ -2,13 +2,13 @@ import os
 from dotenv import load_dotenv
 load_dotenv()
 
-from app import create_app, db
+from app import create_app
+from app.db_bootstrap import bootstrap_database
 
 def init_db(app):
-    """Global database initialization (if any)."""
+    """Initialize an empty configured database with the current schema."""
     with app.app_context():
-        # Any truly global initialization can go here
-        pass
+        bootstrap_database()
 
 if __name__ == '__main__':
     app = create_app()
