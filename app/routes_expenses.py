@@ -8,6 +8,7 @@ from .project_expenses import (
     normalize_project_type,
 )
 from .utils import get_exchange_rate
+from .utils import apply_transaction_to_wallet
 from .currencies import CURRENCIES
 from datetime import datetime, timedelta
 from sqlalchemy import or_
@@ -174,7 +175,7 @@ def register_routes(main):
                     original_currency=currency
                 )
                 db.session.add(expense_out)
-                wallet.balance = float(wallet.balance) - converted_amount
+                apply_transaction_to_wallet(wallet, 'transfer_out', converted_amount)
 
                 # Create the deposit record (destination wallet)
                 to_converted_amount = input_amount
@@ -198,7 +199,7 @@ def register_routes(main):
                     original_currency=currency
                 )
                 db.session.add(expense_in)
-                to_wallet.balance = float(to_wallet.balance) + to_converted_amount
+                apply_transaction_to_wallet(to_wallet, 'transfer_in', to_converted_amount)
 
                 db.session.commit()
                 flash(f'Transfer successful! ({input_amount} {currency})', 'success')
@@ -230,10 +231,7 @@ def register_routes(main):
                 db.session.add(expense)
 
                 # Update wallet balance (using converted amount)
-                if transaction_type == 'expense':
-                    wallet.balance = float(wallet.balance) - converted_amount
-                elif transaction_type in ('income', 'liability', 'debt_recovery'):
-                    wallet.balance = float(wallet.balance) + converted_amount
+                apply_transaction_to_wallet(wallet, transaction_type, converted_amount)
 
                 db.session.commit()
                 flash(f'Transaction added successfully! ({input_amount} {currency})', 'success')
@@ -328,16 +326,10 @@ def register_routes(main):
             old_wallet = Wallet.query.filter_by(id=old_wallet_id, user_id=current_user.id).first_or_404()
 
             # Reverse old transaction
-            if old_type == 'expense':
-                old_wallet.balance = float(old_wallet.balance) + old_amount
-            elif old_type in ('income', 'liability', 'debt_recovery'):
-                old_wallet.balance = float(old_wallet.balance) - old_amount
+            apply_transaction_to_wallet(old_wallet, old_type, old_amount, reverse=True)
 
             # Apply new transaction
-            if expense.transaction_type == 'expense':
-                new_wallet.balance = float(new_wallet.balance) - converted_amount
-            elif expense.transaction_type in ('income', 'liability', 'debt_recovery'):
-                new_wallet.balance = float(new_wallet.balance) + converted_amount
+            apply_transaction_to_wallet(new_wallet, expense.transaction_type, converted_amount)
 
             db.session.commit()
             flash('Transaction updated successfully!', 'success')
@@ -359,10 +351,7 @@ def register_routes(main):
 
         # Update wallet balance
         wallet = Wallet.query.filter_by(id=expense.wallet_id, user_id=current_user.id).first_or_404()
-        if expense.transaction_type == 'expense':
-            wallet.balance = float(wallet.balance) + expense.amount
-        elif expense.transaction_type in ('income', 'liability', 'debt_recovery'):
-            wallet.balance = float(wallet.balance) - expense.amount
+        apply_transaction_to_wallet(wallet, expense.transaction_type, expense.amount, reverse=True)
 
         db.session.delete(expense)
         db.session.commit()

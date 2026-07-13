@@ -6,6 +6,10 @@ from .models import ExchangeRate, Wallet, Category
 import requests
 
 
+WALLET_OUTFLOW_TRANSACTION_TYPES = {'expense', 'transfer', 'transfer_out'}
+WALLET_INFLOW_TRANSACTION_TYPES = {'income', 'liability', 'debt_recovery', 'transfer_in'}
+
+
 def to_float(value, default=0.0):
     """Normalize DB numerics such as Decimal/None into a plain float."""
     if value is None:
@@ -16,6 +20,31 @@ def to_float(value, default=0.0):
         return float(value)
     except (TypeError, ValueError):
         return default
+
+
+def wallet_balance_delta(transaction_type, amount):
+    """Return the signed wallet delta for applying a transaction."""
+    normalized_type = (transaction_type or '').strip().lower()
+    numeric_amount = to_float(amount)
+
+    if normalized_type in WALLET_OUTFLOW_TRANSACTION_TYPES:
+        return -numeric_amount
+    if normalized_type in WALLET_INFLOW_TRANSACTION_TYPES:
+        return numeric_amount
+    return 0.0
+
+
+def apply_transaction_to_wallet(wallet, transaction_type, amount, reverse=False):
+    """Apply or reverse a transaction's wallet effect in place."""
+    if wallet is None:
+        return 0.0
+
+    delta = wallet_balance_delta(transaction_type, amount)
+    if reverse:
+        delta = -delta
+
+    wallet.balance = to_float(wallet.balance) + delta
+    return delta
 
 
 def get_exchange_rate(from_currency, to_currency='GHS'):

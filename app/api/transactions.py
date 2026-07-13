@@ -3,6 +3,7 @@ from . import api_bp, require_api_key, paginate_query
 from ..models import Expense, Category, Wallet
 from .. import db
 from datetime import datetime
+from ..utils import apply_transaction_to_wallet
 
 
 def serialize_transaction(t):
@@ -80,11 +81,7 @@ def create_transaction():
 
     # Update wallet balance
     wallet = Wallet.query.filter_by(id=t.wallet_id, user_id=g.api_user_id).first()
-    if wallet:
-        if t.transaction_type == 'income':
-            wallet.balance = float(wallet.balance) + t.amount
-        else:
-            wallet.balance = float(wallet.balance) - t.amount
+    apply_transaction_to_wallet(wallet, t.transaction_type, t.amount)
 
     db.session.commit()
     return jsonify({'data': serialize_transaction(t)}), 201
@@ -101,6 +98,10 @@ def update_transaction(id):
     if not data:
         return jsonify({'error': 'JSON body required'}), 400
 
+    old_amount = t.amount
+    old_type = t.transaction_type
+    old_wallet_id = t.wallet_id
+
     if 'description' in data:
         t.description = data['description']
     if 'amount' in data:
@@ -109,12 +110,22 @@ def update_transaction(id):
         t.transaction_type = data['transaction_type']
     if 'category_id' in data:
         t.category_id = int(data['category_id'])
+    if 'wallet_id' in data:
+        t.wallet_id = int(data['wallet_id'])
     if 'date' in data:
         t.date = datetime.fromisoformat(data['date'])
     if 'tags' in data:
         t.tags = data['tags']
     if 'notes' in data:
         t.notes = data['notes']
+
+    old_wallet = Wallet.query.filter_by(id=old_wallet_id, user_id=g.api_user_id).first()
+    new_wallet = Wallet.query.filter_by(id=t.wallet_id, user_id=g.api_user_id).first()
+    if not new_wallet:
+        return jsonify({'error': 'Wallet not found'}), 400
+
+    apply_transaction_to_wallet(old_wallet, old_type, old_amount, reverse=True)
+    apply_transaction_to_wallet(new_wallet, t.transaction_type, t.amount)
 
     db.session.commit()
     return jsonify({'data': serialize_transaction(t)})
@@ -129,11 +140,7 @@ def delete_transaction(id):
 
     # Reverse wallet balance
     wallet = Wallet.query.filter_by(id=t.wallet_id, user_id=g.api_user_id).first()
-    if wallet:
-        if t.transaction_type == 'income':
-            wallet.balance = float(wallet.balance) - t.amount
-        else:
-            wallet.balance = float(wallet.balance) + t.amount
+    apply_transaction_to_wallet(wallet, t.transaction_type, t.amount, reverse=True)
 
     db.session.delete(t)
     db.session.commit()
@@ -177,11 +184,7 @@ def bulk_create_transactions():
             
             # Update wallet balance
             wallet = Wallet.query.filter_by(id=t.wallet_id, user_id=g.api_user_id).first()
-            if wallet:
-                if t.transaction_type == 'income':
-                    wallet.balance = float(wallet.balance) + t.amount
-                else:
-                    wallet.balance = float(wallet.balance) - t.amount
+            apply_transaction_to_wallet(wallet, t.transaction_type, t.amount)
             
             db.session.add(t)
             created.append(t)
@@ -222,11 +225,7 @@ def bulk_delete_transactions():
     for t in transactions:
         # Reverse wallet balance
         wallet = Wallet.query.filter_by(id=t.wallet_id, user_id=g.api_user_id).first()
-        if wallet:
-            if t.transaction_type == 'income':
-                wallet.balance = float(wallet.balance) - t.amount
-            else:
-                wallet.balance = float(wallet.balance) + t.amount
+        apply_transaction_to_wallet(wallet, t.transaction_type, t.amount, reverse=True)
         
         db.session.delete(t)
         deleted_ids.append(t.id)
