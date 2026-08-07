@@ -1,0 +1,4 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "buildCommand": "FLASK_APP=index.py python -m flask db upgrade"
+}
