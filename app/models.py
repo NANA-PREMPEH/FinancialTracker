@@ -99,6 +99,9 @@ class Expense(db.Model):
     original_amount = db.Column(db.Float, nullable=True)
     original_currency = db.Column(db.String(10), nullable=True)
     project_type = db.Column(db.String(50), nullable=True)
+    # Creditor-originated receipts and payments are ordinary transactions too.
+    # Keep an explicit link so changing either record cannot leave the other stale.
+    creditor_id = db.Column(db.Integer, db.ForeignKey('creditor.id'), nullable=True)
 
     user = db.relationship('User', backref=db.backref('_user_expenses', cascade='all, delete-orphan'), lazy=True)
 
@@ -762,7 +765,9 @@ class DebtPayment(db.Model):
     date = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     notes = db.Column(db.String(200), nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    expense_id = db.Column(db.Integer, db.ForeignKey('expense.id'), nullable=True, unique=True)
     creditor = db.relationship('Creditor', backref=db.backref('payments', cascade='all, delete-orphan'), lazy=True)
+    expense = db.relationship('Expense', backref=db.backref('debt_payment', uselist=False), lazy=True)
 
     def __repr__(self):
         return f'<DebtPayment {self.amount}>'

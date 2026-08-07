@@ -3,7 +3,8 @@ from flask_login import login_required, current_user
 from . import db
 from .models import Expense, Category, Wallet, Creditor, DebtPayment
 from datetime import datetime
-from sqlalchemy import func
+from sqlalchemy import func, or_
+from .utils import apply_transaction_to_wallet
 
 
 def _safe_return_url(default_endpoint='main.creditors'):
@@ -15,6 +16,17 @@ def _safe_return_url(default_endpoint='main.creditors'):
 
 def _creditor_for_current_user_or_404(creditor_id):
     return Creditor.query.filter_by(id=creditor_id, user_id=current_user.id).first_or_404()
+
+
+def _creditor_transactions(creditor):
+    """Return only transactions that are explicitly tied to this creditor."""
+    return Expense.query.filter(
+        Expense.user_id == creditor.user_id,
+        or_(
+            Expense.creditor_id == creditor.id,
+            Expense.notes == f'Creditor ID: {creditor.id}',
+        )
+    ).all()
 
 
 def _parse_due_date(value):
@@ -222,6 +234,8 @@ def register_routes(main):
                 notes=notes
             )
             db.session.add(creditor)
+            # The transaction needs a durable reference to this new creditor.
+            db.session.flush()
 
             # Handle wallet balance update if a wallet was selected
             wallet_id = request.form.get('wallet_id')
@@ -243,13 +257,14 @@ def register_routes(main):
                         income_expense = Expense(
                             user_id=current_user.id,
                             amount=amount,
-                            description=f"Loan from {name}",
+                            description=description or f"Loan from {name}",
                             category_id=loan_cat.id,
                             wallet_id=wallet.id,
                             date=created_at,
                             transaction_type='liability',
                             tags='loan_received',
-                            notes=f"Creditor ID: {creditor.id}"
+                            notes=f"Creditor ID: {creditor.id}",
+                            creditor_id=creditor.id
                         )
                         db.session.add(income_expense)
                         flash(f'Added GHS {amount:.2f} to {wallet.name}.', 'success')
@@ -338,6 +353,26 @@ def register_routes(main):
         if new_created_at:
             creditor.created_at = new_created_at
 
+        # The optional "Receive in Wallet" action creates a liability transaction.
+        # Keep that transaction and its wallet balance in sync with the original
+        # borrowed amount rather than leaving a stale row on the transactions page.
+        for transaction in _creditor_transactions(creditor):
+            if not transaction.tags or 'loan_received' not in transaction.tags.split(','):
+                continue
+            previous_amount = transaction.amount
+            transaction.amount = original_amount
+            transaction.description = creditor.description or f"Loan from {creditor.name}"
+            transaction.transaction_type = 'liability'
+            transaction.notes = f"Creditor ID: {creditor.id}"
+            transaction.creditor_id = creditor.id
+            transaction.date = creditor.created_at
+            wallet = Wallet.query.filter_by(id=transaction.wallet_id, user_id=current_user.id).first()
+            if wallet:
+                # Loan receipts have always credited the wallet directly, even
+                # for legacy rows whose stored type was incorrectly "expense".
+                apply_transaction_to_wallet(wallet, 'liability', previous_amount, reverse=True)
+                apply_transaction_to_wallet(wallet, 'liability', transaction.amount)
+
         db.session.commit()
         flash('Debt updated successfully!', 'success')
         return redirect(_safe_return_url() + f'#creditor-{id}')
@@ -346,6 +381,13 @@ def register_routes(main):
     @login_required
     def delete_creditor(id):
         creditor = _creditor_for_current_user_or_404(id)
+        # Remove the linked transaction rows and reverse their wallet effects.
+        # Without this, the wallet and main transactions page keep ghost data.
+        for transaction in _creditor_transactions(creditor):
+            wallet = Wallet.query.filter_by(id=transaction.wallet_id, user_id=current_user.id).first()
+            if wallet:
+                apply_transaction_to_wallet(wallet, transaction.transaction_type, transaction.amount, reverse=True)
+            db.session.delete(transaction)
         db.session.delete(creditor)
         db.session.commit()
         flash('Debt removed successfully!', 'success')
@@ -391,7 +433,7 @@ def register_routes(main):
             flash('Payment amount cannot exceed remaining debt.', 'error')
             return redirect(_safe_return_url())
 
-        wallet.balance = float(wallet.balance) - amount
+        apply_transaction_to_wallet(wallet, 'expense', amount)
         creditor.amount = max(creditor.amount - amount, 0)
         if creditor.amount <= 0:
             creditor.status = 'paid_off'
@@ -410,7 +452,8 @@ def register_routes(main):
             wallet_id=wallet.id,
             date=payment_date,
             transaction_type='expense',
-            tags='debt_payment'
+            tags='debt_payment',
+            creditor_id=creditor.id
         )
 
         debt_payment = DebtPayment(
@@ -422,6 +465,8 @@ def register_routes(main):
         )
 
         db.session.add(expense)
+        db.session.flush()
+        debt_payment.expense_id = expense.id
         db.session.add(debt_payment)
         db.session.commit()
 

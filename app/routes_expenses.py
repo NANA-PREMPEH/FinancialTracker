@@ -1,7 +1,7 @@
 from flask import render_template, request, redirect, url_for, flash, jsonify
 from flask_login import login_required, current_user
 from . import db
-from .models import Expense, Category, Wallet
+from .models import Expense, Category, Wallet, DebtPayment
 from .project_expenses import (
     PROJECT_TYPE_OPTIONS,
     is_project_category,
@@ -352,6 +352,16 @@ def register_routes(main):
         # Update wallet balance
         wallet = Wallet.query.filter_by(id=expense.wallet_id, user_id=current_user.id).first_or_404()
         apply_transaction_to_wallet(wallet, expense.transaction_type, expense.amount, reverse=True)
+
+        # A creditor payment is represented by both an expense and a payment
+        # record.  Removing the expense must restore the amount owed as well.
+        debt_payment = DebtPayment.query.filter_by(expense_id=expense.id, user_id=current_user.id).first()
+        if debt_payment:
+            creditor = debt_payment.creditor
+            if creditor:
+                creditor.amount += debt_payment.amount
+                creditor.status = 'active'
+            db.session.delete(debt_payment)
 
         db.session.delete(expense)
         db.session.commit()

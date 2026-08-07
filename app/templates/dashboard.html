@@ -243,7 +243,7 @@
                                 <div class="flex items-center justify-end gap-1">
                                     {% if expense.transaction_type in ['expense', 'transfer_out'] %}
                                         <i data-lucide="arrow-down" class="w-4 h-4 text-danger-text"></i>
-                                    {% elif expense.transaction_type in ['income', 'transfer_in'] %}
+                                    {% elif expense.transaction_type in ['income', 'liability', 'transfer_in'] %}
                                         <i data-lucide="arrow-up" class="w-4 h-4 text-success-text"></i>
                                     {% elif expense.transaction_type == 'transfer' %}
                                         <i data-lucide="arrow-right-left" class="w-4 h-4 text-text-muted"></i>
