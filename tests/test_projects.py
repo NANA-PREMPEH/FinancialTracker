@@ -70,3 +70,5 @@ class TestProjectDetails:
             assert response.status_code == 200
             assert b'Paid installment' in response.data
             assert b'Pending installment' in response.data
+            assert b'href="/projects"' in response.data
+            assert b'Back to Projects' in response.data

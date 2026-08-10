@@ -39,6 +39,9 @@
             </div>
             
             <div class="flex flex-wrap items-center gap-4 shrink-0">
+                <a href="{{ url_for('main.projects') }}" class="inline-flex items-center justify-center gap-2 px-6 py-3 bg-surface/50 border border-white/10 text-text font-black rounded-xl hover:bg-surface hover:border-primary/50 transition-all active:scale-95 focus:outline-none focus:ring-2 focus:ring-primary/50 shadow-sm">
+                    <i data-lucide="arrow-left" class="w-5 h-5"></i> Back to Projects
+                </a>
                 <a href="{{ url_for('main.edit_project', id=project.id) }}" class="inline-flex items-center justify-center gap-2 px-6 py-3 bg-surface/50 border border-white/10 text-text font-black rounded-xl hover:bg-primary hover:text-white hover:border-primary transition-all active:scale-95 focus:outline-none focus:ring-2 focus:ring-primary/50 shadow-sm">
                     <i data-lucide="edit-3" class="w-5 h-5"></i> Edit Area
                 </a>
