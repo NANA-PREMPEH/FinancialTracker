@@ -37,6 +37,14 @@ class TestProjectDetails:
                 item_type='expense',
             )
             db.session.add(item)
+            income_item = ProjectItem(
+                user_id=user.id,
+                project_id=project.id,
+                item_name='Client payment',
+                cost=1500.0,
+                item_type='income',
+            )
+            db.session.add(income_item)
             db.session.commit()
 
             db.session.add_all([
@@ -72,3 +80,6 @@ class TestProjectDetails:
             assert b'Pending installment' in response.data
             assert b'href="/projects"' in response.data
             assert b'Back to Projects' in response.data
+            assert project.projected_profit == 500.0
+            assert b'Projected Profit' in response.data
+            assert b'500.00' in response.data

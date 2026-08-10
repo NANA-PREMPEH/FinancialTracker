@@ -191,6 +191,11 @@ class Project(db.Model):
         return sum(item.cost for item in self.items if getattr(item, 'item_type', 'expense') == 'income')
 
     @property
+    def projected_profit(self):
+        """Expected project profit based on planned income and expenses."""
+        return self.total_income - self.total_cost
+
+    @property
     def paid_expense(self):
         """Total Paid Expense (Completed)"""
         return sum(item.total_paid for item in self.items if getattr(item, 'item_type', 'expense') != 'income')

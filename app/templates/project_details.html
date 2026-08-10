@@ -70,12 +70,12 @@
             <p class="text-[10px] font-black text-primary/80 uppercase tracking-widest mb-2 flex items-center gap-1.5"><i data-lucide="trending-up" class="w-3 h-3"></i> Income</p>
             <p class="text-2xl font-black font-heading text-primary truncate" title="{{ current_user.default_currency }} {{ '{:,.2f}'.format(total_income) }}">{{ current_user.default_currency }} {{ "{:,.2f}".format(total_income) }}</p>
         </div>
-        <div class="bg-surface/40 backdrop-blur-xl rounded-2xl border border-white/10 p-5 shadow-xl flex flex-col justify-center relative overflow-hidden group transition-all hover:translate-y-[-4px] duration-300 delay-300">
-            <div class="absolute right-[-10px] bottom-[-10px] opacity-10 pointer-events-none group-hover:scale-125 transition-transform duration-500 text-primary">
-                <i data-lucide="sigma" class="w-20 h-20"></i>
+        <div class="{% if projected_profit >= 0 %}bg-success/10 border-success/20{% else %}bg-danger/10 border-danger/20{% endif %} backdrop-blur-xl rounded-2xl border p-5 shadow-xl flex flex-col justify-center relative overflow-hidden group transition-all hover:translate-y-[-4px] duration-300 delay-300">
+            <div class="absolute right-[-10px] bottom-[-10px] opacity-10 pointer-events-none group-hover:scale-125 transition-transform duration-500 {% if projected_profit >= 0 %}text-success{% else %}text-danger{% endif %}">
+                <i data-lucide="circle-dollar-sign" class="w-20 h-20"></i>
             </div>
-            <p class="text-[10px] font-black text-text-muted uppercase tracking-widest mb-2">Total Net cost</p>
-            <p class="text-2xl font-black font-heading text-text truncate group-hover:text-primary transition-colors" title="{{ current_user.default_currency }} {{ '{:,.2f}'.format(net_cost) }}">{{ current_user.default_currency }} {{ "{:,.2f}".format(net_cost) }}</p>
+            <p class="text-[10px] font-black {% if projected_profit >= 0 %}text-success/80{% else %}text-danger/80{% endif %} uppercase tracking-widest mb-2">Projected Profit</p>
+            <p class="text-2xl font-black font-heading {% if projected_profit >= 0 %}text-success{% else %}text-danger{% endif %} truncate" title="{{ current_user.default_currency }} {{ '{:,.2f}'.format(projected_profit) }}">{{ current_user.default_currency }} {{ "{:,.2f}".format(projected_profit) }}</p>
         </div>
     </div>
 
