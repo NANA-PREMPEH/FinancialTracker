@@ -205,6 +205,11 @@ class Project(db.Model):
         """Total Received Income"""
         return sum(item.total_paid for item in self.items if getattr(item, 'item_type', 'expense') == 'income')
 
+    @property
+    def current_profit(self):
+        """Current project profit based on income received and expenses paid."""
+        return self.paid_income - self.paid_expense
+
 class ProjectItem(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)

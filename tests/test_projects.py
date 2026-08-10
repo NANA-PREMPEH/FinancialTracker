@@ -81,11 +81,16 @@ class TestProjectDetails:
             assert b'href="/projects"' in response.data
             assert b'Back to Projects' in response.data
             assert project.projected_profit == 500.0
+            assert project.current_profit == -250.0
             assert b'Projected Profit' in response.data
             assert b'500.00' in response.data
+            assert b'Current Loss' in response.data
+            assert b'250.00' in response.data
 
             projects_response = client.get('/projects')
 
             assert projects_response.status_code == 200
             assert b'Projected Profit' in projects_response.data
             assert b'GHS 500.00' in projects_response.data
+            assert b'Current Loss' in projects_response.data
+            assert b'GHS 250.00' in projects_response.data

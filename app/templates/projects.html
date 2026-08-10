@@ -92,6 +92,7 @@
     {% for project in projects %}
     {% set is_income = project.paid_income > project.paid_expense %}
     {% set progress = ((project.paid_income / project.total_income * 100) if is_income and project.total_income > 0 else (project.paid_expense / project.total_cost * 100) if not is_income and project.total_cost > 0 else 0) %}
+    {% set current_profit = project.current_profit %}
     {% set projected_profit = project.projected_profit %}
     <div id="project-{{ project.id }}" class="bg-surface border border-border rounded-2xl overflow-hidden relative transition-all duration-300 hover:-translate-y-1 hover:shadow-lg group flex flex-col">
 
@@ -130,14 +131,25 @@
             <div class="mb-4"></div>
             {% endif %}
 
-            <div class="flex items-center justify-between gap-3 rounded-xl border px-3 py-2.5 mb-5 {% if projected_profit >= 0 %}bg-success/10 border-success/20{% else %}bg-danger/10 border-danger/20{% endif %}">
-                <span class="flex items-center gap-1.5 text-xs font-semibold {% if projected_profit >= 0 %}text-success{% else %}text-danger{% endif %}">
-                    <i data-lucide="{% if projected_profit >= 0 %}trending-up{% else %}trending-down{% endif %}" class="w-4 h-4"></i>
-                    Projected {{ 'Profit' if projected_profit >= 0 else 'Loss' }}
-                </span>
-                <span class="text-sm font-bold {% if projected_profit >= 0 %}text-success{% else %}text-danger{% endif %}">
-                    {{ current_user.default_currency }} {{ "{:,.2f}".format(projected_profit|abs) }}
-                </span>
+            <div class="space-y-2 mb-5">
+                <div class="flex items-center justify-between gap-3 rounded-xl border px-3 py-2.5 {% if current_profit >= 0 %}bg-success/10 border-success/20{% else %}bg-danger/10 border-danger/20{% endif %}">
+                    <span class="flex items-center gap-1.5 text-xs font-semibold {% if current_profit >= 0 %}text-success{% else %}text-danger{% endif %}">
+                        <i data-lucide="{% if current_profit >= 0 %}trending-up{% else %}trending-down{% endif %}" class="w-4 h-4"></i>
+                        Current {{ 'Profit' if current_profit >= 0 else 'Loss' }}
+                    </span>
+                    <span class="text-sm font-bold {% if current_profit >= 0 %}text-success{% else %}text-danger{% endif %}">
+                        {{ current_user.default_currency }} {{ "{:,.2f}".format(current_profit|abs) }}
+                    </span>
+                </div>
+                <div class="flex items-center justify-between gap-3 rounded-xl border px-3 py-2.5 {% if projected_profit >= 0 %}bg-success/10 border-success/20{% else %}bg-danger/10 border-danger/20{% endif %}">
+                    <span class="flex items-center gap-1.5 text-xs font-semibold {% if projected_profit >= 0 %}text-success{% else %}text-danger{% endif %}">
+                        <i data-lucide="{% if projected_profit >= 0 %}trending-up{% else %}trending-down{% endif %}" class="w-4 h-4"></i>
+                        Projected {{ 'Profit' if projected_profit >= 0 else 'Loss' }}
+                    </span>
+                    <span class="text-sm font-bold {% if projected_profit >= 0 %}text-success{% else %}text-danger{% endif %}">
+                        {{ current_user.default_currency }} {{ "{:,.2f}".format(projected_profit|abs) }}
+                    </span>
+                </div>
             </div>
 
             <!-- Progress Bar -->

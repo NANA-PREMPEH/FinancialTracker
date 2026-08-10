@@ -66,6 +66,7 @@ def register_routes(main):
                              completed_cost=completed_cost,
                              not_completed_cost=not_completed_cost,
                              total_income=total_income,
+                             current_profit=project.current_profit,
                              projected_profit=project.projected_profit)
 
     @main.route('/projects/edit/<int:id>', methods=['GET', 'POST'])
