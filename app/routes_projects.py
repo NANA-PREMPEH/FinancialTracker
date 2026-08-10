@@ -60,7 +60,6 @@ def register_routes(main):
         completed_cost = project.paid_expense
         not_completed_cost = project.total_cost - project.paid_expense
         total_income = project.paid_income
-        net_cost = project.total_cost - project.total_income
 
         return render_template('project_details.html',
                              project=project,

@@ -83,3 +83,9 @@ class TestProjectDetails:
             assert project.projected_profit == 500.0
             assert b'Projected Profit' in response.data
             assert b'500.00' in response.data
+
+            projects_response = client.get('/projects')
+
+            assert projects_response.status_code == 200
+            assert b'Projected Profit' in projects_response.data
+            assert b'GHS 500.00' in projects_response.data
