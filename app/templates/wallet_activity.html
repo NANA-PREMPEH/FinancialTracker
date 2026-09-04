@@ -1,0 +1,375 @@
+{% extends "base.html" %}
+
+{% block title %}{{ wallet.name }} Activity - Financial Tracker{% endblock %}
+{% block header_title %}Wallet Activity{% endblock %}
+
+{% block extra_css %}
+<style>
+    .glass-card {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.05);
+    }
+    
+    [data-theme="dark"] .glass-card {
+        box-shadow: 0 14px 30px -8px rgba(0, 0, 0, 0.45);
+    }
+
+    .stat-card-gradient {
+        background: linear-gradient(135deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0) 100%);
+    }
+
+    .balance-gradient {
+        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto space-y-6">
+
+    <!-- Top Navigation & Wallet Hero Card -->
+    <div class="glass-card rounded-2xl p-6 md:p-8">
+        <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
+            <!-- Wallet Details -->
+            <div class="flex items-start sm:items-center gap-4">
+                <a href="{{ url_for('main.wallets') }}" class="p-2.5 rounded-xl border border-border bg-surface-hover hover:bg-surface-active text-text-muted hover:text-text transition-colors shadow-sm" title="Back to Wallets">
+                    <i data-lucide="arrow-left" class="w-5 h-5"></i>
+                </a>
+                
+                <div class="flex h-16 w-16 items-center justify-center rounded-2xl border border-border/50 bg-surface-hover text-3xl shadow-inner shrink-0">
+                    {{ wallet.icon }}
+                </div>
+                
+                <div>
+                    <div class="flex flex-wrap items-center gap-2 mb-1">
+                        <h1 class="text-2xl sm:text-3xl font-black tracking-tight text-text m-0">{{ wallet.name }}</h1>
+                        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold uppercase tracking-wider bg-surface-active text-text-secondary border border-border">
+                            <i data-lucide="shield" class="w-3 h-3"></i>
+                            {{ wallet.wallet_type|replace('_', ' ')|title }}
+                        </span>
+                        {% if not is_owner %}
+                        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold uppercase tracking-wider bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
+                            <i data-lucide="users" class="w-3 h-3"></i>
+                            Shared with you
+                        </span>
+                        {% elif wallet.is_shared %}
+                        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold uppercase tracking-wider bg-sky-500/10 text-sky-600 dark:text-sky-400 border border-sky-500/20">
+                            <i data-lucide="share-2" class="w-3 h-3"></i>
+                            Shared
+                        </span>
+                        {% endif %}
+                    </div>
+                    
+                    <p class="text-sm text-text-muted m-0 flex flex-wrap items-center gap-x-4 gap-y-1">
+                        {% if wallet.account_number %}
+                        <span class="inline-flex items-center gap-1">
+                            <i data-lucide="credit-card" class="w-3.5 h-3.5"></i>
+                            Account: <span class="font-mono font-medium">{{ wallet.account_number }}</span>
+                        </span>
+                        {% endif %}
+                        <span class="inline-flex items-center gap-1">
+                            <i data-lucide="coins" class="w-3.5 h-3.5"></i>
+                            Currency: <span class="font-semibold text-text">{{ wallet.currency }}</span>
+                        </span>
+                    </p>
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="flex flex-wrap items-center gap-3">
+                <a href="{{ url_for('main.add_expense', wallet=wallet.id) }}" class="inline-flex items-center gap-2 px-4 py-2.5 bg-primary text-white font-bold rounded-xl hover:bg-primary-hover transition-colors shadow-md hover:shadow-lg no-underline text-sm">
+                    <i data-lucide="plus-circle" class="w-4 h-4"></i>
+                    Add Transaction
+                </a>
+                
+                <a href="{{ url_for('main.wallet_activity', id=wallet.id, export='csv', **dict(request.args)) }}" class="inline-flex items-center gap-2 px-4 py-2.5 bg-surface-hover text-text border border-border font-medium rounded-xl hover:bg-surface-active transition-colors shadow-sm no-underline text-sm" title="Export this wallet's transactions to CSV">
+                    <i data-lucide="download" class="w-4 h-4"></i>
+                    Export CSV
+                </a>
+
+                {% if is_owner %}
+                <a href="{{ url_for('main.edit_wallet', id=wallet.id) }}" class="inline-flex items-center gap-2 px-4 py-2.5 bg-surface-hover text-text border border-border font-medium rounded-xl hover:bg-surface-active transition-colors shadow-sm no-underline text-sm" title="Edit wallet details">
+                    <i data-lucide="pencil-line" class="w-4 h-4"></i>
+                    Edit Wallet
+                </a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Stats Cards Grid -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <!-- Current Balance -->
+        <div class="glass-card rounded-2xl p-5 relative overflow-hidden">
+            <div class="flex items-center justify-between text-xs font-bold uppercase tracking-wider text-text-muted mb-2">
+                <span>Available Balance</span>
+                <div class="w-8 h-8 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
+                    <i data-lucide="wallet" class="w-4 h-4"></i>
+                </div>
+            </div>
+            <div class="text-2xl sm:text-3xl font-black tracking-tight text-text">
+                <span class="text-sm font-semibold uppercase tracking-wider text-text-muted mr-1">{{ wallet.currency }}</span>
+                {{ "{:,.2f}".format(wallet.balance) }}
+            </div>
+            <div class="mt-2 text-xs text-text-muted">
+                Current ledger balance
+            </div>
+        </div>
+
+        <!-- Total Inflows -->
+        <div class="glass-card rounded-2xl p-5 relative overflow-hidden">
+            <div class="flex items-center justify-between text-xs font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400 mb-2">
+                <span>Total Inflows</span>
+                <div class="w-8 h-8 rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-500">
+                    <i data-lucide="arrow-down-left" class="w-4 h-4"></i>
+                </div>
+            </div>
+            <div class="text-2xl sm:text-3xl font-black tracking-tight text-emerald-600 dark:text-emerald-400" id="statInflow">
+                <span class="text-sm font-semibold uppercase tracking-wider opacity-80 mr-1">{{ wallet.currency }}</span>
+                {{ "{:,.2f}".format(stats.total_inflow) }}
+            </div>
+            <div class="mt-2 text-xs text-text-muted">
+                Income & incoming transfers
+            </div>
+        </div>
+
+        <!-- Total Outflows -->
+        <div class="glass-card rounded-2xl p-5 relative overflow-hidden">
+            <div class="flex items-center justify-between text-xs font-bold uppercase tracking-wider text-rose-600 dark:text-rose-400 mb-2">
+                <span>Total Outflows</span>
+                <div class="w-8 h-8 rounded-xl bg-rose-500/10 flex items-center justify-center text-rose-500">
+                    <i data-lucide="arrow-up-right" class="w-4 h-4"></i>
+                </div>
+            </div>
+            <div class="text-2xl sm:text-3xl font-black tracking-tight text-rose-600 dark:text-rose-400" id="statOutflow">
+                <span class="text-sm font-semibold uppercase tracking-wider opacity-80 mr-1">{{ wallet.currency }}</span>
+                {{ "{:,.2f}".format(stats.total_outflow) }}
+            </div>
+            <div class="mt-2 text-xs text-text-muted">
+                Expenses & outgoing transfers
+            </div>
+        </div>
+
+        <!-- Net Flow / Lifetime Count -->
+        <div class="glass-card rounded-2xl p-5 relative overflow-hidden">
+            <div class="flex items-center justify-between text-xs font-bold uppercase tracking-wider text-text-muted mb-2">
+                <span>Net Activity Flow</span>
+                <div class="w-8 h-8 rounded-xl bg-sky-500/10 flex items-center justify-center text-sky-500">
+                    <i data-lucide="activity" class="w-4 h-4"></i>
+                </div>
+            </div>
+            <div class="text-2xl sm:text-3xl font-black tracking-tight {% if stats.net_flow >= 0 %}text-emerald-600 dark:text-emerald-400{% else %}text-rose-600 dark:text-rose-400{% endif %}" id="statNet">
+                <span class="text-sm font-semibold uppercase tracking-wider opacity-80 mr-1">{{ wallet.currency }}</span>
+                {{ "{:+,.2f}".format(stats.net_flow) }}
+            </div>
+            <div class="mt-2 text-xs text-text-muted">
+                Across <span class="font-bold text-text" id="statCount">{{ stats.total_tx_count }}</span> recorded transaction(s)
+            </div>
+        </div>
+    </div>
+
+    <!-- Search & Filter Bar -->
+    <div class="glass-card rounded-2xl p-6 border border-border shadow-sm">
+        <div class="flex justify-between items-center mb-6 cursor-pointer group" onclick="toggleFilters()">
+            <h3 class="font-heading font-bold text-lg text-text m-0 flex items-center gap-2 group-hover:text-primary transition-colors">
+                <i data-lucide="filter" class="w-5 h-5"></i>
+                Filter Transactions
+            </h3>
+            <button type="button" class="p-1 border border-border rounded-lg bg-surface-hover group-hover:bg-primary group-hover:text-white transition-all duration-300 shadow-sm">
+                <i data-lucide="chevron-down" id="filterToggleIcon" class="transition-transform duration-300 w-4 h-4"></i>
+            </button>
+        </div>
+
+        <div id="filterSection">
+            <form method="GET" action="{{ url_for('main.wallet_activity', id=wallet.id) }}" id="filterForm">
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                    <!-- Search Input -->
+                    <div>
+                        <label for="search" class="block text-sm font-medium text-text-muted mb-1">Search Activity</label>
+                        <div class="relative">
+                            <input type="text" id="search" name="search" placeholder="Description, notes, tags, source..." value="{{ filters.search }}" oninput="liveSearch()" class="w-full pl-10 pr-4 py-2 bg-surface text-text border border-border rounded-xl focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors shadow-sm">
+                            <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-text-muted">
+                                <i data-lucide="search" class="w-4 h-4"></i>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Category Filter -->
+                    <div>
+                        <label for="category" class="block text-sm font-medium text-text-muted mb-1">Category</label>
+                        <select id="category" name="category" onchange="liveSearch()" class="w-full px-4 py-2 bg-surface text-text border border-border rounded-xl focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors appearance-none shadow-sm cursor-pointer">
+                            <option value="">All Categories</option>
+                            {% for category in categories %}
+                                <option value="{{ category.id }}" {% if filters.category == category.id|string %}selected{% endif %}>
+                                    {{ category.icon }} {{ category.name }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <!-- Type Filter -->
+                    <div>
+                        <label for="type" class="block text-sm font-medium text-text-muted mb-1">Transaction Type</label>
+                        <select id="type" name="type" onchange="liveSearch()" class="w-full px-4 py-2 bg-surface text-text border border-border rounded-xl focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors appearance-none shadow-sm cursor-pointer">
+                            <option value="">All Types</option>
+                            <option value="inflow" {% if filters.type == 'inflow' %}selected{% endif %}>All Inflows (Income / Transfers in)</option>
+                            <option value="outflow" {% if filters.type == 'outflow' %}selected{% endif %}>All Outflows (Expenses / Transfers out)</option>
+                            <option value="income" {% if filters.type == 'income' %}selected{% endif %}>Income only</option>
+                            <option value="expense" {% if filters.type == 'expense' %}selected{% endif %}>Expense only</option>
+                            <option value="transfer" {% if filters.type == 'transfer' %}selected{% endif %}>Transfers only</option>
+                        </select>
+                    </div>
+
+                    <!-- Date Range: From / To -->
+                    <div class="grid grid-cols-2 gap-2">
+                        <div>
+                            <label for="from" class="block text-sm font-medium text-text-muted mb-1">From</label>
+                            <input type="date" id="from" name="from" value="{{ filters.from }}" onchange="liveSearch()" class="w-full px-3 py-2 bg-surface text-text border border-border rounded-xl text-xs focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors shadow-sm">
+                        </div>
+                        <div>
+                            <label for="to" class="block text-sm font-medium text-text-muted mb-1">To</label>
+                            <input type="date" id="to" name="to" value="{{ filters.to }}" onchange="liveSearch()" class="w-full px-3 py-2 bg-surface text-text border border-border rounded-xl text-xs focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors shadow-sm">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex flex-wrap items-center gap-3">
+                    <button type="submit" class="inline-flex items-center gap-2 px-5 py-2 bg-primary text-white font-medium rounded-xl hover:bg-primary-hover transition-colors shadow-md">
+                        <i data-lucide="check" class="w-4 h-4"></i>
+                        Apply Filters
+                    </button>
+                    <a href="{{ url_for('main.wallet_activity', id=wallet.id) }}" class="inline-flex items-center gap-2 px-5 py-2 bg-surface text-text border border-border font-medium rounded-xl hover:bg-surface-hover transition-colors shadow-sm no-underline">
+                        <i data-lucide="rotate-ccw" class="w-4 h-4"></i>
+                        Clear Filters
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Transactions List Card -->
+    <div class="glass-card rounded-2xl p-6 border border-border shadow-sm">
+        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+            <div>
+                <h2 class="font-heading font-bold text-xl text-text m-0 flex items-center gap-2">
+                    <i data-lucide="history" class="w-5 h-5 text-primary"></i>
+                    Transaction History
+                </h2>
+                <p class="text-xs text-text-muted mt-1">Detailed record of all transactions associated with {{ wallet.name }}.</p>
+            </div>
+            
+            <div class="flex flex-wrap items-center gap-2">
+                <span class="text-xs font-bold bg-surface-active px-3 py-1.5 rounded-full text-text border border-border shadow-sm" id="resultCount">
+                    {{ expenses|length }} transaction(s) found
+                </span>
+            </div>
+        </div>
+
+        {% if expenses %}
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="bg-surface-hover border-b border-border">
+                            <th class="p-4 text-xs font-semibold text-text-muted uppercase tracking-wider rounded-tl-xl">
+                                <a href="{{ url_for('main.wallet_activity', id=wallet.id, **dict(request.args, sort='date', order='asc' if filters.sort == 'date' and filters.order == 'desc' else 'desc')) }}" class="flex items-center gap-1 hover:text-primary transition-colors no-underline text-text-muted">
+                                    Date {% if filters.sort == 'date' %}<i data-lucide="{{ 'arrow-up' if filters.order == 'asc' else 'arrow-down' }}" class="w-3 h-3"></i>{% endif %}
+                                </a>
+                            </th>
+                            <th class="p-4 text-xs font-semibold text-text-muted uppercase tracking-wider">
+                                <a href="{{ url_for('main.wallet_activity', id=wallet.id, **dict(request.args, sort='description', order='asc' if filters.sort == 'description' and filters.order == 'desc' else 'desc')) }}" class="flex items-center gap-1 hover:text-primary transition-colors no-underline text-text-muted">
+                                    Description {% if filters.sort == 'description' %}<i data-lucide="{{ 'arrow-up' if filters.order == 'asc' else 'arrow-down' }}" class="w-3 h-3"></i>{% endif %}
+                                </a>
+                            </th>
+                            <th class="p-4 text-xs font-semibold text-text-muted uppercase tracking-wider">
+                                <a href="{{ url_for('main.wallet_activity', id=wallet.id, **dict(request.args, sort='category', order='asc' if filters.sort == 'category' and filters.order == 'desc' else 'desc')) }}" class="flex items-center gap-1 hover:text-primary transition-colors no-underline text-text-muted">
+                                    Category {% if filters.sort == 'category' %}<i data-lucide="{{ 'arrow-up' if filters.order == 'asc' else 'arrow-down' }}" class="w-3 h-3"></i>{% endif %}
+                                </a>
+                            </th>
+                            <th class="p-4 text-xs font-semibold text-text-muted uppercase tracking-wider text-right">
+                                <a href="{{ url_for('main.wallet_activity', id=wallet.id, **dict(request.args, sort='amount', order='asc' if filters.sort == 'amount' and filters.order == 'desc' else 'desc')) }}" class="flex items-center justify-end gap-1 hover:text-primary transition-colors no-underline text-text-muted">
+                                    Amount {% if filters.sort == 'amount' %}<i data-lucide="{{ 'arrow-up' if filters.order == 'asc' else 'arrow-down' }}" class="w-3 h-3"></i>{% endif %}
+                                </a>
+                            </th>
+                            <th class="p-4 text-xs font-semibold text-text-muted uppercase tracking-wider text-right rounded-tr-xl">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="expenseTableBody" class="divide-y divide-border">
+                        {% include '_partials/expense_rows.html' %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <div id="emptyState" class="text-center py-12 px-4 rounded-2xl border border-dashed border-border bg-surface-hover/30">
+                <div class="w-16 h-16 bg-surface rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-sm border border-border text-primary text-2xl">
+                    {{ wallet.icon }}
+                </div>
+                <h4 class="text-lg font-bold text-text m-0">No transactions recorded yet</h4>
+                <p class="text-sm text-text-muted mt-1 mb-6 max-w-md mx-auto">
+                    {% if filters.search or filters.category or filters.type or filters.from or filters.to %}
+                        No activities match your current filter settings. Try clearing the filters.
+                    {% else %}
+                        This wallet has not been used in any transactions yet. Record an expense, income, or transfer to see it appear here.
+                    {% endif %}
+                </p>
+                <div class="flex items-center justify-center gap-3">
+                    <a href="{{ url_for('main.add_expense', wallet=wallet.id) }}" class="inline-flex items-center gap-2 px-5 py-2.5 bg-primary text-white font-medium rounded-xl hover:bg-primary-hover transition-colors shadow-md no-underline text-sm">
+                        <i data-lucide="plus-circle" class="w-4 h-4"></i> Add Transaction
+                    </a>
+                    {% if filters.search or filters.category or filters.type or filters.from or filters.to %}
+                    <a href="{{ url_for('main.wallet_activity', id=wallet.id) }}" class="inline-flex items-center gap-2 px-5 py-2.5 bg-surface text-text border border-border font-medium rounded-xl hover:bg-surface-hover transition-colors shadow-sm no-underline text-sm">
+                        Clear Filters
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+        {% endif %}
+    </div>
+
+</div>
+
+<script>
+    let searchDebounceTimer = null;
+
+    function toggleFilters() {
+        const section = document.getElementById('filterSection');
+        const icon = document.getElementById('filterToggleIcon');
+        if (section.style.display === 'none') {
+            section.style.display = 'block';
+            icon.style.transform = 'rotate(180deg)';
+        } else {
+            section.style.display = 'none';
+            icon.style.transform = 'rotate(0deg)';
+        }
+    }
+
+    function liveSearch() {
+        clearTimeout(searchDebounceTimer);
+        searchDebounceTimer = setTimeout(() => {
+            const form = document.getElementById('filterForm');
+            const formData = new FormData(form);
+            const params = new URLSearchParams(formData);
+            params.set('ajax', '1');
+
+            fetch(`{{ url_for('main.wallet_activity', id=wallet.id) }}?${params.toString()}`)
+                .then(response => response.json())
+                .then(data => {
+                    const tbody = document.getElementById('expenseTableBody');
+                    if (tbody) {
+                        tbody.innerHTML = data.html;
+                    }
+                    const resultCount = document.getElementById('resultCount');
+                    if (resultCount) {
+                        resultCount.textContent = `${data.count} transaction(s) found`;
+                    }
+                    if (window.lucide) {
+                        lucide.createIcons();
+                    }
+                })
+                .catch(err => console.error('Error fetching live search results:', err));
+        }, 250);
+    }
+</script>
+{% endblock %}
