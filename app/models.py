@@ -107,6 +107,7 @@ class Expense(db.Model):
 
     def __repr__(self):
         return f'<Expense {self.amount} - {self.description}>'
+
 class Budget(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
@@ -160,9 +161,89 @@ class ExchangeRate(db.Model):
     def __repr__(self):
         return f'<ExchangeRate {self.from_currency}/{self.to_currency} = {self.rate}>'
 
+
+class ProjectCategory(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    name = db.Column(db.String(100), nullable=False)
+    description = db.Column(db.Text, nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    # Relationships
+    expenses = db.relationship('ProjectCategoryExpense', backref='category', lazy=True, cascade='all, delete-orphan')
+    user = db.relationship('User', backref=db.backref('project_categories', cascade='all, delete-orphan'), lazy=True)
+
+    def __repr__(self):
+        return f'<ProjectCategory {self.name}>'
+
+    @property
+    def total_paid_income(self):
+        return sum(p.paid_income for p in self.projects)
+
+    @property
+    def total_paid_expense(self):
+        return sum(p.paid_expense for p in self.projects)
+
+    @property
+    def total_operational_expense(self):
+        return sum(e.amount for e in self.expenses)
+
+    @property
+    def total_cost(self):
+        return sum(p.total_cost for p in self.projects)
+
+    @property
+    def total_income(self):
+        return sum(p.total_income for p in self.projects)
+
+    @property
+    def current_profit(self):
+        """Current Profit = Paid Project Income - (Paid Project Item Expenses + Category Operational Expenses)"""
+        return self.total_paid_income - (self.total_paid_expense + self.total_operational_expense)
+
+    @property
+    def projected_profit(self):
+        return self.total_income - (self.total_cost + self.total_operational_expense)
+
+
+class ProjectCategoryExpense(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    category_id = db.Column(db.Integer, db.ForeignKey('project_category.id'), nullable=False)
+    amount = db.Column(db.Float, nullable=False, default=0.0)
+    expense_name = db.Column(db.String(200), nullable=False)
+    notes = db.Column(db.Text, nullable=True)
+    date = db.Column(db.DateTime, default=datetime.utcnow)
+    wallet_id = db.Column(db.Integer, db.ForeignKey('wallet.id'), nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    # Relationships
+    wallet = db.relationship('Wallet', lazy=True)
+    user = db.relationship('User', lazy=True)
+
+    def __repr__(self):
+        return f'<ProjectCategoryExpense {self.expense_name} - {self.amount}>'
+
+
+DEFAULT_PROJECT_CATEGORIES = ['Coconut', 'Electric Lunch Box', 'Cloth']
+
+
+def get_or_seed_project_categories(user_id):
+    """Ensure user has default project categories and return all categories for user."""
+    categories = ProjectCategory.query.filter_by(user_id=user_id).order_by(ProjectCategory.name.asc()).all()
+    if not categories:
+        for cat_name in DEFAULT_PROJECT_CATEGORIES:
+            cat = ProjectCategory(user_id=user_id, name=cat_name)
+            db.session.add(cat)
+        db.session.commit()
+        categories = ProjectCategory.query.filter_by(user_id=user_id).order_by(ProjectCategory.name.asc()).all()
+    return categories
+
+
 class Project(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    category_id = db.Column(db.Integer, db.ForeignKey('project_category.id'), nullable=True)
     name = db.Column(db.String(200), nullable=False)
     description = db.Column(db.Text, nullable=True)  # Optional description
     funding_source = db.Column(db.String(100), nullable=False)  # Predefined or custom
@@ -172,6 +253,7 @@ class Project(db.Model):
     is_completed = db.Column(db.Boolean, default=False)
     
     # Relationships
+    category = db.relationship('ProjectCategory', backref=db.backref('projects', lazy=True), lazy=True)
     items = db.relationship('ProjectItem', backref='project', lazy=True, cascade='all, delete-orphan')
     wallet = db.relationship('Wallet', backref='projects', lazy=True)
     

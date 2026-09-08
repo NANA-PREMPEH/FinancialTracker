@@ -4,6 +4,7 @@ from . import db
 from .models import (
     User, Wallet, Category, Expense, Budget, RecurringTransaction,
     Project, ProjectItem, ProjectItemPayment,
+    ProjectCategory, ProjectCategoryExpense,
     FinancialSummary, WishlistItem,
     Creditor, DebtPayment, Debtor, DebtorPayment,
     Goal, GoalTask, GoalMilestone,
@@ -78,8 +79,22 @@ def _build_full_backup(uid):
             'is_active': r.is_active, 'notes': r.notes
         } for r in RecurringTransaction.query.filter_by(user_id=uid).all()],
 
+        'project_categories': [{
+            'name': pc.name, 'description': pc.description,
+            'created_at': _dt(pc.created_at)
+        } for pc in ProjectCategory.query.filter_by(user_id=uid).all()],
+
+        'project_category_expenses': [{
+            'category': pce.category.name if pce.category else None,
+            'amount': pce.amount, 'expense_name': pce.expense_name,
+            'notes': pce.notes, 'date': _dt(pce.date),
+            'wallet': pce.wallet.name if pce.wallet else None,
+            'created_at': _dt(pce.created_at)
+        } for pce in ProjectCategoryExpense.query.filter_by(user_id=uid).all()],
+
         'projects': [{
             'name': p.name, 'description': p.description,
+            'category': p.category.name if p.category else None,
             'funding_source': p.funding_source,
             'wallet': p.wallet.name if p.wallet else None,
             'custom_funding_source': p.custom_funding_source,
@@ -683,12 +698,27 @@ def _insert_from_backup(uid, data, merge=False):
             is_active=r.get('is_active', True), notes=r.get('notes'))
         db.session.add(obj)
 
+    # ── Project Categories ──
+    proj_cat_map = {}
+    for pc in data.get('project_categories', []):
+        existing_pc = ProjectCategory.query.filter_by(user_id=uid, name=pc['name']).first()
+        if existing_pc:
+            proj_cat_map[pc['name']] = existing_pc
+        else:
+            cat_obj = ProjectCategory(user_id=uid, name=pc['name'], description=pc.get('description'),
+                                      created_at=_parse_dt(pc.get('created_at')) or datetime.utcnow())
+            db.session.add(cat_obj)
+            db.session.flush()
+            proj_cat_map[pc['name']] = cat_obj
+
     # ── Projects (with items and payments) ──
     for p in data.get('projects', []):
         if merge and Project.query.filter_by(user_id=uid, name=p['name']).first():
             continue
         wal = wallet_map.get(p.get('wallet'))
+        p_cat = proj_cat_map.get(p.get('category'))
         proj = Project(user_id=uid, name=p['name'], description=p.get('description'),
+                       category_id=p_cat.id if p_cat else None,
                        funding_source=p.get('funding_source', 'Self'),
                        wallet_id=wal.id if wal else None,
                        custom_funding_source=p.get('custom_funding_source'),
@@ -712,6 +742,22 @@ def _insert_from_backup(uid, data, merge=False):
                     payment_date=_parse_dt(pay.get('payment_date')),
                     created_date=_parse_dt(pay.get('created_date')) or datetime.utcnow())
                 db.session.add(payment)
+
+    # ── Project Category Expenses ──
+    for pce in data.get('project_category_expenses', []):
+        p_cat = proj_cat_map.get(pce.get('category'))
+        if not p_cat:
+            continue
+        pce_wal = wallet_map.get(pce.get('wallet'))
+        obj = ProjectCategoryExpense(
+            user_id=uid, category_id=p_cat.id,
+            amount=pce.get('amount', 0),
+            expense_name=pce.get('expense_name', 'Operational Expense'),
+            notes=pce.get('notes'),
+            date=_parse_dt(pce.get('date')) or datetime.utcnow(),
+            wallet_id=pce_wal.id if pce_wal else None,
+            created_at=_parse_dt(pce.get('created_at')) or datetime.utcnow())
+        db.session.add(obj)
 
     # ── Financial Summaries ──
     for fs in data.get('financial_summaries', []):

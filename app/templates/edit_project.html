@@ -8,7 +8,7 @@
     <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6">
         <div>
             <h1 class="text-4xl font-black font-heading text-text m-0 tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-primary to-purple-500 italic uppercase">Reconfigure Project</h1>
-            <p class="text-text-muted mt-2 font-medium">Update the project details and funding source for <span class="text-text font-black">"{{ project.name }}"</span>.</p>
+            <p class="text-text-muted mt-2 font-medium">Update the project details, category, and funding source for <span class="text-text font-black">"{{ project.name }}"</span>.</p>
         </div>
         <div class="flex gap-3">
              <button onclick="showDeleteProjectDialog()" class="inline-flex items-center justify-center gap-2 px-6 py-3 bg-danger/10 border border-danger/20 text-danger font-black rounded-2xl hover:bg-danger/20 transition-all active:scale-95 shadow-sm">
@@ -27,16 +27,36 @@
         <form method="POST" class="relative z-10 p-8 sm:p-10 space-y-8">
             <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
                 <!-- Project Name -->
-                <div class="md:col-span-2 space-y-3">
+                <div class="space-y-3">
                     <label for="name" class="block text-[10px] font-black text-text-muted uppercase tracking-widest">Project Name</label>
                     <input type="text" id="name" name="name" value="{{ project.name }}" required
                         class="w-full h-14 px-6 bg-surface/30 border border-white/10 rounded-2xl text-text text-lg font-black focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all shadow-sm">
                 </div>
 
+                <!-- Project Category (Dropdown + Add Dynamic Option) -->
+                <div class="space-y-3">
+                    <div class="flex items-center justify-between">
+                        <label for="category_id" class="block text-[10px] font-black text-text-muted uppercase tracking-widest">Project Category / Type</label>
+                        <button type="button" onclick="openAddCategoryModal()" class="text-xs font-black text-primary hover:text-purple-400 flex items-center gap-1 transition-colors uppercase tracking-wider">
+                            <i data-lucide="plus-circle" class="w-3.5 h-3.5"></i> + New Category
+                        </button>
+                    </div>
+                    <div class="relative group">
+                        <select id="category_id" name="category_id" 
+                            class="w-full h-14 pl-6 pr-12 bg-surface/30 border border-white/10 rounded-2xl text-text font-bold focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all appearance-none shadow-sm cursor-pointer">
+                            <option value="">-- Select Project Category --</option>
+                            {% for cat in categories %}
+                            <option value="{{ cat.id }}" {% if project.category_id == cat.id %}selected{% endif %}>{{ cat.name }}</option>
+                            {% endfor %}
+                        </select>
+                        <i data-lucide="folder" class="w-5 h-5 text-text-muted absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none transition-transform group-focus-within:rotate-12"></i>
+                    </div>
+                </div>
+
                 <!-- Description -->
                 <div class="md:col-span-2 space-y-3">
                     <label for="description" class="block text-[10px] font-black text-text-muted uppercase tracking-widest">Description (Optional)</label>
-                    <textarea id="description" name="description" rows="4"
+                    <textarea id="description" name="description" rows="3"
                         class="w-full p-6 bg-surface/30 border border-white/10 rounded-2xl text-text font-medium focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all resize-none shadow-sm placeholder:text-text-muted/30">{{ project.description }}</textarea>
                 </div>
 
@@ -98,6 +118,49 @@
     </div>
 </div>
 
+<!-- Modal: Add New Project Category -->
+<div id="addCategoryModal" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-xl z-[110] flex items-center justify-center p-4 opacity-0 transition-opacity duration-300">
+    <div class="bg-surface/95 backdrop-blur-2xl w-full max-w-md rounded-3xl border border-white/20 flex flex-col shadow-2xl overflow-hidden relative transform scale-95 transition-transform duration-300" onclick="event.stopPropagation()">
+        <div class="p-6 border-b border-white/10 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
+                    <i data-lucide="folder-plus" class="w-5 h-5"></i>
+                </div>
+                <div>
+                    <h3 class="text-lg font-black font-heading m-0 text-text">New Project Category</h3>
+                    <p class="text-xs text-text-muted m-0">Add a custom category to categorize your projects</p>
+                </div>
+            </div>
+            <button type="button" onclick="closeAddCategoryModal()" class="text-text-muted hover:text-text transition-colors">
+                <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+        </div>
+
+        <form id="addCategoryForm" onsubmit="submitNewCategory(event)" class="p-6 space-y-5">
+            <div class="space-y-2">
+                <label for="new_category_name" class="block text-[10px] font-black text-text-muted uppercase tracking-widest">Category Name</label>
+                <input type="text" id="new_category_name" name="name" required placeholder="e.g., Solar Panels, Export Goods"
+                    class="w-full h-12 px-4 bg-surface/30 border border-white/10 rounded-xl text-text font-bold focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all">
+            </div>
+
+            <div class="space-y-2">
+                <label for="new_category_description" class="block text-[10px] font-black text-text-muted uppercase tracking-widest">Description (Optional)</label>
+                <textarea id="new_category_description" name="description" rows="2" placeholder="Brief notes for this category..."
+                    class="w-full p-4 bg-surface/30 border border-white/10 rounded-xl text-text text-sm font-medium focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all resize-none"></textarea>
+            </div>
+
+            <div class="flex gap-3 pt-4 border-t border-white/10">
+                <button type="button" onclick="closeAddCategoryModal()" class="flex-1 px-4 py-3 font-black text-xs uppercase tracking-widest text-text bg-surface border border-white/10 rounded-xl hover:bg-surface-active transition-all active:scale-95">
+                    Cancel
+                </button>
+                <button type="submit" id="saveCategoryBtn" class="flex-1 px-4 py-3 font-black text-xs uppercase tracking-widest text-white bg-primary rounded-xl hover:bg-primary/90 hover:scale-105 active:scale-95 transition-all shadow-lg shadow-primary/20 flex items-center justify-center gap-2">
+                    <i data-lucide="check" class="w-4 h-4"></i> Save Category
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
 <!-- Delete Project Dialog -->
 <div id="deleteProjectModal" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-xl z-[110] flex items-center justify-center p-4 opacity-0 transition-opacity duration-300">
     <div class="bg-surface/90 backdrop-blur-2xl w-full max-w-md rounded-3xl border border-white/20 flex flex-col shadow-2xl overflow-hidden relative transform scale-95 transition-transform duration-300" onclick="event.stopPropagation()">
@@ -149,6 +212,80 @@ function toggleCustomFunding(value) {
         customInput.setAttribute('required', 'required');
     }
 }
+
+// Category Modal Functions
+const categoryModal = document.getElementById('addCategoryModal');
+const categoryModalContent = categoryModal.querySelector('.bg-surface\\/95');
+
+function openAddCategoryModal() {
+    categoryModal.classList.remove('hidden');
+    setTimeout(() => {
+        categoryModal.classList.remove('opacity-0');
+        categoryModalContent.classList.remove('scale-95');
+        categoryModalContent.classList.add('scale-100');
+        document.getElementById('new_category_name').focus();
+    }, 10);
+}
+
+function closeAddCategoryModal() {
+    categoryModal.classList.add('opacity-0');
+    categoryModalContent.classList.remove('scale-100');
+    categoryModalContent.classList.add('scale-95');
+    setTimeout(() => {
+        categoryModal.classList.add('hidden');
+        document.getElementById('addCategoryForm').reset();
+    }, 300);
+}
+
+async function submitNewCategory(e) {
+    e.preventDefault();
+    const btn = document.getElementById('saveCategoryBtn');
+    const originalText = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<i data-lucide="loader" class="w-4 h-4 animate-spin"></i> Saving...';
+    lucide.createIcons();
+
+    const name = document.getElementById('new_category_name').value.trim();
+    const description = document.getElementById('new_category_description').value.trim();
+
+    try {
+        const response = await fetch("{{ url_for('main.create_project_category') }}", {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: JSON.stringify({ name, description })
+        });
+
+        const data = await response.json();
+        if (data.success && data.category) {
+            const select = document.getElementById('category_id');
+            let opt = Array.from(select.options).find(o => o.value == data.category.id);
+            if (!opt) {
+                opt = new Option(data.category.name, data.category.id, true, true);
+                select.add(opt);
+            }
+            select.value = data.category.id;
+            closeAddCategoryModal();
+        } else {
+            alert(data.message || 'Failed to create category.');
+        }
+    } catch (err) {
+        console.error(err);
+        alert('An error occurred while saving category.');
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = originalText;
+        lucide.createIcons();
+    }
+}
+
+categoryModal.onclick = function(event) {
+    if (event.target === categoryModal) {
+        closeAddCategoryModal();
+    }
+};
 
 // Delete Modal Logic
 const deleteModal = document.getElementById('deleteProjectModal');

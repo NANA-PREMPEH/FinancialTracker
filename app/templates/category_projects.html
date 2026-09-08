@@ -1,0 +1,569 @@
+{% extends "base.html" %}
+
+{% block title %}{{ category.name }} Projects & Profit - Financial Tracker{% endblock %}
+{% block header_title %}{{ category.name }} Category{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto space-y-8">
+    
+    <!-- Category Header Banner -->
+    <div class="bg-surface/40 backdrop-blur-xl rounded-3xl border border-white/10 shadow-2xl p-8 sm:p-10 relative overflow-hidden group">
+        <div class="absolute inset-0 bg-gradient-to-br from-primary/15 via-transparent to-purple-500/10 pointer-events-none"></div>
+        <div class="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-8">
+            <div>
+                <div class="flex items-center gap-3 mb-2">
+                    <div class="w-12 h-12 rounded-2xl bg-gradient-to-tr from-primary to-purple-600 flex items-center justify-center text-white shadow-lg">
+                        {% if category.name == 'Coconut' %}
+                        <i data-lucide="palmtree" class="w-6 h-6"></i>
+                        {% elif category.name == 'Electric Lunch Box' %}
+                        <i data-lucide="box" class="w-6 h-6"></i>
+                        {% elif category.name == 'Cloth' %}
+                        <i data-lucide="shirt" class="w-6 h-6"></i>
+                        {% else %}
+                        <i data-lucide="folder" class="w-6 h-6"></i>
+                        {% endif %}
+                    </div>
+                    <div>
+                        <span class="text-[10px] font-black uppercase tracking-widest text-primary block">Project Category Portfolio</span>
+                        <h1 class="text-3xl sm:text-4xl font-black font-heading text-text m-0 tracking-tight">{{ category.name }}</h1>
+                    </div>
+                </div>
+                {% if category.description %}
+                <p class="text-sm text-text-muted mt-2 max-w-2xl font-medium">{{ category.description }}</p>
+                {% endif %}
+            </div>
+
+            <div class="flex flex-wrap items-center gap-3 shrink-0">
+                <a href="{{ url_for('main.projects') }}" class="inline-flex items-center justify-center gap-2 px-5 py-3 bg-surface/50 border border-white/10 text-text font-black rounded-xl hover:bg-surface transition-all active:scale-95 shadow-sm text-sm">
+                    <i data-lucide="arrow-left" class="w-4 h-4"></i> All Projects
+                </a>
+                <button type="button" onclick="openCategoryExpenseModal({{ category.id }}, '{{ category.name|escape }}')" class="inline-flex items-center justify-center gap-2 px-5 py-3 bg-primary/10 border border-primary/30 text-primary font-black rounded-xl hover:bg-primary hover:text-white transition-all active:scale-95 shadow-sm text-sm">
+                    <i data-lucide="receipt" class="w-4 h-4"></i> + Add Expense
+                </button>
+                <a href="{{ url_for('main.add_project') }}" class="btn-primary inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl font-black text-sm shadow-lg shadow-primary/20">
+                    <i data-lucide="plus" class="w-4 h-4"></i> Add Project
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Stats Grid -->
+    <div class="grid grid-cols-2 lg:grid-cols-5 gap-4">
+        <!-- Net Current Profit -->
+        <div class="col-span-2 sm:col-span-1 lg:col-span-1 {% if current_profit >= 0 %}bg-success/10 border-success/20{% else %}bg-danger/10 border-danger/20{% endif %} backdrop-blur-xl rounded-2xl border p-5 shadow-xl flex flex-col justify-between">
+            <span class="text-[10px] font-black {% if current_profit >= 0 %}text-success/80{% else %}text-danger/80{% endif %} uppercase tracking-widest mb-1 flex items-center gap-1.5">
+                <i data-lucide="{% if current_profit >= 0 %}trending-up{% else %}trending-down{% endif %}" class="w-3.5 h-3.5"></i> Net Current {{ 'Profit' if current_profit >= 0 else 'Loss' }}
+            </span>
+            <div>
+                <p class="text-2xl font-black font-heading {% if current_profit >= 0 %}text-success{% else %}text-danger{% endif %} truncate" title="{{ current_user.default_currency }} {{ '{:,.2f}'.format(current_profit|abs) }}">
+                    {{ current_user.default_currency }} {{ "{:,.2f}".format(current_profit|abs) }}
+                </p>
+                <span class="text-[10px] font-bold text-text-muted">Income - (Items + Op Expenses)</span>
+            </div>
+        </div>
+
+        <!-- Total Income Received -->
+        <div class="bg-surface/40 backdrop-blur-xl rounded-2xl border border-white/10 p-5 shadow-xl flex flex-col justify-between">
+            <span class="text-[10px] font-black text-text-muted uppercase tracking-widest mb-1 flex items-center gap-1.5">
+                <i data-lucide="arrow-down-left" class="w-3.5 h-3.5 text-success"></i> Received Income
+            </span>
+            <div>
+                <p class="text-2xl font-black font-heading text-text truncate">
+                    {{ current_user.default_currency }} {{ "{:,.2f}".format(total_paid_income) }}
+                </p>
+                <span class="text-[10px] font-bold text-text-muted">Planned: {{ current_user.default_currency }} {{ "{:,.2f}".format(total_projected_income) }}</span>
+            </div>
+        </div>
+
+        <!-- Total Project Items Paid -->
+        <div class="bg-surface/40 backdrop-blur-xl rounded-2xl border border-white/10 p-5 shadow-xl flex flex-col justify-between">
+            <span class="text-[10px] font-black text-text-muted uppercase tracking-widest mb-1 flex items-center gap-1.5">
+                <i data-lucide="arrow-up-right" class="w-3.5 h-3.5 text-danger"></i> Project Items Paid
+            </span>
+            <div>
+                <p class="text-2xl font-black font-heading text-text truncate">
+                    {{ current_user.default_currency }} {{ "{:,.2f}".format(total_paid_expense) }}
+                </p>
+                <span class="text-[10px] font-bold text-text-muted">Planned: {{ current_user.default_currency }} {{ "{:,.2f}".format(total_projected_cost) }}</span>
+            </div>
+        </div>
+
+        <!-- Operational Expenses -->
+        <div class="bg-surface/40 backdrop-blur-xl rounded-2xl border border-white/10 p-5 shadow-xl flex flex-col justify-between">
+            <span class="text-[10px] font-black text-text-muted uppercase tracking-widest mb-1 flex items-center gap-1.5">
+                <i data-lucide="receipt" class="w-3.5 h-3.5 text-warning"></i> Operational Expenses
+            </span>
+            <div>
+                <p class="text-2xl font-black font-heading text-warning truncate">
+                    {{ current_user.default_currency }} {{ "{:,.2f}".format(total_operational_expense) }}
+                </p>
+                <span class="text-[10px] font-bold text-text-muted">{{ category_expenses|length }} logged expense{{ 's' if category_expenses|length != 1 else '' }}</span>
+            </div>
+        </div>
+
+        <!-- Total Projects Count -->
+        <div class="bg-surface/40 backdrop-blur-xl rounded-2xl border border-white/10 p-5 shadow-xl flex flex-col justify-between">
+            <span class="text-[10px] font-black text-text-muted uppercase tracking-widest mb-1 flex items-center gap-1.5">
+                <i data-lucide="layers" class="w-3.5 h-3.5 text-primary"></i> Total Projects
+            </span>
+            <div>
+                <p class="text-2xl font-black font-heading text-text truncate">{{ projects|length }}</p>
+                <span class="text-[10px] font-bold text-text-muted">In {{ category.name }}</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Monthly Realized Profit -->
+    <div class="space-y-4">
+        <div>
+            <h2 class="text-xl font-black font-heading text-text m-0 flex items-center gap-2">
+                <i data-lucide="calendar-days" class="w-5 h-5 text-primary"></i> Monthly Profit
+            </h2>
+            <p class="text-xs text-text-muted mt-0.5 font-medium">Realized profit by payment and operating-expense date. Profit = paid income − paid project expenses − operational expenses.</p>
+        </div>
+
+        {% if monthly_profits %}
+        <div class="bg-surface/40 backdrop-blur-xl rounded-3xl border border-white/10 shadow-2xl overflow-hidden">
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="border-b border-white/10 bg-surface/50 text-[10px] font-black uppercase tracking-widest text-text-muted">
+                            <th class="py-4 px-6">Month</th>
+                            <th class="py-4 px-6 text-right">Paid Income</th>
+                            <th class="py-4 px-6 text-right">Project Expenses</th>
+                            <th class="py-4 px-6 text-right">Operational Expenses</th>
+                            <th class="py-4 px-6 text-right">Net Profit</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-white/5 text-sm font-medium">
+                        {% for month in monthly_profits %}
+                        <tr class="hover:bg-surface/30 transition-colors">
+                            <td class="py-4 px-6 font-black text-text">{{ month.month.strftime('%B %Y') }}</td>
+                            <td class="py-4 px-6 text-right font-black text-success">{{ current_user.default_currency }} {{ "{:,.2f}".format(month.income) }}</td>
+                            <td class="py-4 px-6 text-right font-black text-danger">{{ current_user.default_currency }} {{ "{:,.2f}".format(month.project_expenses) }}</td>
+                            <td class="py-4 px-6 text-right font-black text-warning">{{ current_user.default_currency }} {{ "{:,.2f}".format(month.operational_expenses) }}</td>
+                            <td class="py-4 px-6 text-right">
+                                <span class="inline-flex items-center gap-1 px-3 py-1 rounded-xl text-xs font-black font-heading {% if month.profit >= 0 %}bg-success/10 text-success border border-success/20{% else %}bg-danger/10 text-danger border border-danger/20{% endif %}">
+                                    <i data-lucide="{% if month.profit >= 0 %}trending-up{% else %}trending-down{% endif %}" class="w-3.5 h-3.5"></i>
+                                    {{ current_user.default_currency }} {{ "{:,.2f}".format(month.profit|abs) }}
+                                </span>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% else %}
+        <div class="text-center py-8 px-6 bg-surface/20 border border-dashed border-white/10 rounded-2xl text-text-muted text-xs">
+            No paid project payments or operational expenses have been recorded for this category yet.
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- ======================================================= -->
+    <!-- SECTION: LIST OF CURRENT PROFITS AGAINST EACH PROJECT   -->
+    <!-- ======================================================= -->
+    <div class="space-y-4">
+        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <div>
+                <h2 class="text-xl font-black font-heading text-text m-0 flex items-center gap-2">
+                    <i data-lucide="banknote" class="w-5 h-5 text-primary"></i> Current Profits by Project
+                </h2>
+                <p class="text-xs text-text-muted mt-0.5 font-medium">Individual profit and revenue breakdown for each project in this category.</p>
+            </div>
+        </div>
+
+        {% if projects %}
+        <div class="bg-surface/40 backdrop-blur-xl rounded-3xl border border-white/10 shadow-2xl overflow-hidden">
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="border-b border-white/10 bg-surface/50 text-[10px] font-black uppercase tracking-widest text-text-muted">
+                            <th class="py-4 px-6">Project Name</th>
+                            <th class="py-4 px-6 text-center">Status</th>
+                            <th class="py-4 px-6 text-right">Paid Income</th>
+                            <th class="py-4 px-6 text-right">Paid Expenses</th>
+                            <th class="py-4 px-6 text-right">Current Profit</th>
+                            <th class="py-4 px-6 text-right">Projected Profit</th>
+                            <th class="py-4 px-6 text-center">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-white/5 text-sm font-medium">
+                        {% for p in projects %}
+                        {% set p_profit = p.current_profit %}
+                        {% set p_proj_profit = p.projected_profit %}
+                        {% set is_income = p.paid_income > p.paid_expense %}
+                        {% set progress = ((p.paid_income / p.total_income * 100) if is_income and p.total_income > 0 else (p.paid_expense / p.total_cost * 100) if not is_income and p.total_cost > 0 else 0) %}
+                        <tr class="hover:bg-surface/30 transition-colors group">
+                            <!-- Project Name -->
+                            <td class="py-4 px-6">
+                                <a href="{{ url_for('main.project_details', id=p.id) }}" class="font-black text-text hover:text-primary transition-colors flex items-center gap-2">
+                                    {{ p.name }}
+                                </a>
+                                <span class="text-xs text-text-muted font-normal block mt-0.5">
+                                    {{ p.items|length }} items &bull; {{ p.created_date.strftime('%b %d, %Y') }}
+                                </span>
+                            </td>
+
+                            <!-- Status -->
+                            <td class="py-4 px-6 text-center">
+                                {% if progress >= 100 %}
+                                <span class="px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-widest bg-success/15 text-success border border-success/30">Done</span>
+                                {% else %}
+                                <span class="px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-widest bg-primary/15 text-primary border border-primary/30">Active</span>
+                                {% endif %}
+                            </td>
+
+                            <!-- Paid Income -->
+                            <td class="py-4 px-6 text-right font-black text-success">
+                                {{ current_user.default_currency }} {{ "{:,.2f}".format(p.paid_income) }}
+                            </td>
+
+                            <!-- Paid Expenses -->
+                            <td class="py-4 px-6 text-right font-black text-danger">
+                                {{ current_user.default_currency }} {{ "{:,.2f}".format(p.paid_expense) }}
+                            </td>
+
+                            <!-- Current Profit -->
+                            <td class="py-4 px-6 text-right">
+                                <span class="inline-flex items-center gap-1 px-3 py-1 rounded-xl text-xs font-black font-heading {% if p_profit >= 0 %}bg-success/10 text-success border border-success/20{% else %}bg-danger/10 text-danger border border-danger/20{% endif %}">
+                                    <i data-lucide="{% if p_profit >= 0 %}trending-up{% else %}trending-down{% endif %}" class="w-3.5 h-3.5"></i>
+                                    {{ current_user.default_currency }} {{ "{:,.2f}".format(p_profit|abs) }}
+                                </span>
+                            </td>
+
+                            <!-- Projected Profit -->
+                            <td class="py-4 px-6 text-right font-black text-text-muted">
+                                <span class="{% if p_proj_profit >= 0 %}text-text{% else %}text-danger{% endif %}">
+                                    {{ current_user.default_currency }} {{ "{:,.2f}".format(p_proj_profit) }}
+                                </span>
+                            </td>
+
+                            <!-- Actions -->
+                            <td class="py-4 px-6 text-center">
+                                <div class="flex items-center justify-center gap-2">
+                                    <a href="{{ url_for('main.project_details', id=p.id) }}" class="p-2 rounded-lg bg-surface/50 hover:bg-primary hover:text-white transition-all text-text-muted" title="View Details">
+                                        <i data-lucide="eye" class="w-4 h-4"></i>
+                                    </a>
+                                    <a href="{{ url_for('main.edit_project', id=p.id) }}" class="p-2 rounded-lg bg-surface/50 hover:bg-surface-active transition-all text-text-muted hover:text-text" title="Edit Project">
+                                        <i data-lucide="pencil" class="w-4 h-4"></i>
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% else %}
+        <div class="text-center py-12 px-6 bg-surface/30 border border-dashed border-white/10 rounded-3xl">
+            <i data-lucide="folder-plus" class="w-12 h-12 text-text-muted mx-auto mb-3 opacity-40"></i>
+            <h3 class="text-base font-black text-text mb-1">No Projects in {{ category.name }}</h3>
+            <p class="text-xs text-text-muted mb-4 max-w-sm mx-auto">Create a new project assigned to this category to start tracking individual profits.</p>
+            <a href="{{ url_for('main.add_project') }}" class="btn-primary inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-black">
+                <i data-lucide="plus" class="w-4 h-4"></i> Create Project in {{ category.name }}
+            </a>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- ======================================================= -->
+    <!-- SECTION: CATEGORY OPERATIONAL EXPENSES LEDGER           -->
+    <!-- ======================================================= -->
+    <div class="space-y-4 pt-4">
+        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <div>
+                <h2 class="text-xl font-black font-heading text-text m-0 flex items-center gap-2">
+                    <i data-lucide="receipt" class="w-5 h-5 text-warning"></i> Operational Expenses for {{ category.name }}
+                </h2>
+                <p class="text-xs text-text-muted mt-0.5 font-medium">Log and manage category-wide expenses (shipping, storage, packaging, supplies, etc.).</p>
+            </div>
+            <button type="button" onclick="openCategoryExpenseModal({{ category.id }}, '{{ category.name|escape }}')" class="inline-flex items-center gap-2 px-4 py-2.5 bg-primary/10 border border-primary/30 text-xs font-black text-primary rounded-xl hover:bg-primary hover:text-white transition-all shadow-sm">
+                <i data-lucide="plus-circle" class="w-4 h-4"></i> + Add Category Expense
+            </button>
+        </div>
+
+        {% if category_expenses %}
+        <div class="bg-surface/40 backdrop-blur-xl rounded-3xl border border-white/10 shadow-xl overflow-hidden divide-y divide-white/5">
+            {% for exp in category_expenses %}
+            <div class="p-5 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 hover:bg-surface/30 transition-colors">
+                <div class="space-y-1">
+                    <div class="flex items-center gap-2.5">
+                        <span class="w-8 h-8 rounded-xl bg-warning/10 text-warning flex items-center justify-center">
+                            <i data-lucide="package" class="w-4 h-4"></i>
+                        </span>
+                        <div>
+                            <h4 class="font-black text-sm text-text m-0">{{ exp.expense_name }}</h4>
+                            <div class="flex items-center gap-3 text-xs text-text-muted mt-0.5 font-medium">
+                                <span><i data-lucide="calendar" class="w-3 h-3 inline"></i> {{ exp.date.strftime('%b %d, %Y') }}</span>
+                                {% if exp.wallet %}
+                                <span><i data-lucide="wallet" class="w-3 h-3 inline"></i> {{ exp.wallet.name }}</span>
+                                {% endif %}
+                                {% if exp.notes %}
+                                <span class="italic text-text-muted/70">"{{ exp.notes }}"</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-4 self-end sm:self-center">
+                    <span class="text-lg font-black text-danger font-heading">
+                        -{{ current_user.default_currency }} {{ "{:,.2f}".format(exp.amount) }}
+                    </span>
+                    <div class="flex items-center gap-1">
+                        <button type="button" onclick="openEditExpenseModal({{ exp.id }}, '{{ exp.expense_name|escape }}', {{ exp.amount }}, '{{ exp.date.strftime('%Y-%m-%d') }}', {{ exp.category_id }}, '{{ exp.wallet_id or '' }}', '{{ (exp.notes or '')|escape }}')" class="p-2 text-text-muted hover:text-text hover:bg-surface-active rounded-lg transition-colors" title="Edit Expense">
+                            <i data-lucide="pencil" class="w-4 h-4"></i>
+                        </button>
+                        <form action="{{ url_for('main.delete_category_expense', id=exp.id) }}" method="POST" onsubmit="return confirm('Delete this operational expense?');">
+                            <button type="submit" class="p-2 text-text-muted hover:text-danger hover:bg-danger/10 rounded-lg transition-colors" title="Delete Expense">
+                                <i data-lucide="trash-2" class="w-4 h-4"></i>
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="text-center py-8 px-6 bg-surface/20 border border-dashed border-white/10 rounded-2xl text-text-muted text-xs">
+            No operational expenses logged for this category yet.
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- ========================================================================= -->
+<!-- MODAL: ADD CATEGORY OPERATIONAL EXPENSE -->
+<!-- ========================================================================= -->
+<div id="categoryExpenseModal" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-xl z-[110] flex items-center justify-center p-4 opacity-0 transition-opacity duration-300">
+    <div class="bg-surface/95 backdrop-blur-2xl w-full max-w-lg rounded-3xl border border-white/20 flex flex-col shadow-2xl overflow-hidden relative transform scale-95 transition-transform duration-300" onclick="event.stopPropagation()">
+        <div class="p-6 border-b border-white/10 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-2xl bg-primary/10 flex items-center justify-center text-primary">
+                    <i data-lucide="receipt" class="w-5 h-5"></i>
+                </div>
+                <div>
+                    <h3 class="text-lg font-black font-heading m-0 text-text">Record Category Expense</h3>
+                    <p class="text-xs text-text-muted m-0 font-medium">Add operating expenses for <span class="text-text font-black">{{ category.name }}</span></p>
+                </div>
+            </div>
+            <button type="button" onclick="closeCategoryExpenseModal()" class="text-text-muted hover:text-text transition-colors">
+                <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+        </div>
+
+        <form action="{{ url_for('main.add_category_expense') }}" method="POST" class="p-6 space-y-4">
+            <input type="hidden" id="modal_category_id" name="category_id" value="{{ category.id }}">
+
+            <!-- Expense Title -->
+            <div class="space-y-2">
+                <label for="expense_name" class="block text-[10px] font-black text-text-muted uppercase tracking-widest">Expense Title / Item Name</label>
+                <input type="text" id="expense_name" name="expense_name" required placeholder="e.g., Cargo Transport, Packaging Material"
+                    class="w-full h-12 px-4 bg-surface/30 border border-white/10 rounded-xl text-text font-bold focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all">
+            </div>
+
+            <!-- Amount & Date -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div class="space-y-2">
+                    <label for="modal_amount" class="block text-[10px] font-black text-text-muted uppercase tracking-widest">Amount ({{ current_user.default_currency }})</label>
+                    <input type="number" step="0.01" min="0.01" id="modal_amount" name="amount" required placeholder="0.00"
+                        class="w-full h-12 px-4 bg-surface/30 border border-white/10 rounded-xl text-text font-bold focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all">
+                </div>
+
+                <div class="space-y-2">
+                    <label for="modal_date" class="block text-[10px] font-black text-text-muted uppercase tracking-widest">Date</label>
+                    <input type="date" id="modal_date" name="date"
+                        class="w-full h-12 px-4 bg-surface/30 border border-white/10 rounded-xl text-text font-bold focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all">
+                </div>
+            </div>
+
+            <!-- Optional Wallet -->
+            <div class="space-y-2">
+                <label for="modal_wallet_id" class="block text-[10px] font-black text-text-muted uppercase tracking-widest">Funding Wallet (Optional)</label>
+                <select id="modal_wallet_id" name="wallet_id"
+                    class="w-full h-12 px-4 bg-surface/30 border border-white/10 rounded-xl text-text font-bold focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all">
+                    <option value="">-- None / External Fund --</option>
+                    {% for wallet in wallets %}
+                    <option value="{{ wallet.id }}">{{ wallet.name }} ({{ wallet.currency }} {{ "{:,.2f}".format(wallet.balance) }})</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Notes -->
+            <div class="space-y-2">
+                <label for="modal_notes" class="block text-[10px] font-black text-text-muted uppercase tracking-widest">Notes (Optional)</label>
+                <textarea id="modal_notes" name="notes" rows="2" placeholder="Receipt notes..."
+                    class="w-full p-3 bg-surface/30 border border-white/10 rounded-xl text-text text-sm font-medium focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all resize-none"></textarea>
+            </div>
+
+            <!-- Submit -->
+            <div class="flex gap-3 pt-4 border-t border-white/10">
+                <button type="button" onclick="closeCategoryExpenseModal()" class="flex-1 px-4 py-3 font-black text-xs uppercase tracking-widest text-text bg-surface border border-white/10 rounded-xl hover:bg-surface-active transition-all active:scale-95">
+                    Cancel
+                </button>
+                <button type="submit" class="flex-1 px-4 py-3 font-black text-xs uppercase tracking-widest text-white bg-gradient-to-r from-primary to-purple-600 rounded-xl hover:opacity-95 hover:scale-105 active:scale-95 transition-all shadow-lg shadow-primary/20 flex items-center justify-center gap-2">
+                    <i data-lucide="check" class="w-4 h-4"></i> Save Expense
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- ========================================================================= -->
+<!-- MODAL: EDIT CATEGORY OPERATIONAL EXPENSE -->
+<!-- ========================================================================= -->
+<div id="editExpenseModal" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-xl z-[110] flex items-center justify-center p-4 opacity-0 transition-opacity duration-300">
+    <div class="bg-surface/95 backdrop-blur-2xl w-full max-w-lg rounded-3xl border border-white/20 flex flex-col shadow-2xl overflow-hidden relative transform scale-95 transition-transform duration-300" onclick="event.stopPropagation()">
+        <div class="p-6 border-b border-white/10 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-2xl bg-primary/10 flex items-center justify-center text-primary">
+                    <i data-lucide="edit-3" class="w-5 h-5"></i>
+                </div>
+                <div>
+                    <h3 class="text-lg font-black font-heading m-0 text-text">Edit Category Expense</h3>
+                    <p class="text-xs text-text-muted m-0 font-medium">Update expense name, amount, or date</p>
+                </div>
+            </div>
+            <button type="button" onclick="closeEditExpenseModal()" class="text-text-muted hover:text-text transition-colors">
+                <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+        </div>
+
+        <form id="editExpenseForm" method="POST" class="p-6 space-y-4">
+            <input type="hidden" id="edit_category_id" name="category_id" value="{{ category.id }}">
+
+            <!-- Expense Title -->
+            <div class="space-y-2">
+                <label for="edit_expense_name" class="block text-[10px] font-black text-text-muted uppercase tracking-widest">Expense Title / Item Name</label>
+                <input type="text" id="edit_expense_name" name="expense_name" required
+                    class="w-full h-12 px-4 bg-surface/30 border border-white/10 rounded-xl text-text font-bold focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all">
+            </div>
+
+            <!-- Amount & Date -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div class="space-y-2">
+                    <label for="edit_amount" class="block text-[10px] font-black text-text-muted uppercase tracking-widest">Amount ({{ current_user.default_currency }})</label>
+                    <input type="number" step="0.01" min="0.01" id="edit_amount" name="amount" required
+                        class="w-full h-12 px-4 bg-surface/30 border border-white/10 rounded-xl text-text font-bold focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all">
+                </div>
+
+                <div class="space-y-2">
+                    <label for="edit_date" class="block text-[10px] font-black text-text-muted uppercase tracking-widest">Date</label>
+                    <input type="date" id="edit_date" name="date"
+                        class="w-full h-12 px-4 bg-surface/30 border border-white/10 rounded-xl text-text font-bold focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all">
+                </div>
+            </div>
+
+            <!-- Optional Wallet -->
+            <div class="space-y-2">
+                <label for="edit_wallet_id" class="block text-[10px] font-black text-text-muted uppercase tracking-widest">Funding Wallet</label>
+                <select id="edit_wallet_id" name="wallet_id"
+                    class="w-full h-12 px-4 bg-surface/30 border border-white/10 rounded-xl text-text font-bold focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all">
+                    <option value="">-- None / External Fund --</option>
+                    {% for wallet in wallets %}
+                    <option value="{{ wallet.id }}">{{ wallet.name }} ({{ wallet.currency }} {{ "{:,.2f}".format(wallet.balance) }})</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Notes -->
+            <div class="space-y-2">
+                <label for="edit_notes" class="block text-[10px] font-black text-text-muted uppercase tracking-widest">Notes</label>
+                <textarea id="edit_notes" name="notes" rows="2"
+                    class="w-full p-3 bg-surface/30 border border-white/10 rounded-xl text-text text-sm font-medium focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all resize-none"></textarea>
+            </div>
+
+            <!-- Submit -->
+            <div class="flex gap-3 pt-4 border-t border-white/10">
+                <button type="button" onclick="closeEditExpenseModal()" class="flex-1 px-4 py-3 font-black text-xs uppercase tracking-widest text-text bg-surface border border-white/10 rounded-xl hover:bg-surface-active transition-all active:scale-95">
+                    Cancel
+                </button>
+                <button type="submit" class="flex-1 px-4 py-3 font-black text-xs uppercase tracking-widest text-white bg-primary rounded-xl hover:bg-primary/90 hover:scale-105 active:scale-95 transition-all shadow-lg shadow-primary/20 flex items-center justify-center gap-2">
+                    <i data-lucide="save" class="w-4 h-4"></i> Update Expense
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+// Add Modal
+const categoryExpenseModal = document.getElementById('categoryExpenseModal');
+const categoryExpenseModalContent = categoryExpenseModal ? categoryExpenseModal.querySelector('.bg-surface\\/95') : null;
+
+function openCategoryExpenseModal(categoryId = null, categoryName = '') {
+    if (!categoryExpenseModal) return;
+    categoryExpenseModal.classList.remove('hidden');
+    if (categoryId) {
+        document.getElementById('modal_category_id').value = categoryId;
+    }
+    const today = new Date().toISOString().split('T')[0];
+    document.getElementById('modal_date').value = today;
+
+    setTimeout(() => {
+        categoryExpenseModal.classList.remove('opacity-0');
+        categoryExpenseModalContent.classList.remove('scale-95');
+        categoryExpenseModalContent.classList.add('scale-100');
+        document.getElementById('expense_name').focus();
+    }, 10);
+}
+
+function closeCategoryExpenseModal() {
+    if (!categoryExpenseModal) return;
+    categoryExpenseModal.classList.add('opacity-0');
+    categoryExpenseModalContent.classList.remove('scale-100');
+    categoryExpenseModalContent.classList.add('scale-95');
+    setTimeout(() => {
+        categoryExpenseModal.classList.add('hidden');
+    }, 300);
+}
+
+// Edit Modal
+const editExpenseModal = document.getElementById('editExpenseModal');
+const editExpenseModalContent = editExpenseModal ? editExpenseModal.querySelector('.bg-surface\\/95') : null;
+
+function openEditExpenseModal(id, name, amount, date, categoryId, walletId, notes) {
+    if (!editExpenseModal) return;
+    document.getElementById('editExpenseForm').action = "/projects/categories/expenses/" + id + "/edit";
+    document.getElementById('edit_expense_name').value = name;
+    document.getElementById('edit_amount').value = amount;
+    document.getElementById('edit_date').value = date;
+    document.getElementById('edit_category_id').value = categoryId;
+    document.getElementById('edit_wallet_id').value = walletId || '';
+    document.getElementById('edit_notes').value = notes || '';
+
+    editExpenseModal.classList.remove('hidden');
+    setTimeout(() => {
+        editExpenseModal.classList.remove('opacity-0');
+        editExpenseModalContent.classList.remove('scale-95');
+        editExpenseModalContent.classList.add('scale-100');
+    }, 10);
+}
+
+function closeEditExpenseModal() {
+    if (!editExpenseModal) return;
+    editExpenseModal.classList.add('opacity-0');
+    editExpenseModalContent.classList.remove('scale-100');
+    editExpenseModalContent.classList.add('scale-95');
+    setTimeout(() => {
+        editExpenseModal.classList.add('hidden');
+    }, 300);
+}
+
+window.onclick = function(event) {
+    if (event.target === categoryExpenseModal) {
+        closeCategoryExpenseModal();
+    }
+    if (event.target === editExpenseModal) {
+        closeEditExpenseModal();
+    }
+};
+
+document.addEventListener('DOMContentLoaded', () => {
+    lucide.createIcons();
+});
+</script>
+{% endblock %}

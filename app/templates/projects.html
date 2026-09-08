@@ -1,20 +1,29 @@
 {% extends "base.html" %}
 
 {% block title %}Projects To-Do - Financial Tracker{% endblock %}
-{% block header_title %}Projects To-Do{% endblock %}
+{% block header_title %}Projects & Categories{% endblock %}
 
 {% block content %}
+<!-- Top Bar -->
 <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4">
     <div>
-        <h1 class="text-2xl font-bold font-heading text-text m-0">Projects To-Do</h1>
-        <p class="text-text-muted mt-1 text-sm">Plan, fund, and track expenses for your personal or group projects.</p>
+        <h1 class="text-3xl font-black font-heading text-text m-0 tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-primary to-purple-500 italic uppercase">Projects & Category Hub</h1>
+        <p class="text-text-muted mt-1 text-sm font-medium">Manage project portfolios, track operational expenses, and view real-time profit by category.</p>
     </div>
-    <a href="{{ url_for('main.add_project') }}" class="btn-primary shadow-sm hover:shadow-md transition-all" style="display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; padding: 0.75rem 1.5rem; white-space: nowrap; border-radius: 0.75rem;">
-        <i data-lucide="plus" style="width: 18px; height: 18px;"></i> Add Project
-    </a>
+    <div class="flex flex-wrap items-center gap-3">
+        <button type="button" onclick="openNewCategoryModal()" class="inline-flex items-center justify-center gap-2 px-5 py-3 bg-surface/50 border border-primary/30 text-primary font-bold text-sm rounded-xl hover:bg-primary/10 hover:border-primary transition-all active:scale-95 shadow-sm">
+            <i data-lucide="folder-plus" class="w-4 h-4"></i> New Category
+        </button>
+        <button type="button" onclick="openCategoryExpenseModal()" class="inline-flex items-center justify-center gap-2 px-5 py-3 bg-surface/50 border border-primary/30 text-primary font-bold text-sm rounded-xl hover:bg-primary/10 hover:border-primary transition-all active:scale-95 shadow-sm">
+            <i data-lucide="receipt" class="w-4 h-4"></i> + Add Category Expense
+        </button>
+        <a href="{{ url_for('main.add_project') }}" class="btn-primary shadow-sm hover:shadow-md transition-all inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl font-black text-sm">
+            <i data-lucide="plus" class="w-4 h-4"></i> Add Project
+        </a>
+    </div>
 </div>
 
-<!-- Dashboard Summary -->
+<!-- Global Project Stats Overview -->
 {% set total_expense = namespace(val=0) %}
 {% set total_income = namespace(val=0) %}
 {% set total_paid = namespace(val=0) %}
@@ -28,177 +37,319 @@
     {% endif %}
 {% endfor %}
 
-<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-    <div class="bg-surface p-6 rounded-2xl border border-border shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between group">
+{% set total_all_op_expenses = namespace(val=0) %}
+{% for e in category_expenses %}
+    {% set total_all_op_expenses.val = total_all_op_expenses.val + e.amount %}
+{% endfor %}
+
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
+    <div class="bg-surface/50 backdrop-blur-xl p-6 rounded-2xl border border-white/10 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between group">
         <div class="flex justify-between items-center mb-4">
-            <h3 class="text-sm font-medium text-text-muted m-0">Total Projects</h3>
-            <div class="bg-primary/10 p-2.5 rounded-full text-primary group-hover:scale-110 transition-transform">
+            <h3 class="text-xs font-black uppercase tracking-widest text-text-muted m-0">Total Projects</h3>
+            <div class="bg-primary/10 p-2.5 rounded-xl text-primary group-hover:scale-110 transition-transform">
                 <i data-lucide="clipboard-list" class="w-5 h-5"></i>
             </div>
         </div>
-        <p class="text-3xl font-bold font-heading text-text m-0">{{ projects|length }}</p>
+        <div>
+            <p class="text-3xl font-black font-heading text-text m-0">{{ projects|length }}</p>
+            <span class="text-xs text-text-muted font-bold mt-1 inline-block">{{ categories|length }} active categories</span>
+        </div>
     </div>
 
-    <div class="bg-surface p-6 rounded-2xl border border-border shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between group">
+    <div class="bg-surface/50 backdrop-blur-xl p-6 rounded-2xl border border-white/10 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between group">
         <div class="flex justify-between items-center mb-4">
-            <h3 class="text-sm font-medium text-text-muted m-0">Total Expenses</h3>
-            <div class="bg-danger/10 p-2.5 rounded-full text-danger group-hover:scale-110 transition-transform">
+            <h3 class="text-xs font-black uppercase tracking-widest text-text-muted m-0">Total Project Costs</h3>
+            <div class="bg-danger/10 p-2.5 rounded-xl text-danger group-hover:scale-110 transition-transform">
                 <i data-lucide="trending-down" class="w-5 h-5"></i>
             </div>
         </div>
-        <p class="text-3xl font-bold font-heading text-danger m-0">{{ current_user.default_currency }} {{ "{:,.2f}".format(total_expense.val) }}</p>
+        <div>
+            <p class="text-2xl font-black font-heading text-danger m-0">{{ current_user.default_currency }} {{ "{:,.2f}".format(total_expense.val) }}</p>
+            <span class="text-xs text-text-muted font-bold mt-1 inline-block">+ {{ current_user.default_currency }} {{ "{:,.2f}".format(total_all_op_expenses.val) }} op. expenses</span>
+        </div>
     </div>
 
-    <div class="bg-surface p-6 rounded-2xl border border-border shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between group">
+    <div class="bg-surface/50 backdrop-blur-xl p-6 rounded-2xl border border-white/10 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between group">
         <div class="flex justify-between items-center mb-4">
-            <h3 class="text-sm font-medium text-text-muted m-0">Total Income</h3>
-            <div class="bg-success/10 p-2.5 rounded-full text-success group-hover:scale-110 transition-transform">
+            <h3 class="text-xs font-black uppercase tracking-widest text-text-muted m-0">Total Project Income</h3>
+            <div class="bg-success/10 p-2.5 rounded-xl text-success group-hover:scale-110 transition-transform">
                 <i data-lucide="trending-up" class="w-5 h-5"></i>
             </div>
         </div>
-        <p class="text-3xl font-bold font-heading text-success m-0">{{ current_user.default_currency }} {{ "{:,.2f}".format(total_income.val) }}</p>
+        <div>
+            <p class="text-2xl font-black font-heading text-success m-0">{{ current_user.default_currency }} {{ "{:,.2f}".format(total_income.val) }}</p>
+            <span class="text-xs text-text-muted font-bold mt-1 inline-block">Planned revenue</span>
+        </div>
     </div>
 
-    <div class="bg-surface p-6 rounded-2xl border border-border shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between group">
+    <div class="bg-surface/50 backdrop-blur-xl p-6 rounded-2xl border border-white/10 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between group">
         <div class="flex justify-between items-center mb-4">
-            <h3 class="text-sm font-medium text-text-muted m-0">Projects Profile</h3>
-            <div class="bg-surface-active p-2.5 rounded-full text-text-muted group-hover:scale-110 transition-transform">
+            <h3 class="text-xs font-black uppercase tracking-widest text-text-muted m-0">Execution Status</h3>
+            <div class="bg-surface-active p-2.5 rounded-xl text-text-muted group-hover:scale-110 transition-transform">
                 <i data-lucide="pie-chart" class="w-5 h-5"></i>
             </div>
         </div>
         <div class="flex justify-between items-center mt-2">
             <div class="text-center">
-                <span class="text-2xl font-bold text-text block leading-none">{{ active_count.val }}</span>
-                <span class="text-xs text-text-muted mt-1 uppercase tracking-wider font-semibold">Active</span>
+                <span class="text-2xl font-black text-text block leading-none">{{ active_count.val }}</span>
+                <span class="text-[10px] text-text-muted mt-1 uppercase tracking-widest font-black">Active</span>
             </div>
             <div class="text-center">
-                <span class="text-2xl font-bold text-success block leading-none">{{ projects|length - active_count.val }}</span>
-                <span class="text-xs text-text-muted mt-1 uppercase tracking-wider font-semibold">Done</span>
+                <span class="text-2xl font-black text-success block leading-none">{{ projects|length - active_count.val }}</span>
+                <span class="text-[10px] text-text-muted mt-1 uppercase tracking-widest font-black">Done</span>
             </div>
         </div>
     </div>
 </div>
 
-<!-- Section Header -->
+<!-- ========================================================================= -->
+<!-- FEATURE: CATEGORY CURRENT PROFIT & OPERATIONAL EXPENSES BREAKDOWN SECTION -->
+<!-- ========================================================================= -->
+<div id="category-breakdown" class="mb-12 space-y-6">
+    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-white/10 pb-4">
+        <div>
+            <div class="flex items-center gap-2.5">
+                <div class="w-8 h-8 rounded-lg bg-gradient-to-tr from-primary to-purple-600 flex items-center justify-center text-white shadow-md">
+                    <i data-lucide="layers" class="w-4 h-4"></i>
+                </div>
+                <h2 class="text-xl font-black font-heading text-text m-0 tracking-tight">Category Profit & Operational Performance</h2>
+            </div>
+            <p class="text-xs text-text-muted mt-1 font-medium">Real-time net profit per project category including operational expenses and actual item details.</p>
+        </div>
+
+        <div class="flex items-center gap-2">
+            {% if category_expenses %}
+            <button type="button" onclick="openExpenseLedgerModal()" class="inline-flex items-center gap-2 px-4 py-2 bg-surface/50 border border-white/10 text-xs font-bold text-text rounded-xl hover:bg-surface-active transition-all shadow-sm">
+                <i data-lucide="list" class="w-3.5 h-3.5 text-text-muted"></i> Expense Ledger ({{ category_expenses|length }})
+            </button>
+            {% endif %}
+            <button type="button" onclick="openCategoryExpenseModal()" class="inline-flex items-center gap-2 px-4 py-2 bg-primary/10 border border-primary/30 text-xs font-black text-primary rounded-xl hover:bg-primary hover:text-white transition-all shadow-sm">
+                <i data-lucide="plus-circle" class="w-3.5 h-3.5"></i> Log Category Expense
+            </button>
+        </div>
+    </div>
+
+    <!-- Category Cards Grid -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {% for item in categories_data %}
+        {% set cat = item.category %}
+        {% set current_profit = item.current_profit %}
+        <div class="bg-surface/40 backdrop-blur-xl border border-white/10 rounded-3xl p-6 shadow-xl relative overflow-hidden flex flex-col justify-between group transition-all duration-300 hover:-translate-y-1 hover:border-primary/40 hover:shadow-2xl">
+            <!-- Background Glow -->
+            <div class="absolute -right-12 -top-12 w-36 h-36 {% if current_profit >= 0 %}bg-success/10{% else %}bg-danger/10{% endif %} rounded-full blur-3xl pointer-events-none transition-all group-hover:scale-150"></div>
+
+            <div>
+                <!-- Category Card Header -->
+                <div class="flex justify-between items-start mb-4">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-2xl bg-surface/70 border border-white/10 flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-white transition-all shadow-inner">
+                            {% if cat.name == 'Coconut' %}
+                            <i data-lucide="palmtree" class="w-5 h-5"></i>
+                            {% elif cat.name == 'Electric Lunch Box' %}
+                            <i data-lucide="box" class="w-5 h-5"></i>
+                            {% elif cat.name == 'Cloth' %}
+                            <i data-lucide="shirt" class="w-5 h-5"></i>
+                            {% else %}
+                            <i data-lucide="folder" class="w-5 h-5"></i>
+                            {% endif %}
+                        </div>
+                        <div>
+                            <h3 class="text-lg font-black font-heading text-text m-0 tracking-tight">{{ cat.name }}</h3>
+                            <span class="text-[10px] font-black text-text-muted uppercase tracking-wider">{{ item.projects_count }} Project{{ 's' if item.projects_count != 1 else '' }} ({{ item.active_count }} active)</span>
+                        </div>
+                    </div>
+                    <span class="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest {% if current_profit >= 0 %}bg-success/15 text-success border border-success/30{% else %}bg-danger/15 text-danger border border-danger/30{% endif %}">
+                        {{ 'Profit' if current_profit >= 0 else 'Loss' }}
+                    </span>
+                </div>
+
+                <!-- Current Net Profit Highlight -->
+                <div class="p-4 rounded-2xl border mb-5 {% if current_profit >= 0 %}bg-success/10 border-success/20{% else %}bg-danger/10 border-danger/20{% endif %}">
+                    <span class="text-[10px] font-black uppercase tracking-widest block mb-1 {% if current_profit >= 0 %}text-success/80{% else %}text-danger/80{% endif %}">
+                        Current Net Profit
+                    </span>
+                    <div class="flex items-baseline justify-between gap-2">
+                        <p class="text-2xl font-black font-heading m-0 {% if current_profit >= 0 %}text-success{% else %}text-danger{% endif %}">
+                            {{ current_user.default_currency }} {{ "{:,.2f}".format(current_profit|abs) }}
+                        </p>
+                        {% if current_profit < 0 %}
+                        <span class="text-xs font-black text-danger uppercase tracking-wider">(Net Loss)</span>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Metrics Details -->
+                <div class="space-y-2.5 text-xs text-text-muted mb-4 bg-surface/30 rounded-2xl p-4 border border-white/5 font-medium">
+                    <div class="flex justify-between items-center">
+                        <span class="flex items-center gap-1.5"><i data-lucide="arrow-down-left" class="w-3.5 h-3.5 text-success"></i> Received Income:</span>
+                        <span class="font-black text-text">{{ current_user.default_currency }} {{ "{:,.2f}".format(item.paid_income) }}</span>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <span class="flex items-center gap-1.5"><i data-lucide="arrow-up-right" class="w-3.5 h-3.5 text-danger"></i> Project Items Paid:</span>
+                        <span class="font-black text-text">{{ current_user.default_currency }} {{ "{:,.2f}".format(item.paid_expense) }}</span>
+                    </div>
+                    <div class="flex justify-between items-center pt-2 border-t border-white/5">
+                        <span class="flex items-center gap-1.5"><i data-lucide="receipt" class="w-3.5 h-3.5 text-warning"></i> Operational Expenses:</span>
+                        <span class="font-black text-warning">{{ current_user.default_currency }} {{ "{:,.2f}".format(item.operational_expense) }}</span>
+                    </div>
+                </div>
+
+                <!-- Itemized Operational Expenses List (with actual item names & edit actions) -->
+                {% if item.expenses_list %}
+                <div class="mb-5 space-y-1.5 bg-surface/20 p-3 rounded-2xl border border-white/5">
+                    <span class="text-[9px] font-black uppercase tracking-widest text-text-muted block mb-1">Operational Items:</span>
+                    {% for exp in item.expenses_list %}
+                    <div class="flex items-center justify-between text-xs py-1.5 px-2.5 rounded-xl bg-surface/50 hover:bg-surface/80 transition-colors border border-white/5">
+                        <span class="font-bold text-text truncate mr-2" title="{{ exp.expense_name }}">{{ exp.expense_name }}</span>
+                        <div class="flex items-center gap-2 flex-shrink-0">
+                            <span class="font-black text-warning">{{ current_user.default_currency }} {{ "{:,.2f}".format(exp.amount) }}</span>
+                            <button type="button" onclick="openEditExpenseModal({{ exp.id }}, '{{ exp.expense_name|escape }}', {{ exp.amount }}, '{{ exp.date.strftime('%Y-%m-%d') }}', {{ exp.category_id }}, '{{ exp.wallet_id or '' }}', '{{ (exp.notes or '')|escape }}')" class="p-1 hover:text-primary text-text-muted transition-colors" title="Edit Item">
+                                <i data-lucide="pencil" class="w-3 h-3"></i>
+                            </button>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Card Actions -->
+            <div class="flex gap-2 pt-3 border-t border-white/5 mt-auto">
+                <button type="button" onclick="openCategoryExpenseModal({{ cat.id }}, '{{ cat.name|escape }}')" class="flex-1 py-2.5 px-3 bg-surface/50 border border-white/10 hover:border-primary/50 text-text hover:text-primary rounded-xl text-xs font-black transition-all flex items-center justify-center gap-1.5 active:scale-95 shadow-sm">
+                    <i data-lucide="plus" class="w-3.5 h-3.5"></i> Add Expense
+                </button>
+                <a href="{{ url_for('main.category_projects', category_id=cat.id) }}" class="py-2.5 px-4 bg-primary/10 border border-primary/20 text-primary hover:bg-primary hover:text-white rounded-xl text-xs font-black transition-all flex items-center justify-center gap-1.5 active:scale-95 shadow-sm">
+                    <i data-lucide="folder-open" class="w-3.5 h-3.5"></i> View Projects
+                </a>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<!-- ========================================================================= -->
+<!-- PROJECTS LIST SECTION WITH CATEGORY FILTER TABS -->
+<!-- ========================================================================= -->
 <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
-    <h2 class="text-lg font-bold font-heading text-text m-0 flex items-center gap-2">
-        <i data-lucide="list" class="w-5 h-5 text-text-muted"></i> All Projects
-    </h2>
+    <div>
+        <h2 class="text-xl font-black font-heading text-text m-0 flex items-center gap-2">
+            <i data-lucide="folder-kanban" class="w-5 h-5 text-primary"></i> Projects Portfolio
+        </h2>
+        <p class="text-xs text-text-muted mt-0.5 font-medium">Browse and filter projects across all categories.</p>
+    </div>
+
+    <!-- Category Filter Tabs -->
+    <div class="flex flex-wrap items-center gap-2">
+        <button type="button" onclick="filterProjectsByCategory('all')" id="tab-all" class="cat-filter-btn px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all bg-primary text-white shadow-md shadow-primary/20">
+            All ({{ projects|length }})
+        </button>
+        {% for cat in categories %}
+        <button type="button" onclick="filterProjectsByCategory('{{ cat.name|escape }}')" id="tab-{{ cat.id }}" class="cat-filter-btn px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all bg-surface/50 border border-white/10 text-text-muted hover:text-text hover:bg-surface">
+            {{ cat.name }}
+        </button>
+        {% endfor %}
+    </div>
 </div>
 
 <!-- Project Cards Grid -->
 {% if projects %}
-<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+<div id="projectsGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
     {% for project in projects %}
     {% set is_income = project.paid_income > project.paid_expense %}
     {% set progress = ((project.paid_income / project.total_income * 100) if is_income and project.total_income > 0 else (project.paid_expense / project.total_cost * 100) if not is_income and project.total_cost > 0 else 0) %}
     {% set current_profit = project.current_profit %}
     {% set projected_profit = project.projected_profit %}
-    <div id="project-{{ project.id }}" class="bg-surface border border-border rounded-2xl overflow-hidden relative transition-all duration-300 hover:-translate-y-1 hover:shadow-lg group flex flex-col">
+    <div id="project-{{ project.id }}" data-category="{{ project.category.name if project.category else 'uncategorized' }}" class="project-card bg-surface/40 backdrop-blur-xl border border-white/10 rounded-3xl overflow-hidden relative transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl hover:border-primary/30 group flex flex-col">
 
         <!-- Status Badge -->
         {% if progress >= 100 %}
-        <div class="absolute top-0 right-0 bg-success text-white px-3 py-1 text-xs font-bold rounded-bl-lg tracking-wider z-10 shadow-sm">COMPLETED</div>
+        <div class="absolute top-0 right-0 bg-success text-white px-3 py-1 text-[10px] font-black rounded-bl-xl tracking-widest z-10 shadow-sm uppercase">COMPLETED</div>
         {% elif is_income %}
-        <div class="absolute top-0 right-0 bg-success/80 text-white px-3 py-1 text-xs font-bold rounded-bl-lg tracking-wider z-10 shadow-sm">INCOME</div>
+        <div class="absolute top-0 right-0 bg-success/80 text-white px-3 py-1 text-[10px] font-black rounded-bl-xl tracking-widest z-10 shadow-sm uppercase">INCOME</div>
         {% endif %}
 
         <div class="p-6 flex-grow flex flex-col">
+            <!-- Category Badge & Item Count -->
+            <div class="flex items-center gap-2 mb-3">
+                {% if project.category %}
+                <a href="{{ url_for('main.category_projects', category_id=project.category.id) }}" class="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider bg-primary/10 text-primary border border-primary/20 hover:bg-primary hover:text-white transition-colors">
+                    <i data-lucide="tag" class="w-3 h-3"></i> {{ project.category.name }}
+                </a>
+                {% else %}
+                <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-lg text-[10px] font-black uppercase tracking-wider bg-surface/50 text-text-muted border border-white/5">
+                    Uncategorized
+                </span>
+                {% endif %}
+                <span class="text-[10px] font-bold text-text-muted">
+                    {{ project.items|length }} item{{ 's' if project.items|length != 1 else '' }}
+                </span>
+            </div>
+
             <!-- Header -->
-            <div class="flex justify-between items-start mb-4 gap-4">
+            <div class="flex justify-between items-start mb-3 gap-4">
                 <div class="min-w-0 flex-1">
-                    <h3 class="font-bold text-lg text-text m-0 mb-1 truncate flex items-center gap-2" title="{{ project.name }}">
+                    <h3 class="font-black text-lg text-text m-0 truncate group-hover:text-primary transition-colors" title="{{ project.name }}">
                         {{ project.name }}
                     </h3>
-                    <span class="inline-block text-xs font-medium text-text-muted bg-surface-active px-2.5 py-0.5 rounded-full border border-border">
-                        {{ project.items|length }} item{{ 's' if project.items|length != 1 else '' }}
-                    </span>
                 </div>
                 <div class="text-right flex-shrink-0">
-                    <span class="block text-xl font-bold font-heading {% if is_income %}text-success{% else %}text-danger{% endif %}">
+                    <span class="block text-lg font-black font-heading {% if is_income %}text-success{% else %}text-danger{% endif %}">
                         {{ current_user.default_currency }} {{ "{:,.2f}".format(project.total_income if is_income else project.total_cost) }}
                     </span>
-                    {% set remaining = (project.total_income - project.paid_income) if is_income else (project.total_cost - project.paid_expense) %}
-                    {% if remaining > 0 %}
-                    <span class="text-xs text-text-muted block mt-0.5">{{ current_user.default_currency }} {{ "{:,.2f}".format(remaining) }} left</span>
-                    {% endif %}
                 </div>
             </div>
 
             {% if project.description %}
-            <p class="text-sm text-text-muted mb-4 line-clamp-2">{{ project.description }}</p>
+            <p class="text-xs text-text-muted mb-4 line-clamp-2 font-medium">{{ project.description }}</p>
             {% else %}
             <div class="mb-4"></div>
             {% endif %}
 
             <div class="space-y-2 mb-5">
                 <div class="flex items-center justify-between gap-3 rounded-xl border px-3 py-2.5 {% if current_profit >= 0 %}bg-success/10 border-success/20{% else %}bg-danger/10 border-danger/20{% endif %}">
-                    <span class="flex items-center gap-1.5 text-xs font-semibold {% if current_profit >= 0 %}text-success{% else %}text-danger{% endif %}">
+                    <span class="flex items-center gap-1.5 text-xs font-bold {% if current_profit >= 0 %}text-success{% else %}text-danger{% endif %}">
                         <i data-lucide="{% if current_profit >= 0 %}trending-up{% else %}trending-down{% endif %}" class="w-4 h-4"></i>
                         Current {{ 'Profit' if current_profit >= 0 else 'Loss' }}
                     </span>
-                    <span class="text-sm font-bold {% if current_profit >= 0 %}text-success{% else %}text-danger{% endif %}">
+                    <span class="text-sm font-black {% if current_profit >= 0 %}text-success{% else %}text-danger{% endif %}">
                         {{ current_user.default_currency }} {{ "{:,.2f}".format(current_profit|abs) }}
-                    </span>
-                </div>
-                <div class="flex items-center justify-between gap-3 rounded-xl border px-3 py-2.5 {% if projected_profit >= 0 %}bg-success/10 border-success/20{% else %}bg-danger/10 border-danger/20{% endif %}">
-                    <span class="flex items-center gap-1.5 text-xs font-semibold {% if projected_profit >= 0 %}text-success{% else %}text-danger{% endif %}">
-                        <i data-lucide="{% if projected_profit >= 0 %}trending-up{% else %}trending-down{% endif %}" class="w-4 h-4"></i>
-                        Projected {{ 'Profit' if projected_profit >= 0 else 'Loss' }}
-                    </span>
-                    <span class="text-sm font-bold {% if projected_profit >= 0 %}text-success{% else %}text-danger{% endif %}">
-                        {{ current_user.default_currency }} {{ "{:,.2f}".format(projected_profit|abs) }}
                     </span>
                 </div>
             </div>
 
             <!-- Progress Bar -->
             <div class="mb-5 mt-auto">
-                <div class="flex justify-between text-xs mb-1.5 text-text-muted">
-                    <span class="font-medium">Payment Progress</span>
-                    <span class="font-bold {% if progress >= 100 %}text-success{% else %}text-primary{% endif %}">{{ "%.0f"|format(progress) }}%</span>
+                <div class="flex justify-between text-[10px] font-black uppercase tracking-wider mb-1.5 text-text-muted">
+                    <span>Payment Progress</span>
+                    <span class="{% if progress >= 100 %}text-success{% else %}text-primary{% endif %}">{{ "%.0f"|format(progress) }}%</span>
                 </div>
-                <div class="h-2 bg-surface-active rounded-full overflow-hidden border border-border/50">
-                    <div class="h-full rounded-full transition-all duration-1000 ease-out {% if progress >= 100 %}bg-success{% else %}bg-gradient-to-r from-primary to-primary-light{% endif %}" style="width: {{ progress }}%;"></div>
+                <div class="h-2 bg-surface/50 rounded-full overflow-hidden border border-white/5">
+                    <div class="h-full rounded-full transition-all duration-1000 ease-out {% if progress >= 100 %}bg-success{% else %}bg-gradient-to-r from-primary to-purple-500{% endif %}" style="width: {{ progress }}%;"></div>
                 </div>
             </div>
 
             <!-- Details Grid -->
-            <div class="grid grid-cols-2 gap-3 mb-5 text-sm text-text-muted bg-surface-active/50 rounded-xl p-3 border border-border/30">
-                <div class="flex items-center gap-2">
-                    <i data-lucide="calendar" class="w-4 h-4 opacity-70"></i>
-                    <span class="truncate">{{ project.created_date.strftime('%b %d, %Y') }}</span>
+            <div class="grid grid-cols-2 gap-2 mb-5 text-xs text-text-muted bg-surface/30 rounded-2xl p-3 border border-white/5 font-medium">
+                <div class="flex items-center gap-1.5 truncate">
+                    <i data-lucide="calendar" class="w-3.5 h-3.5 opacity-70"></i>
+                    <span>{{ project.created_date.strftime('%b %d, %Y') }}</span>
                 </div>
-                <div class="flex items-center gap-2">
-                    <i data-lucide="wallet" class="w-4 h-4 opacity-70"></i>
-                    <span class="truncate">Paid: {{ current_user.default_currency }} {{ "{:,.2f}".format(project.paid_income if is_income else project.paid_expense) }}</span>
+                <div class="flex items-center gap-1.5 truncate">
+                    <i data-lucide="wallet" class="w-3.5 h-3.5 opacity-70"></i>
+                    <span>Paid: {{ current_user.default_currency }} {{ "{:,.2f}".format(project.paid_income if is_income else project.paid_expense) }}</span>
                 </div>
-                {% if project.funding_source %}
-                <div class="flex items-center gap-2 col-span-2 mt-1">
-                    <i data-lucide="piggy-bank" class="w-4 h-4 opacity-70"></i>
-                    <span class="truncate">
-                        {% if project.funding_source == 'wallet' and project.wallet %}
-                            {{ project.wallet.name }}
-                        {% elif project.funding_source == 'other' %}
-                            {{ project.custom_funding_source }}
-                        {% else %}
-                            {{ project.funding_source|replace('_', ' ')|title }}
-                        {% endif %}
-                    </span>
-                </div>
-                {% endif %}
             </div>
 
             <!-- Action Buttons -->
-            <div class="flex gap-2 pt-4 border-t border-border mt-auto">
-                <a href="{{ url_for('main.project_details', id=project.id) }}" class="flex-1 btn-primary flex items-center justify-center gap-2 py-2 px-3 text-sm shadow-sm hover:shadow">
-                    <i data-lucide="eye" class="w-4 h-4"></i> View
+            <div class="flex gap-2 pt-4 border-t border-white/5 mt-auto">
+                <a href="{{ url_for('main.project_details', id=project.id) }}" class="flex-1 btn-primary flex items-center justify-center gap-2 py-2.5 px-3 text-xs font-black shadow-sm hover:shadow">
+                    <i data-lucide="eye" class="w-3.5 h-3.5"></i> View
                 </a>
-                <a href="{{ url_for('main.edit_project', id=project.id) }}" class="flex-1 btn-secondary flex items-center justify-center gap-2 py-2 px-3 text-sm shadow-sm hover:shadow">
-                    <i data-lucide="pencil" class="w-4 h-4"></i> Edit
+                <a href="{{ url_for('main.edit_project', id=project.id) }}" class="flex-1 btn-secondary flex items-center justify-center gap-2 py-2.5 px-3 text-xs font-black shadow-sm hover:shadow">
+                    <i data-lucide="pencil" class="w-3.5 h-3.5"></i> Edit
                 </a>
                 <form action="{{ url_for('main.delete_project', id=project.id) }}" method="POST" class="flex-shrink-0" onsubmit="return confirm('Delete this project? This cannot be undone.');">
-                    <button type="submit" class="btn-delete flex items-center justify-center p-2.5 h-full rounded-xl shadow-sm hover:shadow" title="Delete">
+                    <button type="submit" class="btn-delete flex items-center justify-center p-2.5 h-full rounded-xl shadow-sm hover:shadow text-danger" title="Delete">
                         <i data-lucide="trash-2" class="w-4 h-4"></i>
                     </button>
                 </form>
@@ -208,19 +359,507 @@
     {% endfor %}
 </div>
 {% else %}
-<div class="text-center py-16 px-6 bg-surface border border-dashed border-border rounded-2xl shadow-sm">
-    <div class="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
-        <i data-lucide="folder-plus" class="w-10 h-10 text-primary"></i>
+<div class="text-center py-16 px-6 bg-surface/30 border border-dashed border-white/10 rounded-3xl shadow-sm">
+    <div class="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4 text-primary">
+        <i data-lucide="folder-plus" class="w-10 h-10"></i>
     </div>
-    <h3 class="text-xl font-bold text-text mb-2">No Projects Yet</h3>
-    <p class="text-text-muted mb-6 max-w-md mx-auto">Create your first project to start planning budgets for events, renovations, or large purchases.</p>
-    <a href="{{ url_for('main.add_project') }}" class="btn-primary shadow-sm hover:shadow-md transition-all" style="display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; padding: 0.75rem 1.5rem; white-space: nowrap; border-radius: 0.75rem;">
-        <i data-lucide="plus" style="width: 20px; height: 20px;"></i> Add a Project
+    <h3 class="text-xl font-black font-heading text-text mb-2">No Projects Yet</h3>
+    <p class="text-text-muted mb-6 max-w-md mx-auto text-sm">Create your first project under a category to start tracking costs and profits.</p>
+    <a href="{{ url_for('main.add_project') }}" class="btn-primary shadow-sm hover:shadow-md transition-all inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl font-black text-sm">
+        <i data-lucide="plus" class="w-4 h-4"></i> Add a Project
     </a>
 </div>
 {% endif %}
 
+<!-- ========================================================================= -->
+<!-- MODAL: ADD CATEGORY OPERATIONAL EXPENSE -->
+<!-- ========================================================================= -->
+<div id="categoryExpenseModal" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-xl z-[110] flex items-center justify-center p-4 opacity-0 transition-opacity duration-300">
+    <div class="bg-surface/95 backdrop-blur-2xl w-full max-w-lg rounded-3xl border border-white/20 flex flex-col shadow-2xl overflow-hidden relative transform scale-95 transition-transform duration-300" onclick="event.stopPropagation()">
+        <div class="p-6 border-b border-white/10 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-2xl bg-primary/10 flex items-center justify-center text-primary">
+                    <i data-lucide="receipt" class="w-5 h-5"></i>
+                </div>
+                <div>
+                    <h3 class="text-lg font-black font-heading m-0 text-text">Record Category Operational Expense</h3>
+                    <p class="text-xs text-text-muted m-0 font-medium">Add general operating costs (e.g. shipping, materials, marketing) for a category</p>
+                </div>
+            </div>
+            <button type="button" onclick="closeCategoryExpenseModal()" class="text-text-muted hover:text-text transition-colors">
+                <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+        </div>
+
+        <form action="{{ url_for('main.add_category_expense') }}" method="POST" class="p-6 space-y-4">
+            <!-- Category Select -->
+            <div class="space-y-2">
+                <div class="flex items-center justify-between gap-3">
+                    <label for="modal_category_id" class="block text-[10px] font-black text-text-muted uppercase tracking-widest">Project Category</label>
+                    <button type="button" onclick="openNewCategoryModal()" class="text-[10px] font-black uppercase tracking-widest text-primary hover:text-purple-400 transition-colors inline-flex items-center gap-1">
+                        <i data-lucide="plus-circle" class="w-3.5 h-3.5"></i> New Category
+                    </button>
+                </div>
+                <select id="modal_category_id" name="category_id" required
+                    class="w-full h-12 px-4 bg-surface/30 border border-white/10 rounded-xl text-text font-bold focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all">
+                    {% for cat in categories %}
+                    <option value="{{ cat.id }}">{{ cat.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Expense Title -->
+            <div class="space-y-2">
+                <label for="expense_name" class="block text-[10px] font-black text-text-muted uppercase tracking-widest">Expense Title / Item Name</label>
+                <input type="text" id="expense_name" name="expense_name" required placeholder="e.g., Shipping logistics, Packaging boxes, Marketing"
+                    class="w-full h-12 px-4 bg-surface/30 border border-white/10 rounded-xl text-text font-bold focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all">
+            </div>
+
+            <!-- Amount & Date -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div class="space-y-2">
+                    <label for="modal_amount" class="block text-[10px] font-black text-text-muted uppercase tracking-widest">Amount ({{ current_user.default_currency }})</label>
+                    <input type="number" step="0.01" min="0.01" id="modal_amount" name="amount" required placeholder="0.00"
+                        class="w-full h-12 px-4 bg-surface/30 border border-white/10 rounded-xl text-text font-bold focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all">
+                </div>
+
+                <div class="space-y-2">
+                    <label for="modal_date" class="block text-[10px] font-black text-text-muted uppercase tracking-widest">Date</label>
+                    <input type="date" id="modal_date" name="date"
+                        class="w-full h-12 px-4 bg-surface/30 border border-white/10 rounded-xl text-text font-bold focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all">
+                </div>
+            </div>
+
+            <!-- Optional Wallet -->
+            <div class="space-y-2">
+                <label for="modal_wallet_id" class="block text-[10px] font-black text-text-muted uppercase tracking-widest">Funding Wallet (Optional)</label>
+                <select id="modal_wallet_id" name="wallet_id"
+                    class="w-full h-12 px-4 bg-surface/30 border border-white/10 rounded-xl text-text font-bold focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all">
+                    <option value="">-- None / External Fund --</option>
+                    {% for wallet in wallets %}
+                    <option value="{{ wallet.id }}">{{ wallet.name }} ({{ wallet.currency }} {{ "{:,.2f}".format(wallet.balance) }})</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Notes -->
+            <div class="space-y-2">
+                <label for="modal_notes" class="block text-[10px] font-black text-text-muted uppercase tracking-widest">Notes (Optional)</label>
+                <textarea id="modal_notes" name="notes" rows="2" placeholder="Additional details or receipts..."
+                    class="w-full p-3 bg-surface/30 border border-white/10 rounded-xl text-text text-sm font-medium focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all resize-none"></textarea>
+            </div>
+
+            <!-- Submit -->
+            <div class="flex gap-3 pt-4 border-t border-white/10">
+                <button type="button" onclick="closeCategoryExpenseModal()" class="flex-1 px-4 py-3 font-black text-xs uppercase tracking-widest text-text bg-surface border border-white/10 rounded-xl hover:bg-surface-active transition-all active:scale-95">
+                    Cancel
+                </button>
+                <button type="submit" class="flex-1 px-4 py-3 font-black text-xs uppercase tracking-widest text-white bg-gradient-to-r from-primary to-purple-600 rounded-xl hover:opacity-95 hover:scale-105 active:scale-95 transition-all shadow-lg shadow-primary/20 flex items-center justify-center gap-2">
+                    <i data-lucide="check" class="w-4 h-4"></i> Save Expense
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal: Create a category without leaving the Projects page -->
+<div id="newCategoryModal" class="hidden fixed inset-0 bg-slate-900/70 backdrop-blur-xl z-[130] flex items-center justify-center p-4 opacity-0 transition-opacity duration-300">
+    <div class="bg-surface/95 backdrop-blur-2xl w-full max-w-md rounded-3xl border border-white/20 flex flex-col shadow-2xl overflow-hidden relative transform scale-95 transition-transform duration-300" onclick="event.stopPropagation()">
+        <div class="p-6 border-b border-white/10 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary"><i data-lucide="folder-plus" class="w-5 h-5"></i></div>
+                <div>
+                    <h3 class="text-lg font-black font-heading m-0 text-text">New Project Category</h3>
+                    <p class="text-xs text-text-muted m-0">Create it, then use it immediately for this expense.</p>
+                </div>
+            </div>
+            <button type="button" onclick="closeNewCategoryModal()" class="text-text-muted hover:text-text transition-colors" aria-label="Close new category dialog"><i data-lucide="x" class="w-5 h-5"></i></button>
+        </div>
+        <form id="newCategoryForm" onsubmit="createProjectCategory(event)" class="p-6 space-y-5">
+            <div class="space-y-2">
+                <label for="new_category_name" class="block text-[10px] font-black text-text-muted uppercase tracking-widest">Category Name</label>
+                <input type="text" id="new_category_name" name="name" required placeholder="e.g., Solar Panels, Export Goods" class="w-full h-12 px-4 bg-surface/30 border border-white/10 rounded-xl text-text font-bold focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all">
+            </div>
+            <div class="space-y-2">
+                <label for="new_category_description" class="block text-[10px] font-black text-text-muted uppercase tracking-widest">Description (Optional)</label>
+                <textarea id="new_category_description" name="description" rows="2" placeholder="Brief notes for this category..." class="w-full p-4 bg-surface/30 border border-white/10 rounded-xl text-text text-sm font-medium focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all resize-none"></textarea>
+            </div>
+            <div class="flex gap-3 pt-4 border-t border-white/10">
+                <button type="button" onclick="closeNewCategoryModal()" class="flex-1 px-4 py-3 font-black text-xs uppercase tracking-widest text-text bg-surface border border-white/10 rounded-xl hover:bg-surface-active transition-all active:scale-95">Cancel</button>
+                <button type="submit" id="saveNewCategoryBtn" class="flex-1 px-4 py-3 font-black text-xs uppercase tracking-widest text-white bg-primary rounded-xl hover:bg-primary/90 hover:scale-105 active:scale-95 transition-all shadow-lg shadow-primary/20 flex items-center justify-center gap-2"><i data-lucide="check" class="w-4 h-4"></i> Save Category</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- ========================================================================= -->
+<!-- MODAL: EDIT CATEGORY OPERATIONAL EXPENSE -->
+<!-- ========================================================================= -->
+<div id="editExpenseModal" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-xl z-[120] flex items-center justify-center p-4 opacity-0 transition-opacity duration-300">
+    <div class="bg-surface/95 backdrop-blur-2xl w-full max-w-lg rounded-3xl border border-white/20 flex flex-col shadow-2xl overflow-hidden relative transform scale-95 transition-transform duration-300" onclick="event.stopPropagation()">
+        <div class="p-6 border-b border-white/10 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-2xl bg-primary/10 flex items-center justify-center text-primary">
+                    <i data-lucide="edit-3" class="w-5 h-5"></i>
+                </div>
+                <div>
+                    <h3 class="text-lg font-black font-heading m-0 text-text">Edit Category Expense</h3>
+                    <p class="text-xs text-text-muted m-0 font-medium">Update expense name, amount, or date</p>
+                </div>
+            </div>
+            <button type="button" onclick="closeEditExpenseModal()" class="text-text-muted hover:text-text transition-colors">
+                <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+        </div>
+
+        <form id="editExpenseForm" method="POST" class="p-6 space-y-4">
+            <!-- Category Select -->
+            <div class="space-y-2">
+                <div class="flex items-center justify-between gap-3">
+                    <label for="edit_modal_category_id" class="block text-[10px] font-black text-text-muted uppercase tracking-widest">Project Category</label>
+                    <button type="button" onclick="openNewCategoryModal()" class="text-[10px] font-black uppercase tracking-widest text-primary hover:text-purple-400 transition-colors inline-flex items-center gap-1">
+                        <i data-lucide="plus-circle" class="w-3.5 h-3.5"></i> New Category
+                    </button>
+                </div>
+                <select id="edit_modal_category_id" name="category_id" required
+                    class="w-full h-12 px-4 bg-surface/30 border border-white/10 rounded-xl text-text font-bold focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all">
+                    {% for cat in categories %}
+                    <option value="{{ cat.id }}">{{ cat.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Expense Title -->
+            <div class="space-y-2">
+                <label for="edit_expense_name" class="block text-[10px] font-black text-text-muted uppercase tracking-widest">Expense Title / Item Name</label>
+                <input type="text" id="edit_expense_name" name="expense_name" required
+                    class="w-full h-12 px-4 bg-surface/30 border border-white/10 rounded-xl text-text font-bold focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all">
+            </div>
+
+            <!-- Amount & Date -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div class="space-y-2">
+                    <label for="edit_amount" class="block text-[10px] font-black text-text-muted uppercase tracking-widest">Amount ({{ current_user.default_currency }})</label>
+                    <input type="number" step="0.01" min="0.01" id="edit_amount" name="amount" required
+                        class="w-full h-12 px-4 bg-surface/30 border border-white/10 rounded-xl text-text font-bold focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all">
+                </div>
+
+                <div class="space-y-2">
+                    <label for="edit_date" class="block text-[10px] font-black text-text-muted uppercase tracking-widest">Date</label>
+                    <input type="date" id="edit_date" name="date"
+                        class="w-full h-12 px-4 bg-surface/30 border border-white/10 rounded-xl text-text font-bold focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all">
+                </div>
+            </div>
+
+            <!-- Optional Wallet -->
+            <div class="space-y-2">
+                <label for="edit_wallet_id" class="block text-[10px] font-black text-text-muted uppercase tracking-widest">Funding Wallet</label>
+                <select id="edit_wallet_id" name="wallet_id"
+                    class="w-full h-12 px-4 bg-surface/30 border border-white/10 rounded-xl text-text font-bold focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all">
+                    <option value="">-- None / External Fund --</option>
+                    {% for wallet in wallets %}
+                    <option value="{{ wallet.id }}">{{ wallet.name }} ({{ wallet.currency }} {{ "{:,.2f}".format(wallet.balance) }})</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Notes -->
+            <div class="space-y-2">
+                <label for="edit_notes" class="block text-[10px] font-black text-text-muted uppercase tracking-widest">Notes</label>
+                <textarea id="edit_notes" name="notes" rows="2"
+                    class="w-full p-3 bg-surface/30 border border-white/10 rounded-xl text-text text-sm font-medium focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all resize-none"></textarea>
+            </div>
+
+            <!-- Submit -->
+            <div class="flex gap-3 pt-4 border-t border-white/10">
+                <button type="button" onclick="closeEditExpenseModal()" class="flex-1 px-4 py-3 font-black text-xs uppercase tracking-widest text-text bg-surface border border-white/10 rounded-xl hover:bg-surface-active transition-all active:scale-95">
+                    Cancel
+                </button>
+                <button type="submit" class="flex-1 px-4 py-3 font-black text-xs uppercase tracking-widest text-white bg-primary rounded-xl hover:bg-primary/90 hover:scale-105 active:scale-95 transition-all shadow-lg shadow-primary/20 flex items-center justify-center gap-2">
+                    <i data-lucide="save" class="w-4 h-4"></i> Update Expense
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- ========================================================================= -->
+<!-- MODAL: CATEGORY EXPENSES LEDGER -->
+<!-- ========================================================================= -->
+<div id="expenseLedgerModal" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-xl z-[110] flex items-center justify-center p-4 opacity-0 transition-opacity duration-300">
+    <div class="bg-surface/95 backdrop-blur-2xl w-full max-w-3xl rounded-3xl border border-white/20 flex flex-col shadow-2xl overflow-hidden relative transform scale-95 transition-transform duration-300 max-h-[85vh]" onclick="event.stopPropagation()">
+        <div class="p-6 border-b border-white/10 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-2xl bg-primary/10 flex items-center justify-center text-primary">
+                    <i data-lucide="receipt" class="w-5 h-5"></i>
+                </div>
+                <div>
+                    <h3 class="text-lg font-black font-heading m-0 text-text">Category Operational Expenses Ledger</h3>
+                    <p class="text-xs text-text-muted m-0 font-medium">All logged operational items and additional expenses by category</p>
+                </div>
+            </div>
+            <button type="button" onclick="closeExpenseLedgerModal()" class="text-text-muted hover:text-text transition-colors">
+                <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+        </div>
+
+        <div class="p-6 overflow-y-auto flex-1 divide-y divide-white/5 space-y-4">
+            {% if category_expenses %}
+            {% for exp in category_expenses %}
+            <div class="pt-4 first:pt-0 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <div class="space-y-1">
+                    <div class="flex items-center gap-2">
+                        <span class="px-2.5 py-0.5 rounded-lg text-[10px] font-black uppercase tracking-wider bg-primary/10 text-primary border border-primary/20">
+                            {{ exp.category.name if exp.category else 'Unknown' }}
+                        </span>
+                        <h4 class="font-black text-sm text-text m-0">{{ exp.expense_name }}</h4>
+                    </div>
+                    <div class="flex items-center gap-3 text-xs text-text-muted">
+                        <span><i data-lucide="calendar" class="w-3 h-3 inline"></i> {{ exp.date.strftime('%b %d, %Y') }}</span>
+                        {% if exp.wallet %}
+                        <span><i data-lucide="wallet" class="w-3 h-3 inline"></i> {{ exp.wallet.name }}</span>
+                        {% endif %}
+                        {% if exp.notes %}
+                        <span class="italic text-text-muted/70">"{{ exp.notes }}"</span>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="flex items-center gap-3 self-end sm:self-center">
+                    <span class="text-base font-black text-danger font-heading">
+                        -{{ current_user.default_currency }} {{ "{:,.2f}".format(exp.amount) }}
+                    </span>
+                    <div class="flex items-center gap-1">
+                        <button type="button" onclick="openEditExpenseModal({{ exp.id }}, '{{ exp.expense_name|escape }}', {{ exp.amount }}, '{{ exp.date.strftime('%Y-%m-%d') }}', {{ exp.category_id }}, '{{ exp.wallet_id or '' }}', '{{ (exp.notes or '')|escape }}')" class="p-2 text-text-muted hover:text-primary hover:bg-primary/10 rounded-lg transition-colors" title="Edit Expense">
+                            <i data-lucide="pencil" class="w-4 h-4"></i>
+                        </button>
+                        <form action="{{ url_for('main.delete_category_expense', id=exp.id) }}" method="POST" onsubmit="return confirm('Delete this operational expense?');">
+                            <button type="submit" class="p-2 text-text-muted hover:text-danger hover:bg-danger/10 rounded-lg transition-colors" title="Delete Expense">
+                                <i data-lucide="trash-2" class="w-4 h-4"></i>
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+            {% else %}
+            <p class="text-center text-sm text-text-muted py-8">No operational expenses recorded yet.</p>
+            {% endif %}
+        </div>
+
+        <div class="p-4 bg-surface/50 border-t border-white/10 flex justify-end">
+            <button type="button" onclick="closeExpenseLedgerModal()" class="px-5 py-2.5 font-black text-xs uppercase tracking-widest text-text bg-surface border border-white/10 rounded-xl hover:bg-surface-active transition-all">
+                Close Ledger
+            </button>
+        </div>
+    </div>
+</div>
+
 <script>
-    document.addEventListener('DOMContentLoaded', () => { lucide.createIcons(); });
+// Modal handlers
+const categoryExpenseModal = document.getElementById('categoryExpenseModal');
+const categoryExpenseModalContent = categoryExpenseModal ? categoryExpenseModal.querySelector('.bg-surface\\/95') : null;
+const newCategoryModal = document.getElementById('newCategoryModal');
+const newCategoryModalContent = newCategoryModal ? newCategoryModal.querySelector('.bg-surface\\/95') : null;
+
+function openNewCategoryModal() {
+    if (!newCategoryModal) return;
+    newCategoryModal.classList.remove('hidden');
+    setTimeout(() => {
+        newCategoryModal.classList.remove('opacity-0');
+        newCategoryModalContent.classList.remove('scale-95');
+        newCategoryModalContent.classList.add('scale-100');
+        document.getElementById('new_category_name').focus();
+    }, 10);
+}
+
+function closeNewCategoryModal() {
+    if (!newCategoryModal) return;
+    newCategoryModal.classList.add('opacity-0');
+    newCategoryModalContent.classList.remove('scale-100');
+    newCategoryModalContent.classList.add('scale-95');
+    setTimeout(() => {
+        newCategoryModal.classList.add('hidden');
+        document.getElementById('newCategoryForm').reset();
+    }, 300);
+}
+
+async function createProjectCategory(event) {
+    event.preventDefault();
+    const button = document.getElementById('saveNewCategoryBtn');
+    const originalContent = button.innerHTML;
+    const name = document.getElementById('new_category_name').value.trim();
+    const description = document.getElementById('new_category_description').value.trim();
+
+    button.disabled = true;
+    button.innerHTML = '<i data-lucide="loader" class="w-4 h-4 animate-spin"></i> Saving...';
+    lucide.createIcons();
+
+    try {
+        const response = await fetch("{{ url_for('main.create_project_category') }}", {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: JSON.stringify({ name, description })
+        });
+        const data = await response.json();
+
+        if (!response.ok || !data.success || !data.category) {
+            throw new Error(data.message || 'Failed to create category.');
+        }
+
+        document.querySelectorAll('select[name="category_id"]').forEach(select => {
+            let option = Array.from(select.options).find(item => item.value === String(data.category.id));
+            if (!option) {
+                option = new Option(data.category.name, data.category.id);
+                select.add(option);
+            }
+            select.value = data.category.id;
+        });
+        closeNewCategoryModal();
+    } catch (error) {
+        alert(error.message || 'An error occurred while saving the category.');
+    } finally {
+        button.disabled = false;
+        button.innerHTML = originalContent;
+        lucide.createIcons();
+    }
+}
+
+function openCategoryExpenseModal(categoryId = null, categoryName = '') {
+    if (!categoryExpenseModal) return;
+    categoryExpenseModal.classList.remove('hidden');
+    if (categoryId) {
+        document.getElementById('modal_category_id').value = categoryId;
+    }
+    const today = new Date().toISOString().split('T')[0];
+    document.getElementById('modal_date').value = today;
+
+    setTimeout(() => {
+        categoryExpenseModal.classList.remove('opacity-0');
+        categoryExpenseModalContent.classList.remove('scale-95');
+        categoryExpenseModalContent.classList.add('scale-100');
+        document.getElementById('expense_name').focus();
+    }, 10);
+}
+
+function closeCategoryExpenseModal() {
+    if (!categoryExpenseModal) return;
+    categoryExpenseModal.classList.add('opacity-0');
+    categoryExpenseModalContent.classList.remove('scale-100');
+    categoryExpenseModalContent.classList.add('scale-95');
+    setTimeout(() => {
+        categoryExpenseModal.classList.add('hidden');
+    }, 300);
+}
+
+// Edit Modal
+const editExpenseModal = document.getElementById('editExpenseModal');
+const editExpenseModalContent = editExpenseModal ? editExpenseModal.querySelector('.bg-surface\\/95') : null;
+
+function openEditExpenseModal(id, name, amount, date, categoryId, walletId, notes) {
+    if (!editExpenseModal) return;
+    document.getElementById('editExpenseForm').action = "/projects/categories/expenses/" + id + "/edit";
+    document.getElementById('edit_expense_name').value = name;
+    document.getElementById('edit_amount').value = amount;
+    document.getElementById('edit_date').value = date;
+    document.getElementById('edit_modal_category_id').value = categoryId;
+    document.getElementById('edit_wallet_id').value = walletId || '';
+    document.getElementById('edit_notes').value = notes || '';
+
+    // If expense ledger is open, we can keep or close it
+    editExpenseModal.classList.remove('hidden');
+    setTimeout(() => {
+        editExpenseModal.classList.remove('opacity-0');
+        editExpenseModalContent.classList.remove('scale-95');
+        editExpenseModalContent.classList.add('scale-100');
+    }, 10);
+}
+
+function closeEditExpenseModal() {
+    if (!editExpenseModal) return;
+    editExpenseModal.classList.add('opacity-0');
+    editExpenseModalContent.classList.remove('scale-100');
+    editExpenseModalContent.classList.add('scale-95');
+    setTimeout(() => {
+        editExpenseModal.classList.add('hidden');
+    }, 300);
+}
+
+const expenseLedgerModal = document.getElementById('expenseLedgerModal');
+const expenseLedgerModalContent = expenseLedgerModal ? expenseLedgerModal.querySelector('.bg-surface\\/95') : null;
+
+function openExpenseLedgerModal() {
+    if (!expenseLedgerModal) return;
+    expenseLedgerModal.classList.remove('hidden');
+    setTimeout(() => {
+        expenseLedgerModal.classList.remove('opacity-0');
+        expenseLedgerModalContent.classList.remove('scale-95');
+        expenseLedgerModalContent.classList.add('scale-100');
+    }, 10);
+}
+
+function closeExpenseLedgerModal() {
+    if (!expenseLedgerModal) return;
+    expenseLedgerModal.classList.add('opacity-0');
+    expenseLedgerModalContent.classList.remove('scale-100');
+    expenseLedgerModalContent.classList.add('scale-95');
+    setTimeout(() => {
+        expenseLedgerModal.classList.add('hidden');
+    }, 300);
+}
+
+window.onclick = function(event) {
+    if (event.target === categoryExpenseModal) {
+        closeCategoryExpenseModal();
+    }
+    if (event.target === newCategoryModal) {
+        closeNewCategoryModal();
+    }
+    if (event.target === editExpenseModal) {
+        closeEditExpenseModal();
+    }
+    if (event.target === expenseLedgerModal) {
+        closeExpenseLedgerModal();
+    }
+};
+
+// Category filter tabs
+function filterProjectsByCategory(catName) {
+    const cards = document.querySelectorAll('.project-card');
+    const tabButtons = document.querySelectorAll('.cat-filter-btn');
+
+    tabButtons.forEach(btn => {
+        btn.classList.remove('bg-primary', 'text-white', 'shadow-md', 'shadow-primary/20');
+        btn.classList.add('bg-surface/50', 'border', 'border-white/10', 'text-text-muted');
+    });
+
+    cards.forEach(card => {
+        const cardCat = card.getAttribute('data-category');
+        if (catName === 'all' || cardCat.toLowerCase() === catName.toLowerCase()) {
+            card.style.display = 'flex';
+        } else {
+            card.style.display = 'none';
+        }
+    });
+
+    // Highlight active tab
+    const activeBtn = Array.from(tabButtons).find(btn => btn.innerText.toLowerCase().includes(catName.toLowerCase()));
+    if (activeBtn) {
+        activeBtn.classList.add('bg-primary', 'text-white', 'shadow-md', 'shadow-primary/20');
+        activeBtn.classList.remove('bg-surface/50', 'border-white/10', 'text-text-muted');
+    }
+
+    // Scroll smoothly to projects grid if clicked from category card
+    const grid = document.getElementById('projectsGrid');
+    if (grid && catName !== 'all') {
+        grid.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    lucide.createIcons();
+});
 </script>
 {% endblock %}
