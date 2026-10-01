@@ -857,7 +857,7 @@
                     <label for="source_wallet" class="text-sm font-semibold text-text">Source wallet</label>
                     <div class="field-shell">
                         <i data-lucide="arrow-up-right" class="field-icon w-4 h-4 text-primary"></i>
-                        <select id="source_wallet" name="source_wallet_id" required class="w-full rounded-2xl border border-border bg-surface pl-11 pr-4 text-text focus:border-primary focus:outline-none focus:ring-4 focus:ring-primary/10">
+                        <select id="source_wallet" name="source_wallet_id" required class="w-full rounded-2xl border border-border bg-surface !pl-11 pr-4 text-text focus:border-primary focus:outline-none focus:ring-4 focus:ring-primary/10">
                             <option value="" disabled selected>Select source wallet</option>
                             {% for wallet in wallets %}
                             <option value="{{ wallet.id }}" data-currency="{{ wallet.currency }}" data-balance="{{ "{:,.2f}".format(wallet.balance) }}">
@@ -873,7 +873,7 @@
                     <label for="dest_wallet" class="text-sm font-semibold text-text">Destination wallet</label>
                     <div class="field-shell">
                         <i data-lucide="arrow-down-left" class="field-icon w-4 h-4 text-success"></i>
-                        <select id="dest_wallet" name="dest_wallet_id" required class="w-full rounded-2xl border border-border bg-surface pl-11 pr-4 text-text focus:border-primary focus:outline-none focus:ring-4 focus:ring-primary/10">
+                        <select id="dest_wallet" name="dest_wallet_id" required class="w-full rounded-2xl border border-border bg-surface !pl-11 pr-4 text-text focus:border-primary focus:outline-none focus:ring-4 focus:ring-primary/10">
                             <option value="" disabled selected>Select destination wallet</option>
                             {% for wallet in wallets %}
                             <option value="{{ wallet.id }}" data-currency="{{ wallet.currency }}">
@@ -898,11 +898,45 @@
                 </div>
             </div>
 
-            <div id="exchange_rate_group" class="hidden rounded-2xl border border-amber-500/20 bg-amber-500/6 p-4">
-                <label for="exchange_rate" class="text-sm font-semibold text-amber-700 dark:text-amber-400">Exchange rate</label>
-                <div class="field-shell mt-2">
-                    <i data-lucide="refresh-cw" class="field-icon w-4 h-4 text-amber-600 dark:text-amber-400"></i>
-                    <input id="exchange_rate" name="exchange_rate" type="number" min="0.000001" step="any" value="1.0" class="w-full rounded-2xl border border-amber-500/30 bg-white/70 pl-11 pr-4 text-text focus:border-amber-500 focus:outline-none focus:ring-4 focus:ring-amber-500/10 dark:bg-slate-950/40">
+            <div id="exchange_rate_group" class="hidden space-y-4">
+                <!-- Buying / Selling Toggle -->
+                <div class="rounded-2xl border border-indigo-500/20 bg-indigo-500/6 p-4">
+                    <div class="text-sm font-semibold text-indigo-700 dark:text-indigo-300 mb-3">Rate type</div>
+                    <div class="flex rounded-xl border border-border bg-surface p-1 gap-1">
+                        <button type="button" id="btnBuying" onclick="setRateType('buying')" class="flex-1 flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-bold transition-all duration-200 bg-primary text-white shadow-md">
+                            <i data-lucide="arrow-down-left" class="w-4 h-4"></i>
+                            Buying
+                        </button>
+                        <button type="button" id="btnSelling" onclick="setRateType('selling')" class="flex-1 flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-bold transition-all duration-200 text-text-muted hover:bg-surface-hover">
+                            <i data-lucide="arrow-up-right" class="w-4 h-4"></i>
+                            Selling
+                        </button>
+                    </div>
+                    <input type="hidden" id="rate_type" name="rate_type" value="buying">
+                    <p id="rateTypeHint" class="mt-2 text-xs text-text-muted"></p>
+                </div>
+
+                <!-- Exchange Rate Input -->
+                <div class="rounded-2xl border border-amber-500/20 bg-amber-500/6 p-4">
+                    <label for="exchange_rate" id="exchange_rate_label" class="text-sm font-semibold text-amber-700 dark:text-amber-400">Exchange rate</label>
+                    <div class="field-shell mt-2">
+                        <i data-lucide="refresh-cw" class="field-icon w-4 h-4 text-amber-600 dark:text-amber-400"></i>
+                        <input id="exchange_rate" name="exchange_rate" type="number" min="0.000001" step="any" value="1.0" oninput="updateConversionPreview()" class="w-full rounded-2xl border border-amber-500/30 bg-white/70 !pl-11 pr-4 text-text focus:border-amber-500 focus:outline-none focus:ring-4 focus:ring-amber-500/10 dark:bg-slate-950/40">
+                    </div>
+                    <p id="rateExplanation" class="mt-2 text-xs text-text-muted"></p>
+                </div>
+
+                <!-- Live Conversion Preview -->
+                <div id="conversionPreview" class="hidden rounded-2xl border border-emerald-500/20 bg-emerald-500/6 p-4">
+                    <div class="flex items-center gap-3">
+                        <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-400">
+                            <i data-lucide="calculator" class="w-5 h-5"></i>
+                        </div>
+                        <div>
+                            <div class="text-xs font-semibold uppercase tracking-wider text-emerald-700 dark:text-emerald-400">Conversion preview</div>
+                            <div id="conversionText" class="mt-1 text-sm font-bold text-text"></div>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -911,7 +945,7 @@
                     <label for="transfer_amount" class="text-sm font-semibold text-text">Amount</label>
                     <div class="field-shell">
                         <i data-lucide="banknote" class="field-icon w-4 h-4 text-primary"></i>
-                        <input id="transfer_amount" name="amount" type="number" min="0.01" step="0.01" required placeholder="0.00" class="w-full rounded-2xl border border-border bg-surface pl-11 pr-4 text-text focus:border-primary focus:outline-none focus:ring-4 focus:ring-primary/10">
+                        <input id="transfer_amount" name="amount" type="number" min="0.01" step="0.01" required placeholder="0.00" oninput="if(window.updateConversionPreview) updateConversionPreview()" class="w-full rounded-2xl border border-border bg-surface !pl-11 pr-4 text-text focus:border-primary focus:outline-none focus:ring-4 focus:ring-primary/10">
                     </div>
                 </div>
                 <div class="space-y-2">
@@ -1114,6 +1148,74 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
+    let currentRateType = 'buying';
+    let currentSourceCurrency = '';
+    let currentDestCurrency = '';
+
+    window.setRateType = function(type) {
+        currentRateType = type;
+        const btnBuying = document.getElementById('btnBuying');
+        const btnSelling = document.getElementById('btnSelling');
+        const rateTypeInput = document.getElementById('rate_type');
+
+        if (rateTypeInput) rateTypeInput.value = type;
+
+        if (type === 'buying') {
+            btnBuying.className = 'flex-1 flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-bold transition-all duration-200 bg-primary text-white shadow-md';
+            btnSelling.className = 'flex-1 flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-bold transition-all duration-200 text-text-muted hover:bg-surface-hover';
+        } else {
+            btnSelling.className = 'flex-1 flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-bold transition-all duration-200 bg-primary text-white shadow-md';
+            btnBuying.className = 'flex-1 flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-bold transition-all duration-200 text-text-muted hover:bg-surface-hover';
+        }
+
+        updateRateLabels();
+        updateConversionPreview();
+    };
+
+    function updateRateLabels() {
+        const rateHint = document.getElementById('rateTypeHint');
+        const rateExplanation = document.getElementById('rateExplanation');
+        const rateLabel = document.getElementById('exchange_rate_label');
+
+        if (!currentSourceCurrency || !currentDestCurrency) return;
+
+        if (currentRateType === 'buying') {
+            if (rateHint) rateHint.textContent = 'You are buying ' + currentDestCurrency + ' with ' + currentSourceCurrency + '. Enter how much 1 ' + currentDestCurrency + ' costs in ' + currentSourceCurrency + '.';
+            if (rateLabel) rateLabel.textContent = 'Buying rate (1 ' + currentDestCurrency + ' = ? ' + currentSourceCurrency + ')';
+            if (rateExplanation) rateExplanation.textContent = 'Amount you send ÷ rate = amount received in ' + currentDestCurrency + '.';
+        } else {
+            if (rateHint) rateHint.textContent = 'You are selling ' + currentSourceCurrency + ' for ' + currentDestCurrency + '. Enter how much 1 ' + currentSourceCurrency + ' is worth in ' + currentDestCurrency + '.';
+            if (rateLabel) rateLabel.textContent = 'Selling rate (1 ' + currentSourceCurrency + ' = ? ' + currentDestCurrency + ')';
+            if (rateExplanation) rateExplanation.textContent = 'Amount you send × rate = amount received in ' + currentDestCurrency + '.';
+        }
+    }
+
+    window.updateConversionPreview = function() {
+        const preview = document.getElementById('conversionPreview');
+        const previewText = document.getElementById('conversionText');
+        const rate = parseFloat(exchangeRateInput ? exchangeRateInput.value : 0);
+        const amount = parseFloat(amountInput ? amountInput.value : 0);
+
+        if (!preview || !previewText) return;
+
+        if (!rate || rate <= 0 || !amount || amount <= 0 || !currentSourceCurrency || !currentDestCurrency) {
+            preview.classList.add('hidden');
+            return;
+        }
+
+        let destAmount;
+        if (currentRateType === 'buying') {
+            // Buying foreign: you pay source amount, receive source_amount / rate in dest currency
+            destAmount = amount / rate;
+        } else {
+            // Selling local: you pay source amount, receive source_amount * rate in dest currency
+            destAmount = amount * rate;
+        }
+
+        previewText.textContent = amount.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2}) + ' ' + currentSourceCurrency + '  →  ' + destAmount.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2}) + ' ' + currentDestCurrency;
+        preview.classList.remove('hidden');
+    };
+
     function updateTransferState() {
         if (!sourceSelect || !destSelect) {
             return;
@@ -1135,18 +1237,22 @@ document.addEventListener('DOMContentLoaded', function() {
 
         const sourceOption = sourceSelect.options[sourceSelect.selectedIndex];
         const destOption = destSelect.options[destSelect.selectedIndex];
-        const sourceCurrency = sourceOption ? sourceOption.getAttribute('data-currency') : '';
-        const destCurrency = destOption ? destOption.getAttribute('data-currency') : '';
-        const needsRate = Boolean(sourceOption && destOption && sourceOption.value && destOption.value && sourceCurrency && destCurrency && sourceCurrency !== destCurrency);
+        currentSourceCurrency = sourceOption ? sourceOption.getAttribute('data-currency') : '';
+        currentDestCurrency = destOption ? destOption.getAttribute('data-currency') : '';
+        const needsRate = Boolean(sourceOption && destOption && sourceOption.value && destOption.value && currentSourceCurrency && currentDestCurrency && currentSourceCurrency !== currentDestCurrency);
 
         if (exchangeRateGroup && exchangeRateHelp && exchangeRateInput) {
             if (needsRate) {
                 exchangeRateGroup.classList.remove('hidden');
-                exchangeRateHelp.textContent = 'Enter the rate from ' + sourceCurrency + ' to ' + destCurrency + '.';
+                exchangeRateHelp.textContent = 'Different currencies detected — enter your exchange rate below.';
+                updateRateLabels();
+                updateConversionPreview();
             } else {
                 exchangeRateGroup.classList.add('hidden');
                 exchangeRateHelp.textContent = 'Exchange rate is only needed when the source and destination currencies differ.';
                 exchangeRateInput.value = '1.0';
+                const preview = document.getElementById('conversionPreview');
+                if (preview) preview.classList.add('hidden');
             }
         }
     }
@@ -1202,6 +1308,7 @@ document.addEventListener('DOMContentLoaded', function() {
             if (exchangeRateInput) {
                 exchangeRateInput.value = '1.0';
             }
+            setRateType('buying');
             primeTransferForm();
         }, 200);
     };

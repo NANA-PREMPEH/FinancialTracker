@@ -170,6 +170,7 @@ def register_routes(main):
             flash('Please complete the transfer form with valid values.', 'error')
             return redirect(url_for('main.wallets'))
 
+        rate_type = request.form.get('rate_type', 'selling').strip().lower()
         date_str = request.form.get('date')
         reason = request.form.get('reason', '').strip()
 
@@ -192,8 +193,21 @@ def register_routes(main):
             flash(f'Insufficient balance in {source_wallet.name}.', 'error')
             return redirect(url_for('main.wallets'))
 
-        # Calculate destination amount based on exchange rate
-        dest_amount = amount * exchange_rate
+        # Calculate destination amount based on exchange rate and rate type
+        currencies_differ = source_wallet.currency != dest_wallet.currency
+        if currencies_differ and rate_type == 'buying':
+            # Buying: rate means "1 foreign = X local", so dest = amount / rate
+            dest_amount = amount / exchange_rate
+        else:
+            # Selling (default): rate means "1 local = X foreign", so dest = amount * rate
+            dest_amount = amount * exchange_rate
+
+        # Build rate description suffix
+        if currencies_differ and exchange_rate != 1.0:
+            rate_label = 'Buying' if rate_type == 'buying' else 'Selling'
+            rate_desc = f" ({rate_label} rate: {exchange_rate})"
+        else:
+            rate_desc = ""
 
         # Get or create Transfer category for the current user
         transfer_category = Category.query.filter_by(name='Transfer', user_id=current_user.id).first()
@@ -215,7 +229,7 @@ def register_routes(main):
         expense = Expense(
             user_id=current_user.id,
             amount=amount,
-            description=f"Transfer to {dest_wallet.name}" + (f": {reason}" if reason else "") + (f" (Rate: {exchange_rate})" if exchange_rate != 1.0 else ""),
+            description=f"Transfer to {dest_wallet.name}" + (f": {reason}" if reason else "") + rate_desc,
             category_id=transfer_category.id,
             wallet_id=source_wallet.id,
             date=date_obj,
@@ -227,7 +241,7 @@ def register_routes(main):
         income = Expense(
             user_id=current_user.id,
             amount=dest_amount,
-            description=f"Transfer from {source_wallet.name}" + (f": {reason}" if reason else "") + (f" (Rate: {exchange_rate})" if exchange_rate != 1.0 else ""),
+            description=f"Transfer from {source_wallet.name}" + (f": {reason}" if reason else "") + rate_desc,
             category_id=transfer_category.id,
             wallet_id=dest_wallet.id,
             date=date_obj,
@@ -358,6 +372,23 @@ def register_routes(main):
         net_flow = total_inflow - total_outflow
         total_tx_count = len(all_wallet_expenses)
 
+        # Calculate running balances
+        initial_balance = float(wallet.balance) - net_flow
+        all_wallet_expenses_sorted = sorted(all_wallet_expenses, key=lambda x: (x.date, x.id))
+        
+        current_running_bal = initial_balance
+        balance_map = {}
+        for exp in all_wallet_expenses_sorted:
+            if exp.transaction_type in ['income', 'transfer_in', 'liability']:
+                current_running_bal += exp.amount
+            elif exp.transaction_type in ['expense', 'transfer_out']:
+                current_running_bal -= exp.amount
+            balance_map[exp.id] = current_running_bal
+            
+        # Assign to the filtered expenses
+        for exp in expenses:
+            exp.running_balance = balance_map.get(exp.id, 0.0)
+
         # Filtered stats
         filtered_inflow = sum(e.amount for e in expenses if e.transaction_type in ['income', 'transfer_in', 'liability'])
         filtered_outflow = sum(e.amount for e in expenses if e.transaction_type in ['expense', 'transfer_out'])
@@ -368,7 +399,7 @@ def register_routes(main):
 
         # AJAX live search response
         if request.args.get('ajax') == '1':
-            html = render_template('_partials/expense_rows.html', expenses=expenses)
+            html = render_template('_partials/expense_rows.html', expenses=expenses, show_balance_column=True)
             return jsonify({
                 'html': html,
                 'count': len(expenses),

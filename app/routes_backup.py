@@ -135,6 +135,7 @@ def _build_full_backup(uid):
             'minimum_payment': c.minimum_payment,
             'contact_info': c.contact_info, 'priority': c.priority,
             'notes': c.notes,
+            'created_at': _dt(c.created_at),
             'payments': [{
                 'amount': dp.amount, 'date': _dt(dp.date), 'notes': dp.notes
             } for dp in c.payments]
@@ -149,6 +150,7 @@ def _build_full_backup(uid):
             'minimum_payment': d.minimum_payment,
             'contact_info': d.contact_info, 'priority': d.priority,
             'notes': d.notes,
+            'created_at': _dt(d.created_at),
             'payments': [{
                 'amount': dp.amount, 'date': _dt(dp.date), 'notes': dp.notes
             } for dp in d.payments]
@@ -789,6 +791,7 @@ def _insert_from_backup(uid, data, merge=False):
                         interest_rate=c.get('interest_rate', 0),
                         original_amount=c.get('original_amount'),
                         due_date=_parse_dt(c.get('due_date')),
+                        created_at=_parse_dt(c.get('created_at')) or datetime.utcnow(),
                         status=c.get('status', 'active'),
                         payment_frequency=c.get('payment_frequency'),
                         minimum_payment=c.get('minimum_payment', 0),
@@ -813,6 +816,7 @@ def _insert_from_backup(uid, data, merge=False):
                      interest_rate=d.get('interest_rate', 0),
                      original_amount=d.get('original_amount'),
                      due_date=_parse_dt(d.get('due_date')),
+                     created_at=_parse_dt(d.get('created_at')) or datetime.utcnow(),
                      status=d.get('status', 'active'),
                      payment_frequency=d.get('payment_frequency'),
                      minimum_payment=d.get('minimum_payment', 0),

@@ -350,6 +350,13 @@ def register_routes(main):
         new_created_at = _parse_due_date(request.form.get('date'))
         if new_created_at:
             debtor.created_at = new_created_at
+            # Also sync the associated debt_lent expense date if present
+            debt_exp = Expense.query.filter_by(
+                user_id=current_user.id,
+                tags='debt_lent'
+            ).filter(Expense.description.like(f"%{debtor.name}%")).order_by(Expense.date.desc()).first()
+            if debt_exp:
+                debt_exp.date = new_created_at
             
         debtor.payment_frequency = (request.form.get('payment_frequency') or '').strip() or None
         try:

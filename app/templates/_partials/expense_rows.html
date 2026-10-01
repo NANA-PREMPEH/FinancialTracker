@@ -47,6 +47,13 @@
             {% endif %}
         </div>
     </td>
+    {% if show_balance_column %}
+    <td class="p-4 text-sm text-right whitespace-nowrap" data-label="Balance">
+        <div class="font-bold text-text">
+            {{ "%.2f"|format(expense.running_balance) }} <span class="text-xs text-text-muted font-normal">{{ display_currency }}</span>
+        </div>
+    </td>
+    {% endif %}
     <td class="p-4 text-sm text-right whitespace-nowrap" data-label="Actions">
         <a href="{{ url_for('main.edit_expense', id=expense.id) }}" class="inline-flex items-center px-3 py-1.5 bg-surface text-text text-xs font-medium rounded-md border border-border hover:bg-surface-hover transition-colors shadow-sm">Edit</a>
     </td>
