@@ -3,6 +3,15 @@
 {% block title %}{{ project.name }} - Financial Tracker{% endblock %}
 {% block header_title %}Project Details{% endblock %}
 
+{% block extra_css %}
+<style>
+    /* Reserve room for the search icon even when the utility stylesheet loads late. */
+    #searchProjectItems {
+        padding-left: 3rem;
+    }
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="max-w-7xl mx-auto space-y-8">
     
