@@ -3,7 +3,7 @@ from flask_login import login_required, current_user
 from . import db
 from .models import (Expense, Category, Wallet, Budget, FinancialSummary,
                      Creditor, WalletShare, ProjectItem, ProjectItemPayment,
-                     DebtPayment, DebtorPayment, ContractPayment)
+                     DebtorPayment, ContractPayment)
 from .utils import get_exchange_rate
 from datetime import datetime, timedelta
 from sqlalchemy import func, or_
@@ -112,15 +112,9 @@ def dashboard():
 
     total_expenses += hist_expenses
     total_income += hist_income
-    # --- Unified Actuals: Extra Payments (Live) ---
-    # Only include payments from months NOT covered by historical sums
-    # Debt Payments (Expense)
-    extra_debt_expense = db.session.query(func.sum(DebtPayment.amount)).filter(
-        DebtPayment.user_id == current_user.id,
-        DebtPayment.date >= live_totals_start
-    ).scalar() or 0
-
-    # Debtor Payments (Income)
+    # Debt repayments already have a linked Expense row, so they must never be
+    # added again from DebtPayment.  Debtor and contract payments are retained
+    # here because their own flows are not represented as income Expense rows.
     extra_debtor_income = db.session.query(func.sum(DebtorPayment.amount)).filter(
         DebtorPayment.user_id == current_user.id,
         DebtorPayment.date >= live_totals_start
@@ -132,7 +126,6 @@ def dashboard():
         ContractPayment.payment_date >= live_totals_start
     ).scalar() or 0
 
-    total_expenses += extra_debt_expense
     total_income += extra_debtor_income + extra_contract_income
     # ---------------------------------------------
     # ---------------------------------------------
@@ -149,7 +142,15 @@ def dashboard():
         ~transfer_filter
     ).scalar() or 0
 
-    actual_total_expenses = total_expenses - total_money_lent
+    total_debt_repayments = db.session.query(func.sum(Expense.amount)).filter(
+        Expense.user_id == current_user.id,
+        Expense.transaction_type == 'expense',
+        Expense.date >= live_totals_start,
+        Expense.tags.ilike('%debt_payment%'),
+        ~transfer_filter
+    ).scalar() or 0
+
+    actual_total_expenses = total_expenses - total_money_lent - total_debt_repayments
     # Debt collections are now transaction_type='debt_recovery', not 'income',
     # so they are automatically excluded from total_income. No manual subtraction needed.
     actual_total_income = total_income - extra_debtor_income - extra_contract_income
@@ -198,15 +199,6 @@ def dashboard():
         ~transfer_filter
     ).scalar() or 0
 
-    # Current month's extra expenses
-    curr_extra_debt_exp = db.session.query(func.sum(DebtPayment.amount)).filter(
-        DebtPayment.user_id == current_user.id,
-        DebtPayment.date >= month_start
-    ).scalar() or 0
-
-    monthly_expenses += curr_extra_debt_exp
-
-
     # Calculate current year's expenses
     year_start = datetime(now.year, 1, 1)
     yearly_expenses = db.session.query(func.sum(Expense.amount)).filter(
@@ -232,7 +224,14 @@ def dashboard():
         or_(Expense.category_id == debt_lent_id, Expense.tags.ilike('%debt_lent%')),
         ~transfer_filter
     ).scalar() or 0
-    actual_yearly_expenses = yearly_expenses - yearly_money_lent
+    yearly_debt_repayments = db.session.query(func.sum(Expense.amount)).filter(
+        Expense.user_id == current_user.id,
+        Expense.transaction_type == 'expense',
+        Expense.date >= year_start,
+        Expense.tags.ilike('%debt_payment%'),
+        ~transfer_filter
+    ).scalar() or 0
+    actual_yearly_expenses = yearly_expenses - yearly_money_lent - yearly_debt_repayments
 
     # Budget alerts
     budgets = Budget.query.filter_by(user_id=current_user.id, is_active=True).all()
@@ -279,7 +278,15 @@ def dashboard():
         or_(Expense.category_id == debt_lent_id, Expense.tags.ilike('%debt_lent%'))
     ).scalar() or 0
 
-    actual_monthly_trend = monthly_expenses - monthly_lent
+    monthly_debt_repayments = db.session.query(func.sum(Expense.amount)).filter(
+        Expense.user_id == current_user.id,
+        Expense.transaction_type == 'expense',
+        Expense.date >= month_start,
+        Expense.tags.ilike('%debt_payment%'),
+        ~transfer_filter
+    ).scalar() or 0
+
+    actual_monthly_trend = monthly_expenses - monthly_lent - monthly_debt_repayments
 
     # Category spending data for doughnut chart (current month)
     category_spending = db.session.query(
@@ -326,16 +333,6 @@ def dashboard():
                 ~transfer_filter
             ).scalar() or 0
 
-        # Extra payments for this month (Debt Only)
-        m_extra_debt_exp = db.session.query(func.sum(DebtPayment.amount)).filter(
-            DebtPayment.user_id == current_user.id,
-            DebtPayment.date >= m_start,
-            DebtPayment.date < m_end
-        ).scalar() or 0
-
-        m_total += m_extra_debt_exp
-
-
         m_lent = db.session.query(func.sum(Expense.amount)).filter(
             Expense.user_id == current_user.id,
             Expense.transaction_type == 'expense',
@@ -344,10 +341,19 @@ def dashboard():
             or_(Expense.category_id == debt_lent_id, Expense.tags.ilike('%debt_lent%'))
         ).scalar() or 0
 
+        m_debt_repayments = db.session.query(func.sum(Expense.amount)).filter(
+            Expense.user_id == current_user.id,
+            Expense.transaction_type == 'expense',
+            Expense.date >= m_start,
+            Expense.date < m_end,
+            Expense.tags.ilike('%debt_payment%'),
+            ~transfer_filter
+        ).scalar() or 0
+
         monthly_trend.append({
             'label': m_start.strftime('%b'),
             'amount': float(m_total),
-            'actual_amount': float(m_total) - float(m_lent)
+            'actual_amount': float(m_total) - float(m_lent) - float(m_debt_repayments)
         })
 
     trend_labels = [m['label'] for m in monthly_trend]

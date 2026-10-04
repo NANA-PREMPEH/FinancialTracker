@@ -450,25 +450,18 @@ def ai_insights():
         or_(Expense.category_id == debt_lent_id, Expense.tags.ilike('%debt_lent%'))
     ).scalar() or 0
 
-    # 3. Extra Payments
-    from .models import DebtPayment, DebtorPayment, ContractPayment
-    extra_debt_expense = db.session.query(func.sum(DebtPayment.amount)).filter(
-        DebtPayment.user_id == current_user.id,
-        DebtPayment.date >= month_ago
-    ).scalar() or 0
-    extra_debtor_income = db.session.query(func.sum(DebtorPayment.amount)).filter(
-        DebtorPayment.user_id == current_user.id,
-        DebtorPayment.date >= month_ago
-    ).scalar() or 0
-    extra_contract_income = db.session.query(func.sum(ContractPayment.amount)).filter(
-        ContractPayment.user_id == current_user.id,
-        ContractPayment.payment_date >= month_ago
+    debt_repayments = db.session.query(func.sum(Expense.amount)).filter(
+        Expense.user_id == current_user.id,
+        Expense.transaction_type == 'expense',
+        Expense.date >= month_ago,
+        Expense.tags.ilike('%debt_payment%'),
+        ~transfer_filter
     ).scalar() or 0
 
     # Debt collections are now transaction_type='debt_recovery', not 'income',
     # so they are automatically excluded from monthly_income. No manual subtraction needed.
     actual_income = monthly_income
-    actual_expenses = monthly_expenses + extra_debt_expense - m_lent
+    actual_expenses = monthly_expenses - m_lent - debt_repayments
     actual_net_savings = actual_income - actual_expenses
     actual_savings_rate = (actual_net_savings / actual_income * 100) if actual_income > 0 else 0
 

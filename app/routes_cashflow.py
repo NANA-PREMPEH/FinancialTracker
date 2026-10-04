@@ -1,7 +1,7 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash
 from flask_login import login_required, current_user
 from . import db
-from .models import CashFlowProjection, CashFlowAlert, Expense, ProjectItem, ProjectItemPayment, DebtPayment, DebtorPayment, ContractPayment, Category, FinancialSummary
+from .models import CashFlowProjection, CashFlowAlert, Expense, ProjectItem, ProjectItemPayment, DebtorPayment, ContractPayment, Category, FinancialSummary
 from datetime import datetime, timedelta
 from sqlalchemy import func, or_
 import calendar as cal_module
@@ -74,13 +74,6 @@ def cash_flow():
                 ~transfer_filter
             ).scalar() or 0
 
-            # Extra payments for this month (Cash Flow)
-            m_extra_debt_exp = db.session.query(func.sum(DebtPayment.amount)).filter(
-                DebtPayment.user_id == current_user.id,
-                DebtPayment.date >= month_start,
-                DebtPayment.date < month_end
-            ).scalar() or 0
-
             m_extra_debtor_inc = db.session.query(func.sum(DebtorPayment.amount)).filter(
                 DebtorPayment.user_id == current_user.id,
                 DebtorPayment.date >= month_start,
@@ -93,7 +86,15 @@ def cash_flow():
                 ContractPayment.payment_date < month_end
             ).scalar() or 0
 
-            actual_expenses += m_extra_debt_exp
+            debt_repayments = db.session.query(func.sum(Expense.amount)).filter(
+                Expense.user_id == current_user.id,
+                Expense.transaction_type == 'expense',
+                Expense.date >= month_start,
+                Expense.date < month_end,
+                Expense.tags.ilike('%debt_payment%'),
+                ~transfer_filter
+            ).scalar() or 0
+            actual_expenses -= debt_repayments
 
 
         # Find matching projection
