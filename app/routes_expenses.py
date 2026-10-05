@@ -1,7 +1,8 @@
 from flask import render_template, request, redirect, url_for, flash, jsonify
 from flask_login import login_required, current_user
 from . import db
-from .models import Expense, Category, Wallet, DebtPayment
+from .models import CapitalAllocation, EquityCapital, EquityTransaction, Expense, Category, Project, ProjectCategory, Wallet, DebtPayment
+from .routes_equity import _record_journal_entry
 from .project_expenses import (
     PROJECT_TYPE_OPTIONS,
     is_project_category,
@@ -12,6 +13,7 @@ from .utils import apply_transaction_to_wallet
 from .currencies import CURRENCIES
 from datetime import datetime, timedelta
 from sqlalchemy import or_
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import joinedload
 
 
@@ -205,6 +207,51 @@ def register_routes(main):
                 flash(f'Transfer successful! ({input_amount} {currency})', 'success')
 
             else:
+                project = None
+                funding_source = request.form.get('equity_funding_source', 'regular_wallet')
+                project_id = request.form.get('project_id')
+                business_category_id = request.form.get('business_category_id')
+                if project_id:
+                    project = Project.query.filter_by(id=project_id, user_id=current_user.id).first_or_404()
+                    if business_category_id and str(project.category_id) != business_category_id:
+                        flash('Select a project within the chosen business category.', 'error')
+                        return redirect(url_for('main.add_expense'))
+                if funding_source != 'regular_wallet' and (transaction_type != 'expense' or not project or not project.category_id):
+                    flash('Equity funding can only be used for an expense linked to a project category.', 'error')
+                    return redirect(url_for('main.add_expense'))
+                equity = None
+                if funding_source != 'regular_wallet':
+                    equity = EquityCapital.query.filter_by(user_id=current_user.id, category_id=project.category_id).first()
+                    if not equity:
+                        equity = EquityCapital(user_id=current_user.id, category_id=project.category_id)
+                        db.session.add(equity)
+                        db.session.flush()
+                    if funding_source == 'opening_capital':
+                        if equity.initial_capital:
+                            flash('This category already has opening capital. Use contributed capital instead.', 'error')
+                            return redirect(url_for('main.add_expense'))
+                        equity.initial_capital = converted_amount
+                    elif funding_source in {'owner_injection', 'partner_contribution'}:
+                        equity_transaction = EquityTransaction(
+                            user_id=current_user.id, equity_capital_id=equity.id,
+                            transaction_type='injection' if funding_source == 'owner_injection' else 'partner_contribution',
+                            amount=converted_amount, date=date_obj, wallet_id=wallet.id,
+                            description=f'Funding for transaction: {description}',
+                            partner_name=(request.form.get('partner_name') or '').strip() or None,
+                        )
+                        if funding_source == 'partner_contribution' and not equity_transaction.partner_name:
+                            flash('Provide the partner or investor name.', 'error')
+                            return redirect(url_for('main.add_expense'))
+                        db.session.add(equity_transaction)
+                        db.session.flush()
+                        apply_transaction_to_wallet(wallet, 'income', converted_amount)
+                        _record_journal_entry(equity_transaction, project.category.name)
+                    elif funding_source == 'capital' and converted_amount > equity.available_contributed_capital:
+                        flash(f'Only {equity.available_contributed_capital:,.2f} is available from contributed capital.', 'error')
+                        return redirect(url_for('main.add_expense'))
+                    elif funding_source == 'retained' and converted_amount > equity.available_retained_earnings:
+                        flash(f'Only {equity.available_retained_earnings:,.2f} is available from retained earnings.', 'error')
+                        return redirect(url_for('main.add_expense'))
                 project_type = None
                 if is_project_category(category):
                     project_type = normalize_project_type(request.form.get('project_type'))
@@ -223,17 +270,35 @@ def register_routes(main):
                     tags=tags,
                     income_source=income_source,
                     project_type=project_type,
+                    project_id=project.id if project else None,
                     receipt_path=receipt_path,
                     transaction_type=transaction_type,
                     original_amount=input_amount,
                     original_currency=currency
                 )
                 db.session.add(expense)
+                db.session.flush()
+
+                if equity:
+                    db.session.add(CapitalAllocation(
+                        user_id=current_user.id, equity_capital_id=equity.id, project_id=project.id,
+                        expense_id=expense.id, allocation_type='project_funding',
+                        funding_source='capital' if funding_source in {'opening_capital', 'owner_injection', 'partner_contribution'} else funding_source,
+                        amount=converted_amount, date=date_obj,
+                        description=f'Funding for transaction: {description}',
+                    ))
 
                 # Update wallet balance (using converted amount)
                 apply_transaction_to_wallet(wallet, transaction_type, converted_amount)
 
-                db.session.commit()
+                try:
+                    db.session.commit()
+                except SQLAlchemyError:
+                    # The expense, any equity movement/allocation, and wallet update
+                    # are deliberately one unit of work.
+                    db.session.rollback()
+                    flash('The transaction could not be saved. No balances were changed.', 'error')
+                    return redirect(url_for('main.add_expense'))
                 flash(f'Transaction added successfully! ({input_amount} {currency})', 'success')
 
             action = request.form.get('action')
@@ -246,6 +311,10 @@ def register_routes(main):
             'add_expense.html',
             categories=categories,
             wallets=wallets,
+            projects=Project.query.filter_by(user_id=current_user.id).order_by(Project.name).all(),
+            project_categories=ProjectCategory.query.filter_by(user_id=current_user.id).order_by(ProjectCategory.name).all(),
+            equity_balances={str(e.category_id): {'capital': e.available_contributed_capital, 'retained': e.available_retained_earnings}
+                             for e in EquityCapital.query.filter_by(user_id=current_user.id).all()},
             currencies=CURRENCIES,
             project_type_options=PROJECT_TYPE_OPTIONS,
             now_date=datetime.utcnow().strftime('%Y-%m-%d')
@@ -273,6 +342,14 @@ def register_routes(main):
                 fallback=expense.original_currency or (expense.wallet.currency if expense.wallet else 'GHS')
             )
             project_type = None
+            project = None
+            project_id = request.form.get('project_id')
+            business_category_id = request.form.get('business_category_id')
+            if project_id:
+                project = Project.query.filter_by(id=project_id, user_id=current_user.id).first_or_404()
+                if business_category_id and str(project.category_id) != business_category_id:
+                    flash('Select a project within the chosen business category.', 'error')
+                    return redirect(url_for('main.edit_expense', id=id))
 
             if transaction_type != 'income':
                 income_source = None
@@ -303,6 +380,7 @@ def register_routes(main):
             expense.tags = request.form.get('tags', '')
             expense.income_source = income_source
             expense.project_type = project_type
+            expense.project_id = project.id if project else None
             expense.transaction_type = transaction_type
             date_str = request.form.get('date')
 
@@ -340,6 +418,8 @@ def register_routes(main):
             expense=expense,
             categories=categories,
             wallets=wallets,
+            projects=Project.query.filter_by(user_id=current_user.id).order_by(Project.name).all(),
+            project_categories=ProjectCategory.query.filter_by(user_id=current_user.id).order_by(ProjectCategory.name).all(),
             currencies=CURRENCIES,
             project_type_options=PROJECT_TYPE_OPTIONS
         )
@@ -446,7 +526,9 @@ def register_routes(main):
 
         query = query.options(
             joinedload(Expense.wallet),
-            joinedload(Expense.category)
+            joinedload(Expense.category),
+            joinedload(Expense.project),
+            joinedload(Expense.capital_allocation).joinedload(CapitalAllocation.equity_capital)
         )
         expenses = query.all()
         categories = Category.query.filter_by(user_id=current_user.id).all()

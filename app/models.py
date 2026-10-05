@@ -99,11 +99,14 @@ class Expense(db.Model):
     original_amount = db.Column(db.Float, nullable=True)
     original_currency = db.Column(db.String(10), nullable=True)
     project_type = db.Column(db.String(50), nullable=True)
+    # Optional traceability link when this transaction belongs to a specific project.
+    project_id = db.Column(db.Integer, db.ForeignKey('project.id'), nullable=True)
     # Creditor-originated receipts and payments are ordinary transactions too.
     # Keep an explicit link so changing either record cannot leave the other stale.
     creditor_id = db.Column(db.Integer, db.ForeignKey('creditor.id'), nullable=True)
 
     user = db.relationship('User', backref=db.backref('_user_expenses', cascade='all, delete-orphan'), lazy=True)
+    project = db.relationship('Project', backref=db.backref('linked_expenses', lazy=True))
 
     def __repr__(self):
         return f'<Expense {self.amount} - {self.description}>'
@@ -263,9 +266,19 @@ class Project(db.Model):
         return f'<Project {self.name}>'
     
     @property
+    def direct_cost(self):
+        """Projected costs directly attributable to delivering this project."""
+        return sum(item.cost for item in self.items if getattr(item, 'item_type', 'expense') == 'expense')
+
+    @property
+    def overhead_cost(self):
+        """Projected indirect or operating costs allocated to this project."""
+        return sum(item.cost for item in self.items if getattr(item, 'item_type', 'expense') == 'overhead')
+
+    @property
     def total_cost(self):
-        """Total Projected Expense"""
-        return sum(item.cost for item in self.items if getattr(item, 'item_type', 'expense') != 'income')
+        """Total projected outlay, including direct costs and allocated overhead."""
+        return self.direct_cost + self.overhead_cost
 
     @property
     def total_income(self):
@@ -273,14 +286,34 @@ class Project(db.Model):
         return sum(item.cost for item in self.items if getattr(item, 'item_type', 'expense') == 'income')
 
     @property
+    def gross_profit(self):
+        """Expected profit before allocated overhead."""
+        return self.total_income - self.direct_cost
+
+    @property
+    def net_profit(self):
+        """Expected profit after direct costs and allocated overhead."""
+        return self.gross_profit - self.overhead_cost
+
+    @property
     def projected_profit(self):
-        """Expected project profit based on planned income and expenses."""
-        return self.total_income - self.total_cost
+        """Backward-compatible name for expected net profit."""
+        return self.net_profit
+
+    @property
+    def paid_direct_cost(self):
+        """Direct project costs paid to date."""
+        return sum(item.total_paid for item in self.items if getattr(item, 'item_type', 'expense') == 'expense')
+
+    @property
+    def paid_overhead(self):
+        """Allocated overhead paid to date."""
+        return sum(item.total_paid for item in self.items if getattr(item, 'item_type', 'expense') == 'overhead')
 
     @property
     def paid_expense(self):
-        """Total Paid Expense (Completed)"""
-        return sum(item.total_paid for item in self.items if getattr(item, 'item_type', 'expense') != 'income')
+        """Total project outlay paid to date, including allocated overhead."""
+        return self.paid_direct_cost + self.paid_overhead
 
     @property
     def paid_income(self):
@@ -288,9 +321,35 @@ class Project(db.Model):
         return sum(item.total_paid for item in self.items if getattr(item, 'item_type', 'expense') == 'income')
 
     @property
+    def current_gross_profit(self):
+        """Realized profit before overhead, based on payments received and paid."""
+        return self.paid_income - self.paid_direct_cost
+
+    @property
+    def current_net_profit(self):
+        """Realized profit after direct costs and allocated overhead."""
+        return self.current_gross_profit - self.paid_overhead
+
+    @property
     def current_profit(self):
-        """Current project profit based on income received and expenses paid."""
-        return self.paid_income - self.paid_expense
+        """Backward-compatible name for realized net profit."""
+        return self.current_net_profit
+
+    @property
+    def total_capital_allocated(self):
+        return sum(allocation.amount for allocation in self.capital_allocations)
+
+    @property
+    def capital_from_contributions(self):
+        return sum(allocation.amount for allocation in self.capital_allocations if allocation.funding_source == 'capital')
+
+    @property
+    def capital_from_retained(self):
+        return sum(allocation.amount for allocation in self.capital_allocations if allocation.funding_source == 'retained')
+
+    @property
+    def capital_utilization(self):
+        return round(self.paid_expense / self.total_capital_allocated * 100, 1) if self.total_capital_allocated else 0
 
 class ProjectItem(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -299,7 +358,7 @@ class ProjectItem(db.Model):
     item_name = db.Column(db.String(200), nullable=False)
     description = db.Column(db.Text, nullable=True)
     cost = db.Column(db.Float, nullable=False, default=0.0)
-    item_type = db.Column(db.String(20), default='expense')  # 'expense' or 'income'
+    item_type = db.Column(db.String(20), default='expense')  # 'expense', 'income', or 'overhead'
     is_completed = db.Column(db.Boolean, default=False)
     created_date = db.Column(db.DateTime, default=datetime.utcnow)
     
@@ -338,6 +397,95 @@ class ProjectItemPayment(db.Model):
     
     def __repr__(self):
         return f'<ProjectItemPayment {self.amount} - {self.description}>'
+
+# ===== EQUITY CAPITAL TRACKING =====
+class EquityCapital(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    category_id = db.Column(db.Integer, db.ForeignKey('project_category.id'), nullable=False, unique=True)
+    initial_capital = db.Column(db.Float, default=0.0)
+    initial_capital_date = db.Column(db.DateTime, nullable=True)
+    business_name = db.Column(db.String(200), nullable=True)
+    notes = db.Column(db.Text, nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    category = db.relationship('ProjectCategory', backref=db.backref('equity_capital', uselist=False), lazy=True)
+    transactions = db.relationship('EquityTransaction', backref='equity_capital', lazy=True, cascade='all, delete-orphan', order_by='EquityTransaction.date.desc()')
+    allocations = db.relationship('CapitalAllocation', backref='equity_capital', lazy=True, cascade='all, delete-orphan', order_by='CapitalAllocation.date.desc()')
+    user = db.relationship('User', backref=db.backref('_user_equity_capitals', cascade='all, delete-orphan'), lazy=True)
+
+    @property
+    def total_additional_injections(self): return sum(t.amount for t in self.transactions if t.transaction_type == 'injection')
+    @property
+    def total_partner_contributions(self): return sum(t.amount for t in self.transactions if t.transaction_type == 'partner_contribution')
+    @property
+    def total_drawings(self): return sum(t.amount for t in self.transactions if t.transaction_type == 'drawing')
+    @property
+    def contributed_capital(self): return self.initial_capital + self.total_additional_injections + self.total_partner_contributions - self.total_drawings
+    @property
+    def retained_earnings(self): return self.category.current_profit if self.category else 0.0
+    @property
+    def total_allocated_to_projects(self): return sum(a.amount for a in self.allocations if a.project_id is not None)
+    @property
+    def total_reinvestment_earmarks(self): return sum(a.amount for a in self.allocations if a.allocation_type == 'reinvestment')
+    @property
+    def total_allocated(self): return sum(a.amount for a in self.allocations)
+    @property
+    def allocated_from_contributions(self): return sum(a.amount for a in self.allocations if a.funding_source == 'capital')
+    @property
+    def allocated_from_retained_earnings(self): return sum(a.amount for a in self.allocations if a.funding_source == 'retained')
+    @property
+    def available_contributed_capital(self): return self.contributed_capital - self.allocated_from_contributions
+    @property
+    def available_retained_earnings(self): return self.retained_earnings - self.allocated_from_retained_earnings
+    @property
+    def unallocated_capital(self): return self.available_contributed_capital + self.available_retained_earnings
+    @property
+    def total_equity(self): return self.contributed_capital + self.retained_earnings
+
+
+class EquityTransaction(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    equity_capital_id = db.Column(db.Integer, db.ForeignKey('equity_capital.id'), nullable=False)
+    transaction_type = db.Column(db.String(30), nullable=False)
+    amount = db.Column(db.Float, nullable=False)
+    date = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    description = db.Column(db.String(300), nullable=True)
+    partner_name = db.Column(db.String(150), nullable=True)
+    wallet_id = db.Column(db.Integer, db.ForeignKey('wallet.id'), nullable=False)
+    # Historical contribution records may document capital whose cash movement
+    # is already present in the transaction history.
+    affects_wallet = db.Column(db.Boolean, nullable=False, default=True)
+    journal_entry_id = db.Column(db.Integer, db.ForeignKey('journal_entry.id'), nullable=True)
+    notes = db.Column(db.Text, nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    wallet = db.relationship('Wallet', lazy=True)
+    journal_entry = db.relationship('JournalEntry', lazy=True)
+    user = db.relationship('User', backref=db.backref('_user_equity_transactions', cascade='all, delete-orphan'), lazy=True)
+    @property
+    def is_inflow(self): return self.transaction_type in ('injection', 'partner_contribution')
+
+
+class CapitalAllocation(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    equity_capital_id = db.Column(db.Integer, db.ForeignKey('equity_capital.id'), nullable=False)
+    allocation_type = db.Column(db.String(30), nullable=False)
+    amount = db.Column(db.Float, nullable=False)
+    date = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    description = db.Column(db.String(300), nullable=True)
+    project_id = db.Column(db.Integer, db.ForeignKey('project.id'), nullable=True)
+    expense_id = db.Column(db.Integer, db.ForeignKey('expense.id'), nullable=True, unique=True)
+    equity_transaction_id = db.Column(db.Integer, db.ForeignKey('equity_transaction.id'), nullable=True)
+    funding_source = db.Column(db.String(30), nullable=False, default='capital')
+    notes = db.Column(db.Text, nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    project = db.relationship('Project', backref=db.backref('capital_allocations', lazy=True))
+    expense = db.relationship('Expense', backref=db.backref('capital_allocation', uselist=False))
+    equity_transaction = db.relationship('EquityTransaction', backref=db.backref('capital_allocations', lazy=True))
+    user = db.relationship('User', backref=db.backref('_user_capital_allocations', cascade='all, delete-orphan'), lazy=True)
+
 
 class FinancialSummary(db.Model):
     id = db.Column(db.Integer, primary_key=True)

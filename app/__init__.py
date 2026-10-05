@@ -16,7 +16,11 @@ def create_app(config_name=None):
     if config_name is None:
         config_name = os.environ.get('FLASK_ENV', 'development')
     from .config import config_by_name
-    app.config.from_object(config_by_name.get(config_name, config_by_name['development']))
+    if isinstance(config_name, str):
+        app.config.from_object(config_by_name.get(config_name, config_by_name['development']))
+    else:
+        # Tests and integrations may supply a configuration class directly.
+        app.config.from_object(config_name)
 
     db.init_app(app)
     migrate.init_app(app, db)
@@ -67,6 +71,7 @@ def create_app(config_name=None):
     from .api.auth import auth_bp
     from .routes_push import push_bp
     from .routes_shared_wallets import shared_wallets_bp
+    from .routes_equity import equity_bp
 
     app.register_blueprint(main)
     app.register_blueprint(auth)
@@ -96,6 +101,7 @@ def create_app(config_name=None):
     app.register_blueprint(auth_bp)
     app.register_blueprint(push_bp)
     app.register_blueprint(shared_wallets_bp)
+    app.register_blueprint(equity_bp)
 
     # Serve service worker from root scope
     @app.route('/sw.js')

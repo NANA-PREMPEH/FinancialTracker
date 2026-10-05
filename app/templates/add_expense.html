@@ -111,6 +111,41 @@
             <p class="text-xs text-text-muted mt-2">Use this to classify the kind of project expense being recorded.</p>
         </div>
 
+        <!-- Optional project and equity funding traceability -->
+        <div id="project-equity-section" class="mb-6 p-4 bg-surface-active/40 border border-border rounded-xl space-y-4" style="display: none;">
+            <div>
+                <label for="business_category_id" class="block text-sm font-medium text-text-muted mb-2">Business category</label>
+                <select id="business_category_id" name="business_category_id" class="w-full px-4 py-3 bg-surface text-text border border-border rounded-xl">
+                    <option value="">Select business category</option>
+                    {% for category in project_categories %}<option value="{{ category.id }}">{{ category.name }}</option>{% endfor %}
+                </select>
+            </div>
+            <div>
+                <label for="project_id" class="block text-sm font-medium text-text-muted mb-2">Project (optional)</label>
+                <select id="project_id" name="project_id" disabled class="w-full px-4 py-3 bg-surface text-text border border-border rounded-xl">
+                    <option value="">Not linked to a specific project</option>
+                    {% for project in projects %}<option value="{{ project.id }}" data-business-category="{{ project.category_id }}" hidden>{{ project.name }}</option>{% endfor %}
+                </select>
+            </div>
+            <div>
+                <label for="equity_funding_source" class="block text-sm font-medium text-text-muted mb-2">Equity funding (project expenses only)</label>
+                <select id="equity_funding_source" name="equity_funding_source" class="w-full px-4 py-3 bg-surface text-text border border-border rounded-xl focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors">
+                    <option value="regular_wallet">Regular wallet balance — no equity allocation</option>
+                    <option value="capital">Existing contributed capital</option>
+                    <option value="retained">Existing retained earnings</option>
+                    <option value="opening_capital">Set as opening capital (first funding only)</option>
+                    <option value="owner_injection">New owner injection</option>
+                    <option value="partner_contribution">Partner contribution</option>
+                </select>
+                <p class="text-xs text-text-muted mt-2">Capital choices create a linked allocation; they do not add income or change Total Equity.</p>
+                <p id="equity-balance-notice" class="text-xs text-primary font-medium mt-2 hidden"></p>
+            </div>
+            <div id="partner-name-section" style="display: none;">
+                <label for="partner_name" class="block text-sm font-medium text-text-muted mb-2">Partner / investor name</label>
+                <input id="partner_name" name="partner_name" type="text" class="w-full px-4 py-3 bg-surface text-text border border-border rounded-xl" placeholder="e.g., Ama Mensah">
+            </div>
+        </div>
+
         <!-- Wallet Selection -->
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-6">
             <div>
@@ -278,6 +313,14 @@ window.onload = function() {
     const projectTypeSection = document.getElementById('project-type-section');
     const projectTypeInput = document.getElementById('project_type');
     const categoryRadios = document.querySelectorAll('input[name="category"]');
+    const projectEquitySection = document.getElementById('project-equity-section');
+    const businessCategorySelect = document.getElementById('business_category_id');
+    const projectSelect = document.getElementById('project_id');
+    const equityFundingSource = document.getElementById('equity_funding_source');
+    const partnerNameSection = document.getElementById('partner-name-section');
+    const partnerName = document.getElementById('partner_name');
+    const equityBalanceNotice = document.getElementById('equity-balance-notice');
+    const equityBalances = {{ equity_balances|tojson }};
 
     function isProjectCategorySelected() {
         const checkedCategory = document.querySelector('input[name="category"]:checked');
@@ -327,7 +370,40 @@ window.onload = function() {
                 projectTypeInput.value = '';
             }
         }
+        const showProjectEquity = selectedType === 'expense' && isProjectCategorySelected();
+        if (projectEquitySection) projectEquitySection.style.display = showProjectEquity ? 'block' : 'none';
+        if (!showProjectEquity && projectSelect) {
+            projectSelect.value = '';
+            projectSelect.disabled = true;
+        }
     }
+
+    function filterProjectsForBusinessCategory() {
+        if (!projectSelect || !businessCategorySelect) return;
+        const selectedCategory = businessCategorySelect.value;
+        projectSelect.value = '';
+        projectSelect.disabled = !selectedCategory;
+        [...projectSelect.options].forEach(option => {
+            if (!option.dataset.businessCategory) return;
+            option.hidden = option.dataset.businessCategory !== selectedCategory;
+            option.disabled = option.hidden;
+        });
+    }
+    if (businessCategorySelect) businessCategorySelect.addEventListener('change', filterProjectsForBusinessCategory);
+    function updateEquityFundingUi() {
+        const source = equityFundingSource?.value;
+        const isPartner = source === 'partner_contribution';
+        if (partnerNameSection) partnerNameSection.style.display = isPartner ? 'block' : 'none';
+        if (partnerName) partnerName.required = isPartner;
+        const balances = equityBalances[businessCategorySelect?.value] || {capital: 0, retained: 0};
+        if (equityBalanceNotice && (source === 'capital' || source === 'retained')) {
+            const amount = source === 'capital' ? balances.capital : balances.retained;
+            equityBalanceNotice.textContent = `Available ${source === 'capital' ? 'contributed capital' : 'retained earnings'}: GHS ${Number(amount).toLocaleString(undefined, {minimumFractionDigits: 2})}`;
+            equityBalanceNotice.classList.remove('hidden');
+        } else if (equityBalanceNotice) equityBalanceNotice.classList.add('hidden');
+    }
+    if (equityFundingSource) equityFundingSource.addEventListener('change', updateEquityFundingUi);
+    if (businessCategorySelect) businessCategorySelect.addEventListener('change', updateEquityFundingUi);
 
     typeRadios.forEach(radio => {
         radio.addEventListener('change', updateFormVisibility);
@@ -346,6 +422,7 @@ window.onload = function() {
     });
 
     updateFormVisibility();
+    updateEquityFundingUi();
 };
 </script>
 {% endblock %}

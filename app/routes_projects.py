@@ -110,12 +110,14 @@ def register_routes(main):
         total_income = project.paid_income
 
         return render_template('project_details.html',
-                             project=project,
-                             completed_cost=completed_cost,
-                             not_completed_cost=not_completed_cost,
-                             total_income=total_income,
-                             current_profit=project.current_profit,
-                             projected_profit=project.projected_profit)
+                              project=project,
+                              completed_cost=completed_cost,
+                              not_completed_cost=not_completed_cost,
+                              total_income=total_income,
+                              current_gross_profit=project.current_gross_profit,
+                              current_net_profit=project.current_net_profit,
+                              projected_gross_profit=project.gross_profit,
+                              projected_net_profit=project.net_profit)
 
     @main.route('/projects/edit/<int:id>', methods=['GET', 'POST'])
     @login_required
@@ -351,6 +353,8 @@ def register_routes(main):
         cost = float(request.form.get('cost', 0))
         description = request.form.get('description', '')
         item_type = request.form.get('item_type', 'expense')
+        if item_type not in {'income', 'expense', 'overhead'}:
+            item_type = 'expense'
 
         item = ProjectItem(
             user_id=current_user.id,
@@ -386,7 +390,8 @@ def register_routes(main):
             item.item_name = request.form.get('item_name')
             item.cost = float(request.form.get('cost', 0))
             item.description = request.form.get('description', '')
-            item.item_type = request.form.get('item_type', 'expense')
+            item_type = request.form.get('item_type', 'expense')
+            item.item_type = item_type if item_type in {'income', 'expense', 'overhead'} else 'expense'
             db.session.commit()
             flash('Item updated successfully!', 'success')
             return redirect(url_for('main.project_details', id=project_id) + f'#item-{item_id}')

@@ -225,6 +225,10 @@
                         <i data-lucide="book-open"></i>
                         <span>Accounting</span>
                     </a>
+                    <a href="{{ url_for('equity.equity_overview') }}" class="nav-item {% if request.blueprint == 'equity' %}active{% endif %}">
+                        <i data-lucide="landmark"></i>
+                        <span>Equity Capital</span>
+                    </a>
                 </div>
 
                 <div class="nav-group">

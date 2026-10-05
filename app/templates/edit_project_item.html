@@ -41,9 +41,9 @@
                 <!-- Type Selection -->
                 <div class="space-y-3">
                     <label class="block text-[10px] font-black text-text-muted uppercase tracking-widest">Transaction Type</label>
-                    <div class="flex p-1.5 bg-surface/30 border border-white/10 rounded-2xl h-14">
+                    <div class="grid grid-cols-3 p-1.5 bg-surface/30 border border-white/10 rounded-2xl h-14">
                         <label class="flex-1 relative cursor-pointer">
-                            <input type="radio" name="item_type" value="expense" {% if item.item_type != 'income' %}checked{% endif %} class="peer sr-only">
+                            <input type="radio" name="item_type" value="expense" {% if item.item_type == 'expense' %}checked{% endif %} class="peer sr-only">
                             <div class="w-full h-full flex items-center justify-center rounded-xl peer-checked:bg-red-500/20 peer-checked:text-red-500 text-text-muted font-black text-xs uppercase tracking-widest transition-all">
                                 <i data-lucide="minus-circle" class="w-4 h-4 mr-2"></i> Expense
                             </div>
@@ -52,6 +52,12 @@
                             <input type="radio" name="item_type" value="income" {% if item.item_type == 'income' %}checked{% endif %} class="peer sr-only">
                             <div class="w-full h-full flex items-center justify-center rounded-xl peer-checked:bg-green-500/20 peer-checked:text-green-500 text-text-muted font-black text-xs uppercase tracking-widest transition-all">
                                 <i data-lucide="plus-circle" class="w-4 h-4 mr-2"></i> Income
+                            </div>
+                        </label>
+                        <label class="flex-1 relative cursor-pointer">
+                            <input type="radio" name="item_type" value="overhead" {% if item.item_type == 'overhead' %}checked{% endif %} class="peer sr-only">
+                            <div class="w-full h-full flex items-center justify-center rounded-xl peer-checked:bg-amber-500/20 peer-checked:text-amber-500 text-text-muted font-black text-xs uppercase tracking-widest transition-all">
+                                <i data-lucide="building-2" class="w-4 h-4 mr-2"></i> Overhead
                             </div>
                         </label>
                     </div>

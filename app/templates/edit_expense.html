@@ -103,6 +103,19 @@
             <p class="text-xs text-text-muted mt-2">Use this to classify the kind of project expense being recorded.</p>
         </div>
 
+        <div id="project-equity-section" class="mb-6 p-4 bg-surface-active/40 border border-border rounded-xl space-y-4" style="display: none;">
+            <div><label for="business_category_id" class="block text-sm font-medium text-text-muted mb-2">Business category</label>
+                <select id="business_category_id" name="business_category_id" class="w-full px-4 py-3 bg-surface text-text border border-border rounded-xl">
+                    <option value="">Select business category</option>
+                    {% for category in project_categories %}<option value="{{ category.id }}" {% if expense.project and expense.project.category_id == category.id %}selected{% endif %}>{{ category.name }}</option>{% endfor %}
+                </select></div>
+            <div><label for="project_id" class="block text-sm font-medium text-text-muted mb-2">Project (optional)</label>
+                <select id="project_id" name="project_id" class="w-full px-4 py-3 bg-surface text-text border border-border rounded-xl">
+                    <option value="">Not linked to a specific project</option>
+                    {% for project in projects %}<option value="{{ project.id }}" data-business-category="{{ project.category_id }}" {% if expense.project_id == project.id %}selected{% endif %}>{{ project.name }}</option>{% endfor %}
+                </select></div>
+        </div>
+
         <!-- Wallet Selection -->
         <div class="mb-6">
             <label for="wallet" class="block text-sm font-medium text-text-muted mb-2">Wallet</label>
@@ -214,6 +227,9 @@
     const incomeSourceInput = document.getElementById('income_source');
     const projectTypeSection = document.getElementById('project-type-section');
     const projectTypeInput = document.getElementById('project_type');
+    const projectEquitySection = document.getElementById('project-equity-section');
+    const businessCategorySelect = document.getElementById('business_category_id');
+    const projectSelect = document.getElementById('project_id');
     const deleteModal = document.getElementById('deleteExpenseModal');
     const deleteForm = document.getElementById('deleteExpenseForm');
 
@@ -246,7 +262,21 @@
                 projectTypeInput.value = '';
             }
         }
+        const showProjectEquity = checkedInput && checkedInput.value === 'expense' && isProjectCategorySelected();
+        if (projectEquitySection) projectEquitySection.style.display = showProjectEquity ? 'block' : 'none';
     }
+
+    function filterProjectsForBusinessCategory() {
+        if (!projectSelect || !businessCategorySelect) return;
+        const categoryId = businessCategorySelect.value;
+        [...projectSelect.options].forEach(option => {
+            if (!option.dataset.businessCategory) return;
+            option.hidden = option.dataset.businessCategory !== categoryId;
+            option.disabled = option.hidden;
+        });
+        if (!categoryId) projectSelect.value = '';
+    }
+    if (businessCategorySelect) businessCategorySelect.addEventListener('change', filterProjectsForBusinessCategory);
 
     typeRadios.forEach(radio => {
         radio.addEventListener('change', updateIncomeSourceVisibility);
@@ -256,6 +286,7 @@
     });
 
     updateIncomeSourceVisibility();
+    filterProjectsForBusinessCategory();
 
     function showDeleteDialog() {
         deleteModal.style.display = 'block';
