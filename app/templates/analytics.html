@@ -16,7 +16,7 @@
     <!-- Category Breakdown -->
     <div class="bg-surface rounded-2xl p-6 border border-border shadow-sm flex flex-col">
         <h3 class="text-lg font-bold text-text mb-6 flex items-center gap-2">
-            <i data-lucide="pie-chart" class="w-5 h-5 text-primary"></i> Actual Spending by Category
+            <i data-lucide="pie-chart" class="w-5 h-5 text-primary"></i> Spending by Category
         </h3>
         <div class="relative flex-1 min-h-[300px]">
             <canvas id="categoryChart"></canvas>
@@ -55,8 +55,9 @@
                 <tr class="bg-surface-active/50 border-b border-border">
                     <th class="p-4 text-sm font-semibold text-text-muted">Month</th>
                     <th class="p-4 text-sm font-semibold text-text-muted text-right">Income (Total / Actual)</th>
-                    <th class="p-4 text-sm font-semibold text-text-muted text-right">Expenses (Total / Actual)</th>
-                    <th class="p-4 text-sm font-semibold text-text-muted text-right">Actual Net Flow</th>
+                    <th class="p-4 text-sm font-semibold text-text-muted text-right">Expenses</th>
+                    <th class="p-4 text-sm font-semibold text-text-muted text-right">Project Profit</th>
+                    <th class="p-4 text-sm font-semibold text-text-muted text-right">Overall Net Flow</th>
                 </tr>
             </thead>
             <tbody class="divide-y divide-border">
@@ -71,9 +72,14 @@
                     </td>
                     <td class="p-4 font-medium text-danger text-right whitespace-nowrap">
                         <div class="flex flex-col items-end">
-                            <span>GHS {{ "{:,.2f}".format(item.expense) }}</span>
-                            <span class="text-[10px] text-text-muted italic">Act: {{ "{:,.2f}".format(item.actual_expense) }}</span>
+                            <span>GHS {{ "{:,.2f}".format(item.actual_expense) }}</span>
+                            <span class="text-[10px] text-text-muted italic">Gross: {{ "{:,.2f}".format(item.expense) }}</span>
                         </div>
+                    </td>
+                    <td class="p-4 text-right whitespace-nowrap">
+                        <span class="inline-flex items-center px-2.5 py-1 rounded-md text-sm font-bold {{ 'bg-success/10 text-success' if item.project_profit >= 0 else 'bg-danger/10 text-danger' }}">
+                            {{ "{:,.2f}".format(item.project_profit) }}
+                        </span>
                     </td>
                     <td class="p-4 text-right whitespace-nowrap">
                         {% set actual_diff = item.actual_income - item.actual_expense %}
@@ -117,8 +123,8 @@
                         </td>
                         <td class="p-4 font-medium text-danger text-right whitespace-nowrap">
                             <div class="flex flex-col items-end">
-                                <span>GHS {{ "{:,.2f}".format(year_data.expense) }}</span>
-                                <span class="text-[10px] text-text-muted italic">Act: {{ "{:,.2f}".format(year_data.actual_expense) }}</span>
+                                <span>GHS {{ "{:,.2f}".format(year_data.actual_expense) }}</span>
+                                <span class="text-[10px] text-text-muted italic">Gross: {{ "{:,.2f}".format(year_data.expense) }}</span>
                             </div>
                         </td>
                         <td class="p-4 text-right whitespace-nowrap">
@@ -349,15 +355,15 @@
                     datasets: [
                         {
                             label: 'Expenses',
-                            data: [{% for item in monthly_data %}{{ item.expense }}{% if not loop.last %}, {% endif %}{% endfor %}],
+                            data: [{% for item in monthly_data %}{{ item.actual_expense }}{% if not loop.last %}, {% endif %}{% endfor %}],
                             borderColor: '#ef4444',
                             backgroundColor: expenseGradient,
                             fill: true,
                             pointBorderColor: '#ef4444',
                         },
                         {
-                            label: 'Actual Expenses',
-                            data: [{% for item in monthly_data %}{{ item.actual_expense }}{% if not loop.last %}, {% endif %}{% endfor %}],
+                            label: 'Gross Expenses',
+                            data: [{% for item in monthly_data %}{{ item.expense }}{% if not loop.last %}, {% endif %}{% endfor %}],
                             borderColor: '#8b5cf6',
                             backgroundColor: 'transparent',
                             fill: false,
@@ -407,15 +413,15 @@
                     datasets: [
                         {
                             label: 'Expenses',
-                            data: [{% for item in yearly_data %}{{ item.expense }}{% if not loop.last %}, {% endif %}{% endfor %}],
+                            data: [{% for item in yearly_data %}{{ item.actual_expense }}{% if not loop.last %}, {% endif %}{% endfor %}],
                             borderColor: '#ef4444',
                             backgroundColor: expenseGradientYr,
                             fill: true,
                             pointBorderColor: '#ef4444',
                         },
                         {
-                            label: 'Actual Expenses',
-                            data: [{% for item in yearly_data %}{{ item.actual_expense }}{% if not loop.last %}, {% endif %}{% endfor %}],
+                            label: 'Gross Expenses',
+                            data: [{% for item in yearly_data %}{{ item.expense }}{% if not loop.last %}, {% endif %}{% endfor %}],
                             borderColor: '#8b5cf6',
                             backgroundColor: 'transparent',
                             fill: false,

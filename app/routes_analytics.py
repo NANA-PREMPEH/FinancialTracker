@@ -92,11 +92,36 @@ def register_routes(main):
         debt_lent_id = debt_lent_cat.id if debt_lent_cat else -1
         debt_payment_cat = Category.query.filter_by(name='Debt Payment', user_id=current_user.id).first()
         debt_payment_id = debt_payment_cat.id if debt_payment_cat else -1
+        project_cat = Category.query.filter_by(name='Project', user_id=current_user.id).first()
+        project_category_id = project_cat.id if project_cat else -1
 
         debt_repayment_filter = or_(
             Expense.category_id == debt_payment_id,
             func.coalesce(Expense.tags, '').ilike('%debt_payment%')
         )
+
+        def _project_profit_for_period(period_start, period_end):
+            """Return realized project income less project spending for a period."""
+            if project_category_id == -1:
+                return 0.0
+
+            project_income = _sum_live_expenses_in_ghs(
+                convert_to_ghs,
+                Expense.transaction_type == 'income',
+                Expense.category_id == project_category_id,
+                Expense.date >= period_start,
+                Expense.date < period_end,
+                ~transfer_filter
+            )
+            project_expense = _sum_live_expenses_in_ghs(
+                convert_to_ghs,
+                Expense.transaction_type == 'expense',
+                Expense.category_id == project_category_id,
+                Expense.date >= period_start,
+                Expense.date < period_end,
+                ~transfer_filter
+            )
+            return project_income - project_expense
 
         category_totals = {}
         category_expenses = _load_live_expenses(
@@ -224,7 +249,8 @@ def register_routes(main):
                 'expense': expense_total,
                 'actual_expense': expense_total - m_lent - m_debt_repayments,
                 'income': income_total,
-                'actual_income': income_total - m_extra_debtor_inc - m_extra_contract_inc
+                'actual_income': income_total - m_extra_debtor_inc - m_extra_contract_inc,
+                'project_profit': _project_profit_for_period(month_start, month_end)
             })
 
         # Yearly trend (Last 12 Months)
@@ -317,7 +343,8 @@ def register_routes(main):
                 'expense': expense_total,
                 'actual_expense': expense_total - m_lent - y_debt_repayments,
                 'income': income_total,
-                'actual_income': income_total - y_extra_debtor_inc - y_extra_contract_inc
+                'actual_income': income_total - y_extra_debtor_inc - y_extra_contract_inc,
+                'project_profit': _project_profit_for_period(month_start, month_end)
             })
 
         # Annual Overview (All Years)
