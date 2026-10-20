@@ -90,6 +90,13 @@ def register_routes(main):
 
         debt_lent_cat = Category.query.filter_by(name='Money Lent', user_id=current_user.id).first()
         debt_lent_id = debt_lent_cat.id if debt_lent_cat else -1
+        debt_payment_cat = Category.query.filter_by(name='Debt Payment', user_id=current_user.id).first()
+        debt_payment_id = debt_payment_cat.id if debt_payment_cat else -1
+
+        debt_repayment_filter = or_(
+            Expense.category_id == debt_payment_id,
+            func.coalesce(Expense.tags, '').ilike('%debt_payment%')
+        )
 
         category_totals = {}
         category_expenses = _load_live_expenses(
@@ -98,6 +105,16 @@ def register_routes(main):
         )
         for expense in category_expenses:
             if not expense.category:
+                continue
+
+            # Payable repayments and money lent remain part of gross Expenses,
+            # but this chart represents actual operating spending.
+            tags = (expense.tags or '').lower()
+            if (
+                expense.category_id in (debt_payment_id, debt_lent_id)
+                or 'debt_payment' in tags
+                or 'debt_lent' in tags
+            ):
                 continue
 
             if expense.category_id not in category_totals:
@@ -136,12 +153,22 @@ def register_routes(main):
                 # Use Historical ground truth if available
                 expense_total = hist_summary.total_expense
                 income_total = hist_summary.total_income
-                # We assume FinancialSummary is the final word (no extras needed)
-                # But for 'Actuals' (Spent - Lent), we'd need m_lent if the summary doesn't already subtract it.
-                # Usually summaries are gross, let's keep it simple or check if user has m_lent in summary.
-                # (Models show they are separate: actual_expense is there too but maybe not filled).
-                m_lent = 0
-                m_debt_repayments = 0
+                # Historical summaries contain gross expenses. Use the detailed
+                # rows retained for that period to remove non-operating flows.
+                m_lent = _sum_live_expenses_in_ghs(
+                    convert_to_ghs,
+                    Expense.transaction_type == 'expense',
+                    Expense.date >= month_start,
+                    Expense.date < month_end,
+                    or_(Expense.category_id == debt_lent_id, Expense.tags.ilike('%debt_lent%'))
+                )
+                m_debt_repayments = _sum_live_expenses_in_ghs(
+                    convert_to_ghs,
+                    Expense.transaction_type == 'expense',
+                    Expense.date >= month_start,
+                    Expense.date < month_end,
+                    debt_repayment_filter
+                )
                 m_extra_debtor_inc = 0
                 m_extra_contract_inc = 0
             else:
@@ -175,7 +202,7 @@ def register_routes(main):
                     Expense.transaction_type == 'expense',
                     Expense.date >= month_start,
                     Expense.date < month_end,
-                    Expense.tags.ilike('%debt_payment%')
+                    debt_repayment_filter
                 )
 
                 m_extra_debtor_inc = db.session.query(func.sum(DebtorPayment.amount)).filter(
@@ -221,8 +248,20 @@ def register_routes(main):
             if hist_summary:
                 expense_total = hist_summary.total_expense
                 income_total = hist_summary.total_income
-                m_lent = 0
-                y_debt_repayments = 0
+                m_lent = _sum_live_expenses_in_ghs(
+                    convert_to_ghs,
+                    Expense.transaction_type == 'expense',
+                    Expense.date >= month_start,
+                    Expense.date < month_end,
+                    or_(Expense.category_id == debt_lent_id, Expense.tags.ilike('%debt_lent%'))
+                )
+                y_debt_repayments = _sum_live_expenses_in_ghs(
+                    convert_to_ghs,
+                    Expense.transaction_type == 'expense',
+                    Expense.date >= month_start,
+                    Expense.date < month_end,
+                    debt_repayment_filter
+                )
                 y_extra_debtor_inc = 0
                 y_extra_contract_inc = 0
             else:
@@ -256,7 +295,7 @@ def register_routes(main):
                     Expense.transaction_type == 'expense',
                     Expense.date >= month_start,
                     Expense.date < month_end,
-                    Expense.tags.ilike('%debt_payment%')
+                    debt_repayment_filter
                 )
 
                 y_extra_debtor_inc = db.session.query(func.sum(DebtorPayment.amount)).filter(
@@ -306,8 +345,22 @@ def register_routes(main):
             if yearly_hist:
                 y_expense = yearly_hist.total_expense or 0
                 y_income = yearly_hist.total_income or 0
-                # If a yearly summary exists, we assume it covers the historical ground truth
-                # and Act will default to Total unless we have more info.
+                year_start = datetime(year, 1, 1)
+                year_end = datetime(year + 1, 1, 1)
+                y_lent = _sum_live_expenses_in_ghs(
+                    convert_to_ghs,
+                    Expense.transaction_type == 'expense',
+                    Expense.date >= year_start,
+                    Expense.date < year_end,
+                    or_(Expense.category_id == debt_lent_id, Expense.tags.ilike('%debt_lent%'))
+                )
+                y_debt_payments = _sum_live_expenses_in_ghs(
+                    convert_to_ghs,
+                    Expense.transaction_type == 'expense',
+                    Expense.date >= year_start,
+                    Expense.date < year_end,
+                    debt_repayment_filter
+                )
             else:
                 # Process each month in the year for correct de-duplication
                 for m in range(1, 13):
@@ -324,6 +377,20 @@ def register_routes(main):
                     if hist_m:
                         y_expense += (hist_m.total_expense or 0)
                         y_income += (hist_m.total_income or 0)
+                        y_lent += _sum_live_expenses_in_ghs(
+                            convert_to_ghs,
+                            Expense.transaction_type == 'expense',
+                            Expense.date >= m_start,
+                            Expense.date < m_end,
+                            or_(Expense.category_id == debt_lent_id, Expense.tags.ilike('%debt_lent%'))
+                        )
+                        y_debt_payments += _sum_live_expenses_in_ghs(
+                            convert_to_ghs,
+                            Expense.transaction_type == 'expense',
+                            Expense.date >= m_start,
+                            Expense.date < m_end,
+                            debt_repayment_filter
+                        )
                     else:
                         # Each creditor repayment already exists in Expense, so do
                         # not add DebtPayment records a second time.
@@ -356,7 +423,7 @@ def register_routes(main):
                             Expense.transaction_type == 'expense',
                             Expense.date >= m_start,
                             Expense.date < m_end,
-                            Expense.tags.ilike('%debt_payment%')
+                            debt_repayment_filter
                         )
 
                         m_extra_dr_inc = db.session.query(func.sum(DebtorPayment.amount)).filter(
