@@ -49,16 +49,16 @@
 
     <!-- Quick Stats Grid -->
     <div class="grid grid-cols-2 lg:grid-cols-5 gap-4">
-        <!-- Net Current Profit -->
-        <div class="col-span-2 sm:col-span-1 lg:col-span-1 {% if current_profit >= 0 %}bg-success/10 border-success/20{% else %}bg-danger/10 border-danger/20{% endif %} backdrop-blur-xl rounded-2xl border p-5 shadow-xl flex flex-col justify-between">
-            <span class="text-[10px] font-black {% if current_profit >= 0 %}text-success/80{% else %}text-danger/80{% endif %} uppercase tracking-widest mb-1 flex items-center gap-1.5">
-                <i data-lucide="{% if current_profit >= 0 %}trending-up{% else %}trending-down{% endif %}" class="w-3.5 h-3.5"></i> Net Current {{ 'Profit' if current_profit >= 0 else 'Loss' }}
+        <!-- Realized Profit As At Today -->
+        <div class="col-span-2 sm:col-span-1 lg:col-span-1 {% if profit_as_of_today >= 0 %}bg-success/10 border-success/20{% else %}bg-danger/10 border-danger/20{% endif %} backdrop-blur-xl rounded-2xl border p-5 shadow-xl flex flex-col justify-between">
+            <span class="text-[10px] font-black {% if profit_as_of_today >= 0 %}text-success/80{% else %}text-danger/80{% endif %} uppercase tracking-widest mb-1 flex items-center gap-1.5">
+                <i data-lucide="{% if profit_as_of_today >= 0 %}trending-up{% else %}trending-down{% endif %}" class="w-3.5 h-3.5"></i> Total {{ 'Profit' if profit_as_of_today >= 0 else 'Loss' }} as at Today
             </span>
             <div>
-                <p class="text-2xl font-black font-heading {% if current_profit >= 0 %}text-success{% else %}text-danger{% endif %} truncate" title="{{ current_user.default_currency }} {{ '{:,.2f}'.format(current_profit|abs) }}">
-                    {{ current_user.default_currency }} {{ "{:,.2f}".format(current_profit|abs) }}
+                <p class="text-2xl font-black font-heading {% if profit_as_of_today >= 0 %}text-success{% else %}text-danger{% endif %} truncate" title="{{ current_user.default_currency }} {{ '{:,.2f}'.format(profit_as_of_today|abs) }}">
+                    {{ current_user.default_currency }} {{ "{:,.2f}".format(profit_as_of_today|abs) }}
                 </p>
-                <span class="text-[10px] font-bold text-text-muted">Income - (Items + Op Expenses)</span>
+                <span class="text-[10px] font-bold text-text-muted">Through {{ as_of_date.strftime('%d %b %Y') }}</span>
             </div>
         </div>
 
@@ -69,7 +69,7 @@
             </span>
             <div>
                 <p class="text-2xl font-black font-heading text-text truncate">
-                    {{ current_user.default_currency }} {{ "{:,.2f}".format(total_paid_income) }}
+                    {{ current_user.default_currency }} {{ "{:,.2f}".format(profit_as_of_income) }}
                 </p>
                 <span class="text-[10px] font-bold text-text-muted">Planned: {{ current_user.default_currency }} {{ "{:,.2f}".format(total_projected_income) }}</span>
             </div>
@@ -82,7 +82,7 @@
             </span>
             <div>
                 <p class="text-2xl font-black font-heading text-text truncate">
-                    {{ current_user.default_currency }} {{ "{:,.2f}".format(total_paid_expense) }}
+                    {{ current_user.default_currency }} {{ "{:,.2f}".format(profit_as_of_project_expense) }}
                 </p>
                 <span class="text-[10px] font-bold text-text-muted">Planned: {{ current_user.default_currency }} {{ "{:,.2f}".format(total_projected_cost) }}</span>
             </div>
@@ -95,7 +95,7 @@
             </span>
             <div>
                 <p class="text-2xl font-black font-heading text-warning truncate">
-                    {{ current_user.default_currency }} {{ "{:,.2f}".format(total_operational_expense) }}
+                    {{ current_user.default_currency }} {{ "{:,.2f}".format(profit_as_of_operational_expense) }}
                 </p>
                 <span class="text-[10px] font-bold text-text-muted">{{ category_expenses|length }} logged expense{{ 's' if category_expenses|length != 1 else '' }}</span>
             </div>

@@ -219,6 +219,36 @@ def register_routes(main):
         total_projected_cost = sum(p.total_cost for p in projects)
         projected_profit = total_projected_income - (total_projected_cost + total_operational_expense)
 
+        # Realized totals as at today exclude future-dated transactions.
+        as_of_date = datetime.now().date()
+        profit_as_of_income = 0.0
+        profit_as_of_project_expense = 0.0
+
+        for project in projects:
+            for item in project.items:
+                for payment in item.payments:
+                    if (
+                        not payment.is_paid
+                        or not payment.payment_date
+                        or payment.payment_date.date() > as_of_date
+                    ):
+                        continue
+                    if item.item_type == 'income':
+                        profit_as_of_income += payment.amount
+                    else:
+                        profit_as_of_project_expense += payment.amount
+
+        profit_as_of_operational_expense = sum(
+            expense.amount
+            for expense in category_expenses
+            if expense.date and expense.date.date() <= as_of_date
+        )
+        profit_as_of_today = (
+            profit_as_of_income
+            - profit_as_of_project_expense
+            - profit_as_of_operational_expense
+        )
+
         # Monthly realized profit is based on paid project-item payments and
         # operational expenses recorded in the same calendar month.
         monthly_profit_by_period = {}
@@ -268,6 +298,11 @@ def register_routes(main):
                                total_projected_income=total_projected_income,
                                total_projected_cost=total_projected_cost,
                                projected_profit=projected_profit,
+                               as_of_date=as_of_date,
+                               profit_as_of_today=profit_as_of_today,
+                               profit_as_of_income=profit_as_of_income,
+                               profit_as_of_project_expense=profit_as_of_project_expense,
+                               profit_as_of_operational_expense=profit_as_of_operational_expense,
                                monthly_profits=monthly_profits)
 
     @main.route('/projects/categories/expenses/add', methods=['POST'])
