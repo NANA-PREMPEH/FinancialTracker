@@ -5,6 +5,7 @@ from .models import (
     User, Wallet, Category, Expense, Budget, RecurringTransaction,
     Project, ProjectItem, ProjectItemPayment,
     ProjectCategory, ProjectCategoryExpense,
+    EquityCapital, EquityTransaction, CapitalAllocation,
     FinancialSummary, WishlistItem,
     Creditor, DebtPayment, Debtor, DebtorPayment,
     Goal, GoalTask, GoalMilestone,
@@ -553,8 +554,13 @@ def _restore_merge(uid, data):
 def _delete_all_user_data(uid):
     """Delete ALL user-owned records in dependency-safe order."""
     # Deeply nested/dependent records first
+    CapitalAllocation.query.filter_by(user_id=uid).delete(synchronize_session=False)
+    EquityTransaction.query.filter_by(user_id=uid).delete(synchronize_session=False)
+    EquityCapital.query.filter_by(user_id=uid).delete(synchronize_session=False)
+
     ProjectItemPayment.query.filter_by(user_id=uid).delete(synchronize_session=False)
     ProjectItem.query.filter_by(user_id=uid).delete(synchronize_session=False)
+    ProjectCategoryExpense.query.filter_by(user_id=uid).delete(synchronize_session=False)
 
     ContractPayment.query.filter_by(user_id=uid).delete(synchronize_session=False)
 
@@ -574,6 +580,7 @@ def _delete_all_user_data(uid):
     Budget.query.filter_by(user_id=uid).delete(synchronize_session=False)
     RecurringTransaction.query.filter_by(user_id=uid).delete(synchronize_session=False)
     Project.query.filter_by(user_id=uid).delete(synchronize_session=False)
+    ProjectCategory.query.filter_by(user_id=uid).delete(synchronize_session=False)
     FinancialSummary.query.filter_by(user_id=uid).delete(synchronize_session=False)
     WishlistItem.query.filter_by(user_id=uid).delete(synchronize_session=False)
     Creditor.query.filter_by(user_id=uid).delete(synchronize_session=False)
